@@ -6,14 +6,14 @@ import (
 	"io"
 )
 
-// ParseJson reads bytes into interface
-func ParseJson(in []byte, out interface{}) error {
+// ParseJSON reads bytes into interface
+func ParseJSON(in []byte, out interface{}) error {
 	err := json.Unmarshal(in, &out)
 	return err
 }
 
-// ToJson stringifies input to bytes
-func ToJson(in interface{}) ([]byte, error) {
+// ToJSON stringifies input to bytes
+func ToJSON(in interface{}) ([]byte, error) {
 	out, err := json.Marshal(in)
 	return out, err
 }
