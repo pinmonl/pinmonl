@@ -6,16 +6,19 @@ import (
 	"io"
 )
 
-func ParseJsonFrom(in []byte, out interface{}) error {
+// ParseJson reads bytes into interface
+func ParseJson(in []byte, out interface{}) error {
 	err := json.Unmarshal(in, &out)
 	return err
 }
 
-func RenderAsJson(in interface{}) ([]byte, error) {
+// ToJson stringifies input to bytes
+func ToJson(in interface{}) ([]byte, error) {
 	out, err := json.Marshal(in)
 	return out, err
 }
 
+// ReaderToByte converts io.Reader to bytes
 func ReaderToByte(reader io.Reader) []byte {
 	b := &bytes.Buffer{}
 	_, err := b.ReadFrom(reader)
