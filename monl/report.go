@@ -1,38 +1,14 @@
 package monl
 
+// Report handles the vendor API response and transform to repository information
+// releases should be in descending order by date
 type Report interface {
-	RawUrl() string
-	Uri() string
-	Vendor() Vendor
+	RawURL() string
+	URI() string
+	Vendor() string
 	Popularity() StatCollection
 	Latest() Stat
 	Next() Stat
-	NextAll() StatCollection
+	Previous() Stat
 	Length() int
 }
-
-type SimpleReport struct {
-	rawUrl string
-	vendor Vendor
-	stats  []Stat
-}
-
-func NewReport(
-	rawUrl string,
-	vendor Vendor,
-	stats []Stat,
-) *SimpleReport {
-	return &SimpleReport{
-		rawUrl: rawUrl,
-		vendor: vendor,
-		stats:  stats,
-	}
-}
-
-func (s *SimpleReport) RawUrl() string { return s.rawUrl }
-
-func (s *SimpleReport) Vendor() Vendor { return s.vendor }
-
-func (s *SimpleReport) Stats() []Stat { return s.stats }
-
-func (s *SimpleReport) Length() int { return len(s.stats) }
