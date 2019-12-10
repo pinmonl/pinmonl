@@ -38,8 +38,10 @@ func TestGetRepo(t *testing.T) {
 
 	c := NewClient(createClient())
 	for _, tc := range testCases {
-		res, err := c.GetRepo(context.Background(), tc.repoOwner, tc.repoName)
-		t.Errorf("%v\n\n%v", res, err)
+		r, err := c.GetRepo(context.Background(), tc.repoOwner, tc.repoName)
+		if !tc.passFn(r, err) {
+			t.Errorf("case %q fails", tc.name)
+		}
 	}
 }
 

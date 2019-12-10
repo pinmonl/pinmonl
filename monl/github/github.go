@@ -1,7 +1,10 @@
 package github
 
 import (
+	"context"
 	"regexp"
+
+	"golang.org/x/oauth2"
 )
 
 // Vendor handles Github url

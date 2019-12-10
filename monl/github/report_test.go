@@ -88,7 +88,7 @@ func TestGithubRepo(t *testing.T) {
 
 	for _, tc := range testCases {
 		r, _ := NewReport("test", tc.rawurl, createClient())
-		err := r.DownloadInfo()
+		err := r.Download()
 		if !tc.passFn(r, err) {
 			t.Errorf("case %q fails, err: %v", tc.name, err)
 		}

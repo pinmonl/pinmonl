@@ -79,7 +79,7 @@ func (r *Report) Popularity() monl.StatCollection {
 
 // Next returns next release
 func (r *Report) Next() monl.Stat {
-	if r.cursor-1 >= 0 {
+	if len(r.repoRels) > 0 && r.cursor-1 >= 0 {
 		r.cursor = r.cursor - 1
 		return r.repoRels[r.cursor]
 	}
@@ -136,6 +136,11 @@ func (r *Report) Download() error {
 		r.repoRels = append(r.repoRels, relStat)
 		r.cursor = 0
 	}
+	return nil
+}
+
+// Derived returns the derived urls in other vendor
+func (r *Report) Derived() map[string]string {
 	return nil
 }
 
