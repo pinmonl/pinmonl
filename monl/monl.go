@@ -34,11 +34,12 @@ func (m *Monl) Get(name string) (Vendor, error) {
 }
 
 // GuessURL find vendor by calling vendor's Check()
-func (m *Monl) GuessURL(url string) (Vendor, error) {
+func (m *Monl) GuessURL(url string) ([]Vendor, error) {
+	vs := make([]Vendor, 0)
 	for _, v := range m.vendors {
 		if v.Check(url) {
-			return v, nil
+			vs = append(vs, v)
 		}
 	}
-	return nil, ErrVendorNotFound
+	return vs, nil
 }
