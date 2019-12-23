@@ -7,33 +7,33 @@ var (
 	ErrVendorNotFound = errors.New("monl vendor not found")
 )
 
-// Monl holds list of vendors
+// Monl holds list of vendors.
 type Monl struct {
 	vendors map[string]Vendor
 }
 
-// New creates an instance of Monl
+// New creates an instance of Monl.
 func New() *Monl {
 	return &Monl{
 		vendors: make(map[string]Vendor),
 	}
 }
 
-// Add pushes vendor into the list
-func (m *Monl) Add(v Vendor) error {
+// Register pushes vendor into the list.
+func (m *Monl) Register(v Vendor) error {
 	m.vendors[v.Name()] = v
 	return nil
 }
 
-// Get finds vendor by name
-func (m *Monl) Get(name string) (Vendor, error) {
+// Get finds vendor by name.
+func (m *Monl) Get(name string) Vendor {
 	if v, ok := m.vendors[name]; ok {
-		return v, nil
+		return v
 	}
-	return nil, ErrVendorNotFound
+	return nil
 }
 
-// GuessURL find vendor by calling vendor's Check()
+// GuessURL find vendor by calling vendor's Check().
 func (m *Monl) GuessURL(url string) ([]Vendor, error) {
 	vs := make([]Vendor, 0)
 	for _, v := range m.vendors {

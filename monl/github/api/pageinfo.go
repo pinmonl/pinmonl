@@ -2,7 +2,7 @@ package api
 
 import "github.com/shurcooL/githubv4"
 
-// PageInfo defines the structure of pagination
+// PageInfo defines the structure of pagination.
 type PageInfo struct {
 	StartCursor     string
 	EndCursor       string
@@ -10,7 +10,7 @@ type PageInfo struct {
 	HasPreviousPage bool
 }
 
-// PageOption defines the parameters for querying
+// PageOption defines the parameters for querying.
 type PageOption struct {
 	After  string
 	Before string
@@ -18,7 +18,7 @@ type PageOption struct {
 	Last   int
 }
 
-// Scalar returns map of scalar for GraphQL
+// Scalar returns map of scalar for GraphQL.
 func (po PageOption) Scalar() map[string]interface{} {
 	out := map[string]interface{}{
 		"after":  (*githubv4.String)(nil),

@@ -10,12 +10,12 @@ var (
 	migrationTableName = "migrations"
 )
 
-// DB stores sql.DB and the driver name
+// DB stores sql.DB and the driver name.
 type DB struct {
 	*sqlx.DB
 }
 
-// Open creates a db instance
+// Open creates db.
 func Open(driverName, dataSourceName string) (*DB, error) {
 	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
@@ -26,19 +26,19 @@ func Open(driverName, dataSourceName string) (*DB, error) {
 	return &DB{dbx}, nil
 }
 
-// Execer extends sqlx.Execer
+// Execer extends sqlx.Execer.
 type Execer interface {
 	sqlx.Execer
 	NamedExec(query string, arg interface{}) (sql.Result, error)
 }
 
-// Queryer extends sqlx.Queryer
+// Queryer extends sqlx.Queryer.
 type Queryer interface {
 	sqlx.Queryer
 	NamedQuery(query string, arg interface{}) (*sqlx.Rows, error)
 }
 
-// Ext combines Execer and Queryer
+// Ext combines Execer and Queryer.
 type Ext interface {
 	Execer
 	Queryer

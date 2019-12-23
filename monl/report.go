@@ -1,7 +1,7 @@
 package monl
 
 // Report handles the vendor API response and transform to repository information
-// releases should be in descending order by date
+// releases should be in descending order by date.
 type Report interface {
 	// RawURL returns the original url, should exclude the part of hash and search
 	RawURL() string

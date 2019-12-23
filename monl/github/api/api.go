@@ -7,12 +7,12 @@ import (
 	"github.com/shurcooL/githubv4"
 )
 
-// Client defines to handle Github v4 API
+// Client defines to handle Github v4 API.
 type Client struct {
 	client *githubv4.Client
 }
 
-// NewClient creates API client
+// NewClient creates API client.
 func NewClient(httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = &http.Client{}
@@ -20,7 +20,7 @@ func NewClient(httpClient *http.Client) *Client {
 	return &Client{client: githubv4.NewClient(httpClient)}
 }
 
-// GetRepo returns basic information of the repository
+// GetRepo returns basic information of the repository.
 func (c *Client) GetRepo(ctx context.Context, owner, name string) (*Repo, error) {
 	var q struct {
 		Repo *Repo `graphql:"repository(owner: $owner, name: $name)"`
@@ -33,7 +33,7 @@ func (c *Client) GetRepo(ctx context.Context, owner, name string) (*Repo, error)
 	return q.Repo, nil
 }
 
-// ListRepoReleases returns list of releases
+// ListRepoReleases returns list of releases.
 func (c *Client) ListRepoReleases(ctx context.Context, owner, name string, relpo *PageOption) (*RepoReleases, error) {
 	var q struct {
 		Repo *RepoReleases `graphql:"repository(owner: $owner, name: $name)"`
@@ -51,7 +51,7 @@ func (c *Client) ListRepoReleases(ctx context.Context, owner, name string, relpo
 	return q.Repo, nil
 }
 
-// ListRepoTags returns list of tags
+// ListRepoTags returns list of tags.
 func (c *Client) ListRepoTags(ctx context.Context, owner, name string, tagpo *PageOption) (*RepoTags, error) {
 	var q struct {
 		Repo *RepoTags `graphql:"repository(owner: $owner, name: $name)"`

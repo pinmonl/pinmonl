@@ -95,43 +95,43 @@ func (mp *MigrationPlan) DownTo(limit int) error {
 
 func (mp *MigrationPlan) runMigration(dir direction, limit int) error {
 	var (
-		migrations = mp.src.List()
-		start      = 0
-		recordStmt string
-		records    = mp.Records()
+		ms    = mp.src.List()
+		start = 0
+		rstmt string
+		rs    = mp.Records()
 	)
 
 	switch dir {
 	case dirUp:
-		recordStmt = fmt.Sprintf("INSERT INTO %s (name) VALUES (:name)", mp.TableName())
-		sort.Sort(migrations)
-		if len(records) > 0 {
+		rstmt = fmt.Sprintf("INSERT INTO %s (name) VALUES (:name)", mp.TableName())
+		sort.Sort(ms)
+		if len(rs) > 0 {
 			start = start + 1
 		}
 	case dirDown:
-		if len(records) == 0 {
+		if len(rs) == 0 {
 			return nil
 		}
-		recordStmt = fmt.Sprintf("DELETE FROM %s WHERE name = :name", mp.TableName())
-		sort.Sort(sort.Reverse(migrations))
+		rstmt = fmt.Sprintf("DELETE FROM %s WHERE name = :name", mp.TableName())
+		sort.Sort(sort.Reverse(ms))
 	}
-	if len(records) > 0 {
-		latest := records[len(records)-1]
-		start = start + migrations.IndexOf(latest.Name)
+	if len(rs) > 0 {
+		latest := rs[len(rs)-1]
+		start = start + ms.IndexOf(latest.Name)
 	}
 
-	execMigrations := migrations[start:]
+	ms2 := ms[start:]
 	if limit > 0 {
 		end := limit
-		execMigrations = execMigrations[:end]
+		ms2 = ms2[:end]
 	}
 
 	var err error
 	tx, _ := mp.db.Beginx()
 migrate:
-	for _, m := range execMigrations {
+	for _, m := range ms2 {
 		args := map[string]interface{}{"name": m.Name}
-		_, err = tx.NamedExec(recordStmt, args)
+		_, err = tx.NamedExec(rstmt, args)
 		if err != nil {
 			break migrate
 		}
@@ -161,12 +161,12 @@ func (mp *MigrationPlan) Records() []MigrationRecord {
 
 	mrs := make([]MigrationRecord, 0)
 	for rows.Next() {
-		var record MigrationRecord
-		err = rows.StructScan(&record)
+		var mr MigrationRecord
+		err = rows.StructScan(&mr)
 		if err != nil {
 			return nil
 		}
-		mrs = append(mrs, record)
+		mrs = append(mrs, mr)
 	}
 	return mrs
 }
@@ -178,11 +178,11 @@ func nameMatches(name string) []string {
 }
 
 func versionFrom(name string) string {
-	matches := nameMatches(name)
-	if len(matches) <= 1 {
+	nm := nameMatches(name)
+	if len(nm) <= 1 {
 		return ""
 	}
-	return matches[1]
+	return nm[1]
 }
 
 func versionInt(v string) int {
@@ -239,23 +239,23 @@ func (m MigrationRecord) VersionInt() int {
 type MigrationList []Migration
 
 // Len is the number of elements in the collection.
-func (list MigrationList) Len() int { return len(list) }
+func (ml MigrationList) Len() int { return len(ml) }
 
 // Swap swaps the elements with indexes i and j.
-func (list MigrationList) Swap(i, j int) { list[i], list[j] = list[j], list[i] }
+func (ml MigrationList) Swap(i, j int) { ml[i], ml[j] = ml[j], ml[i] }
 
 // Less reports whether the element with
 // index i should sort before the element with index j.
-func (list MigrationList) Less(i, j int) bool {
-	if list[i].VersionInt() < list[j].VersionInt() {
+func (ml MigrationList) Less(i, j int) bool {
+	if ml[i].VersionInt() < ml[j].VersionInt() {
 		return true
 	}
-	return strings.Compare(list[i].Name, list[j].Name) == -1
+	return strings.Compare(ml[i].Name, ml[j].Name) == -1
 }
 
 // IndexOf finds the index of the element by name.
-func (list MigrationList) IndexOf(name string) int {
-	for i, m := range list {
+func (ml MigrationList) IndexOf(name string) int {
+	for i, m := range ml {
 		if m.Name == name {
 			return i
 		}

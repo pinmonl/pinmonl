@@ -12,7 +12,7 @@ import (
 	"github.com/pinmonl/pinmonl/monl/github/api"
 )
 
-// Report defines the Github repo info from the rawurl
+// Report defines the Github repo info from the rawurl.
 type Report struct {
 	client     *api.Client
 	rawurl     string
@@ -27,7 +27,7 @@ type Report struct {
 	cursor    int
 }
 
-// NewReport creates a report for handling the repo info
+// NewReport creates a report for handling the repo info.
 func NewReport(vendorName, rawurl string, httpClient *http.Client) (*Report, error) {
 	return &Report{
 		client:     api.NewClient(httpClient),
@@ -39,22 +39,22 @@ func NewReport(vendorName, rawurl string, httpClient *http.Client) (*Report, err
 	}, nil
 }
 
-// RawURL returns the raw url of the repo
+// RawURL returns the raw url of the repo.
 func (r *Report) RawURL() string { return r.rawurl }
 
-// URI returns the unique name of the repo
+// URI returns the unique name of the repo.
 func (r *Report) URI() string { return strings.Join(r.uriPaths(), "/") }
 
-// Vendor returns the vendor name
+// Vendor returns the vendor name.
 func (r *Report) Vendor() string { return r.vendorName }
 
-// Latest returns the latest release stat
+// Latest returns the latest release stat.
 func (r *Report) Latest() monl.Stat { return r.latestRel }
 
-// Length returns the total count of release
+// Length returns the total count of release.
 func (r *Report) Length() int { return r.totalRel }
 
-// Popularity returns a list of stats which shows its pupularity
+// Popularity returns a list of stats which shows its pupularity.
 func (r *Report) Popularity() monl.StatCollection {
 	if r.repoData == nil {
 		return nil
@@ -77,7 +77,7 @@ func (r *Report) Popularity() monl.StatCollection {
 	}
 }
 
-// Next returns next release
+// Next returns next release.
 func (r *Report) Next() monl.Stat {
 	if len(r.repoRels) > 0 && r.cursor-1 >= 0 {
 		r.cursor = r.cursor - 1
@@ -88,7 +88,7 @@ func (r *Report) Next() monl.Stat {
 
 // Previous returns previous release
 // If the cursor is out of range, it will proceed to previous page
-// or return nil if reached the end
+// or return nil if reached the end.
 func (r *Report) Previous() monl.Stat {
 	// Return if cursor is within the range of release cache
 	if r.cursor+1 < len(r.repoRels) {
@@ -119,7 +119,7 @@ func (r *Report) Previous() monl.Stat {
 	return r.repoRels[r.cursor]
 }
 
-// Download gets the repo info
+// Download gets the repo info.
 func (r *Report) Download() error {
 	infos := r.uriPaths()
 	repo, err := r.client.GetRepo(context.Background(), infos[0], infos[1])
@@ -139,7 +139,7 @@ func (r *Report) Download() error {
 	return nil
 }
 
-// Derived returns the derived urls in other vendor
+// Derived returns the derived urls in other vendor.
 func (r *Report) Derived() map[string]string {
 	return nil
 }

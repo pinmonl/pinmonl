@@ -4,30 +4,30 @@ import (
 	"context"
 	"regexp"
 
+	"github.com/pinmonl/pinmonl/monl"
 	"golang.org/x/oauth2"
 )
 
-// Vendor handles Github url
+// Vendor handles Github url.
 type Vendor struct {
 	token string
 }
 
-// NewVendor creates Github vendor
-func NewVendor(token string) (*Vendor, error) {
-	v := &Vendor{
+// NewVendor creates Github vendor.
+func NewVendor(token string) monl.Vendor {
+	return &Vendor{
 		token: token,
 	}
-	return v, nil
 }
 
-// Name returns the vendor name
+// Name returns the vendor name.
 func (v *Vendor) Name() string { return "github" }
 
-// Check passes if the url matches one of the patterns
+// Check passes if the url matches one of the patterns.
 func (v *Vendor) Check(rawurl string) bool { return v.isValidURL(rawurl) }
 
-// Load returns Github report
-func (v *Vendor) Load(rawurl string) (*Report, error) {
+// Load returns Github report.
+func (v *Vendor) Load(rawurl string) (monl.Report, error) {
 	src := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: v.token},
 	)
@@ -38,7 +38,10 @@ func (v *Vendor) Load(rawurl string) (*Report, error) {
 		return nil, err
 	}
 
-	r.Download()
+	err = r.Download()
+	if err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 

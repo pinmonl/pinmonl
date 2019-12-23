@@ -2,7 +2,7 @@ package api
 
 import "time"
 
-// Repo defines the structure of repository
+// Repo defines the structure of repository.
 type Repo struct {
 	ForkCount int
 	UpdatedAt time.Time
@@ -29,7 +29,7 @@ type Repo struct {
 	} `graphql:"refs(refPrefix: \"refs/tags/\")"`
 }
 
-// RepoReleases handles releases of repository with pagination
+// RepoReleases handles releases of repository with pagination.
 type RepoReleases struct {
 	Releases struct {
 		PageInfo   *PageInfo
@@ -38,7 +38,7 @@ type RepoReleases struct {
 	} `graphql:"releases(orderBy: {field: CREATED_AT, direction: DESC}, first: $first, after: $after, before: $before, last: $last)"`
 }
 
-// RepoTags handles tags of repository with pagination
+// RepoTags handles tags of repository with pagination.
 type RepoTags struct {
 	Tags struct {
 		PageInfo   *PageInfo
@@ -47,14 +47,14 @@ type RepoTags struct {
 	} `graphql:"refs(refPrefix: \"refs/tags/\", orderBy: {field: TAG_COMMIT_DATE, direction: DESC}, first: $first, after: $after, before: $before, after: $after)"`
 }
 
-// RepoReleaseNode defines the structure of release
+// RepoReleaseNode defines the structure of release.
 type RepoReleaseNode struct {
 	CreatedAt time.Time
 	Name      string
 	TagName   string
 }
 
-// RepoTagNode defines the structure of tag
+// RepoTagNode defines the structure of tag.
 type RepoTagNode struct {
 	Name string
 

@@ -21,47 +21,47 @@ const (
 )
 
 func parseMigration(name string, r io.Reader) (Migration, error) {
-	scanner := bufio.NewScanner(r)
-	parsed := Migration{Name: name}
+	sc := bufio.NewScanner(r)
+	m := Migration{Name: name}
 
 	buf := &bytes.Buffer{}
-	currentDir := dirNone
+	dir := dirNone
 
-	for scanner.Scan() {
-		line := scanner.Text()
+	for sc.Scan() {
+		line := sc.Text()
 
 		if strings.HasPrefix(line, sqlPrefix) {
-			sqlDirection := strings.TrimSpace(strings.TrimPrefix(line, sqlPrefix))
+			d := strings.TrimSpace(strings.TrimPrefix(line, sqlPrefix))
 			buf.Reset()
 
-			switch sqlDirection {
+			switch d {
 			case "Up":
-				currentDir = dirUp
+				dir = dirUp
 			case "Down":
-				currentDir = dirDown
+				dir = dirDown
 			}
 
 			continue
 		}
 
 		if _, err := buf.WriteString(line + "\n"); err != nil {
-			return parsed, err
+			return m, err
 		}
 
 		if strings.HasSuffix(strings.TrimSpace(line), sqlDelimiter) {
-			switch currentDir {
+			switch dir {
 			case dirUp:
-				parsed.Up = append(parsed.Up, buf.String())
+				m.Up = append(m.Up, buf.String())
 			case dirDown:
-				parsed.Down = append(parsed.Down, buf.String())
+				m.Down = append(m.Down, buf.String())
 			}
 			buf.Reset()
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
-		return parsed, err
+	if err := sc.Err(); err != nil {
+		return m, err
 	}
 
-	return parsed, nil
+	return m, nil
 }
