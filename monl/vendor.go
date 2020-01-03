@@ -1,5 +1,7 @@
 package monl
 
+import "context"
+
 // Vendor performs low-level url check and creates report.
 type Vendor interface {
 	// Name of vendor
@@ -9,5 +11,5 @@ type Vendor interface {
 	Check(url string) bool
 
 	// Load report from url
-	Load(url string) (Report, error)
+	Load(ctx context.Context, url string) (Report, error)
 }

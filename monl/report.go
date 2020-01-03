@@ -18,11 +18,17 @@ type Report interface {
 	// Latest returns the latest release always
 	Latest() Stat
 
-	// Next returns the next release
-	Next() Stat
+	// Stat returns the stat pointed by the current cursor.
+	Stat() Stat
 
-	// Previous returns the previous release
-	Previous() Stat
+	// Next moves cursor to next stat.
+	Next() bool
+
+	// Previous moves cursor to previous stat.
+	Previous() bool
+
+	// Close closes the report.
+	Close() error
 
 	// Length returns the total count of release
 	Length() int

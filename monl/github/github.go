@@ -8,15 +8,20 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// Opts defines the options of Github vendor initiation.
+type Opts struct {
+	Token string
+}
+
 // Vendor handles Github url.
 type Vendor struct {
 	token string
 }
 
 // NewVendor creates Github vendor.
-func NewVendor(token string) monl.Vendor {
+func NewVendor(opts Opts) monl.Vendor {
 	return &Vendor{
-		token: token,
+		token: opts.Token,
 	}
 }
 
@@ -27,11 +32,11 @@ func (v *Vendor) Name() string { return "github" }
 func (v *Vendor) Check(rawurl string) bool { return v.isValidURL(rawurl) }
 
 // Load returns Github report.
-func (v *Vendor) Load(rawurl string) (monl.Report, error) {
+func (v *Vendor) Load(ctx context.Context, rawurl string) (monl.Report, error) {
 	src := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: v.token},
 	)
-	httpClient := oauth2.NewClient(context.Background(), src)
+	httpClient := oauth2.NewClient(ctx, src)
 
 	r, err := NewReport(v.Name(), rawurl, httpClient)
 	if err != nil {

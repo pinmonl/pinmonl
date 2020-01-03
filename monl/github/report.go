@@ -77,29 +77,20 @@ func (r *Report) Popularity() monl.StatCollection {
 	}
 }
 
-// Next returns next release.
-func (r *Report) Next() monl.Stat {
-	if len(r.repoRels) > 0 && r.cursor-1 >= 0 {
-		r.cursor = r.cursor - 1
-		return r.repoRels[r.cursor]
-	}
-	return nil
-}
-
-// Previous returns previous release
+// Next moves the cursor if not reach the end.
 // If the cursor is out of range, it will proceed to previous page
 // or return nil if reached the end.
-func (r *Report) Previous() monl.Stat {
+func (r *Report) Next() bool {
 	// Return if cursor is within the range of release cache
 	if r.cursor+1 < len(r.repoRels) {
 		r.cursor = r.cursor + 1
-		return r.repoRels[r.cursor]
+		return true
 	}
 
 	pi := r.repoRelPageInfo
 	// Check before going to the next page
 	if !pi.HasNextPage {
-		return nil
+		return false
 	}
 
 	// Download the releases
@@ -107,7 +98,7 @@ func (r *Report) Previous() monl.Stat {
 	po := &api.PageOption{First: 50, After: pi.EndCursor}
 	repo, err := r.client.ListRepoReleases(context.Background(), infos[0], infos[1], po)
 	if err != nil {
-		return nil
+		return false
 	}
 	r.repoRelPageInfo = repo.Releases.PageInfo
 	for _, rel := range repo.Releases.Nodes {
@@ -116,6 +107,20 @@ func (r *Report) Previous() monl.Stat {
 	}
 
 	r.cursor = r.cursor + 1
+	return true
+}
+
+// Previous moves the cursor if has not reach the end.
+func (r *Report) Previous() bool {
+	if len(r.repoRels) > 0 && r.cursor-1 >= 0 {
+		r.cursor = r.cursor - 1
+		return true
+	}
+	return false
+}
+
+// Stat returns the stat at current cursor.
+func (r *Report) Stat() monl.Stat {
 	return r.repoRels[r.cursor]
 }
 
@@ -134,13 +139,17 @@ func (r *Report) Download() error {
 		relStat := r.parseRelease(nodes[0])
 		r.latestRel = relStat
 		r.repoRels = append(r.repoRels, relStat)
-		r.cursor = 0
 	}
 	return nil
 }
 
 // Derived returns the derived urls in other vendor.
 func (r *Report) Derived() map[string]string {
+	return nil
+}
+
+// Close closes the used resources.
+func (r *Report) Close() error {
 	return nil
 }
 
