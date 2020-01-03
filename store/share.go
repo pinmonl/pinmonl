@@ -1,0 +1,191 @@
+package store
+
+import (
+	"context"
+	"database/sql"
+
+	"github.com/pinmonl/pinmonl/database"
+	"github.com/pinmonl/pinmonl/model"
+)
+
+// ShareOpts defines the parameters for share filtering.
+type ShareOpts struct {
+	ListOpts
+	UserID string
+	Name   string
+}
+
+// ShareStore defines the services of share.
+type ShareStore interface {
+	List(context.Context, *ShareOpts) ([]model.Share, error)
+	Find(context.Context, *model.Share) error
+	FindByName(context.Context, *model.Share) error
+	Create(context.Context, *model.Share) error
+	Update(context.Context, *model.Share) error
+	Delete(context.Context, *model.Share) error
+}
+
+// NewShareStore creates share store.
+func NewShareStore(s Store) ShareStore {
+	return &dbShareStore{s}
+}
+
+type dbShareStore struct {
+	Store
+}
+
+// List retrieves shares by the filter parameters.
+func (s *dbShareStore) List(ctx context.Context, opts *ShareOpts) ([]model.Share, error) {
+	e := s.Exter(ctx)
+	br, args := bindShareOpts(opts)
+	br.From = shareTB
+	stmt := br.String()
+	rows, err := e.NamedQuery(stmt, args)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []model.Share
+	for rows.Next() {
+		var m model.Share
+		err = rows.StructScan(&m)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, m)
+	}
+	return list, nil
+}
+
+// Find retrieves share by id.
+func (s *dbShareStore) Find(ctx context.Context, m *model.Share) error {
+	e := s.Exter(ctx)
+	stmt := database.SelectBuilder{
+		From:  shareTB,
+		Where: []string{"id = :id"},
+		Limit: 1,
+	}.String()
+	rows, err := e.NamedQuery(stmt, m)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return sql.ErrNoRows
+	}
+	var m2 model.Share
+	err = rows.StructScan(&m2)
+	if err != nil {
+		return err
+	}
+	*m = m2
+	return nil
+}
+
+// FindByName retieves user's share by name.
+func (s *dbShareStore) FindByName(ctx context.Context, m *model.Share) error {
+	e := s.Exter(ctx)
+	stmt := database.SelectBuilder{
+		From:  shareTB,
+		Where: []string{"user_id = :user_id", "name = :name"},
+		Limit: 1,
+	}.String()
+	rows, err := e.NamedQuery(stmt, m)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return sql.ErrNoRows
+	}
+	var m2 model.Share
+	err = rows.StructScan(&m2)
+	if err != nil {
+		return err
+	}
+	*m = m2
+	return nil
+}
+
+// Create inserts the fields of share with generated id.
+func (s *dbShareStore) Create(ctx context.Context, m *model.Share) error {
+	m2 := *m
+	m2.ID = newUID()
+	m2.CreatedAt = timestamp()
+	e := s.Exter(ctx)
+	stmt := database.InsertBuilder{
+		Into: shareTB,
+		Fields: map[string]interface{}{
+			"id":          nil,
+			"user_id":     nil,
+			"name":        nil,
+			"description": nil,
+			"image_id":    nil,
+			"created_at":  nil,
+		},
+	}.String()
+	_, err := e.NamedExec(stmt, m2)
+	if err != nil {
+		return err
+	}
+	*m = m2
+	return nil
+}
+
+// Update updates the fields of share by id.
+func (s *dbShareStore) Update(ctx context.Context, m *model.Share) error {
+	m2 := *m
+	m2.UpdatedAt = timestamp()
+	e := s.Exter(ctx)
+	stmt := database.UpdateBuilder{
+		From: shareTB,
+		Fields: map[string]interface{}{
+			"user_id":     nil,
+			"name":        nil,
+			"description": nil,
+			"image_id":    nil,
+			"updated_at":  nil,
+		},
+		Where: []string{"id = :id"},
+	}.String()
+	_, err := e.NamedExec(stmt, m2)
+	if err != nil {
+		return err
+	}
+	*m = m2
+	return nil
+}
+
+// Delete removes share by id.
+func (s *dbShareStore) Delete(ctx context.Context, m *model.Share) error {
+	e := s.Exter(ctx)
+	stmt := database.DeleteBuilder{
+		From:  shareTB,
+		Where: []string{"id = :id"},
+	}.String()
+	_, err := e.NamedExec(stmt, m)
+	return err
+}
+
+func bindShareOpts(opts *ShareOpts) (database.SelectBuilder, map[string]interface{}) {
+	br := database.SelectBuilder{}
+	if opts == nil {
+		return br, nil
+	}
+
+	br = bindListOpts(opts.ListOpts)
+	args := make(map[string]interface{})
+	if opts.Name != "" {
+		br.Where = append(br.Where, "name = :name")
+		args["name"] = opts.Name
+	}
+	if opts.UserID != "" {
+		br.Where = append(br.Where, "user_id = :user_id")
+		args["user_id"] = opts.UserID
+	}
+
+	return br, args
+}
