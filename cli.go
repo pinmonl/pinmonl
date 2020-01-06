@@ -19,20 +19,22 @@ func initCli(
 	ml *monl.Monl,
 	qm *queue.Manager,
 ) *cli.App {
-	server := &cmd.Server{
+	server := cmd.Server{
 		Endpoint:     cfg.HTTP.Endpoint,
 		Handler:      h,
 		QueueManager: qm,
 	}
-	migration := &cmd.Migration{
+	migration := cmd.Migration{
 		MigrationPlan: mp,
 	}
+	generate := cmd.Generate{}
 
 	return &cli.App{
 		Name: "pinmonl",
 		Commands: []cli.Command{
 			server.Command(),
 			migration.Command(),
+			generate.Command(),
 		},
 	}
 }

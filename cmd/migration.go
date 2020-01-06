@@ -13,7 +13,7 @@ type Migration struct {
 }
 
 // Command returns cli.Command of migration.
-func (m *Migration) Command() cli.Command {
+func (m Migration) Command() cli.Command {
 	mp := m.MigrationPlan
 	return cli.Command{
 		Name:  "migration",

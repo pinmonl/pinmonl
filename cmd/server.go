@@ -18,7 +18,7 @@ type Server struct {
 }
 
 // Command returns cli.Command of server.
-func (s *Server) Command() cli.Command {
+func (s Server) Command() cli.Command {
 	return cli.Command{
 		Name:  "server",
 		Usage: "run HTTP server",
