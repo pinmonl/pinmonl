@@ -1,6 +1,9 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"github.com/pinmonl/pinmonl/pkg/generate"
+	"github.com/spf13/viper"
+)
 
 // Config stores configuration of the server.
 type Config struct {
@@ -19,6 +22,13 @@ type Config struct {
 	Queue struct {
 		Parallel int
 		Interval string
+	}
+	Cookie struct {
+		Name     string
+		MaxAge   string
+		Secure   bool
+		HashKey  string
+		BlockKey string
 	}
 }
 
@@ -45,6 +55,11 @@ func newViper() *viper.Viper {
 	v.SetDefault("loglevel", "debug")
 	v.SetDefault("queue.interval", "1s")
 	v.SetDefault("queue.parallel", 1)
+	v.SetDefault("cookie.name", "session")
+	v.SetDefault("cookie.maxage", "360h")
+	v.SetDefault("cookie.secure", false)
+	v.SetDefault("cookie.hashkey", generate.RandomString(32))
+	v.SetDefault("cookie.blockkey", generate.RandomString(32))
 
 	return v
 }
