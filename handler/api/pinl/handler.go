@@ -1,12 +1,15 @@
 package pinl
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 
+	"github.com/pinmonl/pinmonl/handler/api/image"
 	"github.com/pinmonl/pinmonl/handler/api/request"
 	"github.com/pinmonl/pinmonl/handler/api/response"
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/pkg/scrape"
 	"github.com/pinmonl/pinmonl/queue"
 	"github.com/pinmonl/pinmonl/store"
 )
@@ -15,7 +18,8 @@ import (
 func HandleList(pinls store.PinlStore, tags store.TagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		ms, err := pinls.List(ctx, &store.PinlOpts{})
+		u, _ := request.UserFrom(ctx)
+		ms, err := pinls.List(ctx, &store.PinlOpts{UserID: u.ID})
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -63,6 +67,7 @@ func HandleCreate(
 	tags store.TagStore,
 	taggables store.TaggableStore,
 	qm *queue.Manager,
+	images store.ImageStore,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		in, err := ReadInput(r.Body)
@@ -77,8 +82,18 @@ func HandleCreate(
 		}
 
 		ctx := r.Context()
-		var m model.Pinl
-		in.Fill(&m)
+		u, _ := request.UserFrom(ctx)
+		m := model.Pinl{UserID: u.ID}
+		err = in.Fill(&m)
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
+		err = fillCardIfEmpty(ctx, images, &m)
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
 		err = pinls.Create(ctx, &m)
 		if err != nil {
 			response.InternalError(w, err)
@@ -115,6 +130,7 @@ func HandleUpdate(
 	tags store.TagStore,
 	taggables store.TaggableStore,
 	qm *queue.Manager,
+	images store.ImageStore,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		in, err := ReadInput(r.Body)
@@ -130,7 +146,16 @@ func HandleUpdate(
 
 		ctx := r.Context()
 		m, _ := request.PinlFrom(ctx)
-		in.Fill(&m)
+		err = in.Fill(&m)
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
+		err = fillCardIfEmpty(ctx, images, &m)
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
 		err = pinls.Update(ctx, &m)
 		if err != nil {
 			response.InternalError(w, err)
@@ -207,4 +232,35 @@ func findOrCreateTags(ctx context.Context, tags store.TagStore, user string, tag
 		ts = append(ts, t)
 	}
 	return ts, nil
+}
+
+func fillCardIfEmpty(ctx context.Context, images store.ImageStore, m *model.Pinl) error {
+	if m.Title != "" {
+		return nil
+	}
+
+	resp, err := scrape.Get(m.URL)
+	if err != nil {
+		return err
+	}
+	card, err := resp.Card()
+	if err != nil {
+		return err
+	}
+	ci, err := card.Image()
+	if err != nil {
+		return err
+	}
+
+	m2 := *m
+	img, err := image.UploadFromReader(ctx, images, bytes.NewBuffer(ci))
+	if err != nil {
+		return err
+	}
+
+	m2.Title = card.Title()
+	m2.Description = card.Description()
+	m2.ImageID = img.ID
+	*m = m2
+	return nil
 }

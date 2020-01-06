@@ -11,6 +11,7 @@ type ctxKey int
 
 const (
 	loggerCtxKey ctxKey = iota
+	userCtxKey
 	pinlCtxKey
 	tagCtxKey
 	shareCtxKey
@@ -35,6 +36,17 @@ func MustLogger(ctx context.Context) logx.Logger {
 		panic("logger cannot find")
 	}
 	return l
+}
+
+// WithUser passes user into context.
+func WithUser(ctx context.Context, m model.User) context.Context {
+	return context.WithValue(ctx, userCtxKey, m)
+}
+
+// UserFrom gets user from context.
+func UserFrom(ctx context.Context) (model.User, bool) {
+	m, ok := ctx.Value(userCtxKey).(model.User)
+	return m, ok
 }
 
 // WithPinl passes pinl into context.

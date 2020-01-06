@@ -29,5 +29,6 @@ func newAPIServer(ss stores, qm *queue.Manager, sess sessions) *api.Server {
 		Taggables: ss.taggables,
 		Shares:    ss.shares,
 		Sharetags: ss.sharetags,
+		Images:    ss.images,
 	})
 }

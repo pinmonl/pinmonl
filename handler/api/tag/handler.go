@@ -12,7 +12,9 @@ import (
 // HandleList returns tags.
 func HandleList(tags store.TagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ms, err := tags.List(r.Context(), &store.TagOpts{})
+		ctx := r.Context()
+		u, _ := request.UserFrom(ctx)
+		ms, err := tags.List(ctx, &store.TagOpts{UserID: u.ID})
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -40,9 +42,11 @@ func HandleCreate(tags store.TagStore) http.HandlerFunc {
 			return
 		}
 
-		var m model.Tag
+		ctx := r.Context()
+		u, _ := request.UserFrom(ctx)
+		m := model.Tag{UserID: u.ID}
 		in.Fill(&m)
-		err = tags.Create(r.Context(), &m)
+		err = tags.Create(ctx, &m)
 		if err != nil {
 			response.InternalError(w, err)
 			return

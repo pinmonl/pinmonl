@@ -9,9 +9,12 @@ import (
 	"github.com/pinmonl/pinmonl/store"
 )
 
+// HandleList returns shares.
 func HandleList(shares store.ShareStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ml, err := shares.List(r.Context(), &store.ShareOpts{})
+		ctx := r.Context()
+		u, _ := request.UserFrom(ctx)
+		ml, err := shares.List(ctx, &store.ShareOpts{UserID: u.ID})
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -25,6 +28,7 @@ func HandleList(shares store.ShareStore) http.HandlerFunc {
 	}
 }
 
+// HandleFind returns share and its relations.
 func HandleFind(shares store.ShareStore, sharetags store.ShareTagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -48,6 +52,7 @@ func HandleFind(shares store.ShareStore, sharetags store.ShareTagStore) http.Han
 	}
 }
 
+// HandleCreate validates and create share from user input.
 func HandleCreate(shares store.ShareStore, sharetags store.ShareTagStore, tags store.TagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		in, err := ReadInput(r.Body)
@@ -63,7 +68,8 @@ func HandleCreate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 		}
 
 		ctx := r.Context()
-		var m model.Share
+		u, _ := request.UserFrom(ctx)
+		m := model.Share{UserID: u.ID}
 		err = in.Fill(&m)
 		if err != nil {
 			response.InternalError(w, err)
@@ -104,6 +110,7 @@ func HandleCreate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 	}
 }
 
+// HandleUpdate validates and updates share from user input.
 func HandleUpdate(shares store.ShareStore, sharetags store.ShareTagStore, tags store.TagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		in, err := ReadInput(r.Body)
@@ -160,6 +167,7 @@ func HandleUpdate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 	}
 }
 
+// HandleDelete removes share and its relations.
 func HandleDelete(shares store.ShareStore, sharetags store.ShareTagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()

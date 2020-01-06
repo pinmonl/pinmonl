@@ -4,10 +4,12 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/pinmonl/pinmonl/handler/api/image"
 	"github.com/pinmonl/pinmonl/handler/api/pinl"
 	"github.com/pinmonl/pinmonl/handler/api/response"
 	"github.com/pinmonl/pinmonl/handler/api/share"
 	"github.com/pinmonl/pinmonl/handler/api/tag"
+	"github.com/pinmonl/pinmonl/handler/api/user"
 	"github.com/pinmonl/pinmonl/logx"
 	"github.com/pinmonl/pinmonl/queue"
 	"github.com/pinmonl/pinmonl/session"
@@ -57,6 +59,7 @@ func NewServer(opts ServerOpts) *Server {
 		taggables: opts.Taggables,
 		shares:    opts.Shares,
 		sharetags: opts.Sharetags,
+		images:    opts.Images,
 	}
 }
 
@@ -65,36 +68,62 @@ func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(enableTransaction(s.store))
+	r.Use(user.Authenticate(s.cookie, s.users))
+
+	r.Route("/user", func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			r.Use(user.Guest())
+			r.Post("/register", user.HandleRegister(s.cookie, s.users))
+			r.Post("/login", user.HandleLogin(s.cookie, s.users))
+		})
+		r.Group(func(r chi.Router) {
+			r.Use(user.Authorize())
+			r.Post("/logout", user.HandleLogout(s.cookie))
+		})
+	})
 
 	r.Route("/pinl", func(r chi.Router) {
+		r.Use(user.Authorize())
 		r.Get("/", pinl.HandleList(s.pinls, s.tags))
-		r.Post("/", pinl.HandleCreate(s.pinls, s.tags, s.taggables, s.qm))
-		r.Route("/{pinlID}", func(r chi.Router) {
-			r.Use(pinl.BindByID(s.pinls))
+		r.Post("/", pinl.HandleCreate(s.pinls, s.tags, s.taggables, s.qm, s.images))
+		r.Route("/{pinl}", func(r chi.Router) {
+			r.Use(pinl.BindByID("pinl", s.pinls))
+			r.Use(pinl.RequireOwner())
 			r.Get("/", pinl.HandleFind(s.tags))
-			r.Put("/", pinl.HandleUpdate(s.pinls, s.tags, s.taggables, s.qm))
+			r.Put("/", pinl.HandleUpdate(s.pinls, s.tags, s.taggables, s.qm, s.images))
 			r.Delete("/", pinl.HandleDelete(s.pinls, s.taggables))
 		})
 	})
 
 	r.Route("/tag", func(r chi.Router) {
+		r.Use(user.Authorize())
 		r.Get("/", tag.HandleList(s.tags))
 		r.Post("/", tag.HandleCreate(s.tags))
-		r.Route("/{tagID}", func(r chi.Router) {
-			r.Use(tag.BindByID(s.tags))
+		r.Route("/{tag}", func(r chi.Router) {
+			r.Use(tag.BindByID("tag", s.tags))
+			r.Use(tag.RequireOwner())
 			r.Put("/", tag.HandleUpdate(s.tags))
 			r.Delete("/", tag.HandleDelete(s.tags))
 		})
 	})
 
 	r.Route("/share", func(r chi.Router) {
+		r.Use(user.Authorize())
 		r.Get("/", share.HandleList(s.shares))
 		r.Post("/", share.HandleCreate(s.shares, s.sharetags, s.tags))
-		r.Route("/{shareID}", func(r chi.Router) {
-			r.Use(share.BindByID(s.shares))
+		r.Route("/{share}", func(r chi.Router) {
+			r.Use(share.BindByID("share", s.shares))
+			r.Use(share.RequireOwner())
 			r.Get("/", share.HandleFind(s.shares, s.sharetags))
 			r.Put("/", share.HandleUpdate(s.shares, s.sharetags, s.tags))
 			r.Delete("/", share.HandleDelete(s.shares, s.sharetags))
+		})
+	})
+
+	r.Route("/image", func(r chi.Router) {
+		r.Route("/{image}", func(r chi.Router) {
+			r.Use(image.BindByID("image", s.images))
+			r.Get("/", image.HandleFind(s.images))
 		})
 	})
 

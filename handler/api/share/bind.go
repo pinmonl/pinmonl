@@ -12,10 +12,10 @@ import (
 )
 
 // BindByID retrieves share by id and passes it into context.
-func BindByID(shares store.ShareStore) func(http.Handler) http.Handler {
+func BindByID(name string, shares store.ShareStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			id := urlParamID(r)
+			id := chi.URLParam(r, name)
 			m := model.Share{ID: id}
 			ctx := r.Context()
 			if err := shares.Find(ctx, &m); err != nil {
@@ -27,9 +27,4 @@ func BindByID(shares store.ShareStore) func(http.Handler) http.Handler {
 		}
 		return http.HandlerFunc(fn)
 	}
-}
-
-func urlParamID(r *http.Request) string {
-	id := chi.URLParam(r, "shareID")
-	return id
 }

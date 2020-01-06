@@ -1,4 +1,4 @@
-package pinl
+package image
 
 import (
 	"fmt"
@@ -11,19 +11,18 @@ import (
 	"github.com/pinmonl/pinmonl/store"
 )
 
-// BindByID retrieves pinl by id and passes it into context.
-func BindByID(name string, pinls store.PinlStore) func(http.Handler) http.Handler {
+// BindByID retrieves image by id and passes it into context.
+func BindByID(name string, images store.ImageStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			id := chi.URLParam(r, name)
-			m := model.Pinl{ID: id}
+			m := model.Image{ID: id}
 			ctx := r.Context()
-			err := pinls.Find(ctx, &m)
-			if err != nil {
+			if err := images.Find(ctx, &m); err != nil {
 				response.NotFound(w, fmt.Errorf("id(%s) not found", id))
 				return
 			}
-			ctx = request.WithPinl(ctx, m)
+			ctx = request.WithImage(ctx, m)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 		return http.HandlerFunc(fn)

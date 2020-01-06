@@ -29,3 +29,9 @@ func InternalError(w http.ResponseWriter, v interface{}) {
 func NoContent(w http.ResponseWriter) {
 	w.WriteHeader(204)
 }
+
+// Unauthorized returns 401 HTTP status code.
+func Unauthorized(w http.ResponseWriter, v interface{}) {
+	w.WriteHeader(401)
+	JSON(w, v)
+}
