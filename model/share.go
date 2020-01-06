@@ -18,7 +18,7 @@ type Share struct {
 }
 
 // ShareNamePattern is the pattern of share name.
-var ShareNamePattern = regexp.MustCompile("^[a-zA-Z0-9-_\\.: ()\\[\\]]+$")
+var ShareNamePattern = regexp.MustCompile("^[a-zA-Z0-9-_]+$")
 
 // ShareTag defines the connection between share and tag.
 type ShareTag struct {

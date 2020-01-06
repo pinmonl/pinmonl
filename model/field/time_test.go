@@ -87,16 +87,16 @@ func TestTimeMarshalJSON(t *testing.T) {
 }
 
 func TestTimeUnmarshalJSON(t *testing.T) {
-	tests := []struct{
-		v []byte
+	tests := []struct {
+		v     []byte
 		wants Time
 	}{
 		{
-			v: []byte("null"),
+			v:     []byte("null"),
 			wants: Time{},
 		},
 		{
-			v: []byte(`"2019-12-30T01:02:03.000000004Z"`),
+			v:     []byte(`"2019-12-30T01:02:03.000000004Z"`),
 			wants: Time(time.Date(2019, 12, 30, 1, 2, 3, 4, time.UTC)),
 		},
 	}
