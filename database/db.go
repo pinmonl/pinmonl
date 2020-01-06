@@ -6,10 +6,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-var (
-	migrationTableName = "migrations"
-)
-
 // DB stores sql.DB and the driver name.
 type DB struct {
 	*sqlx.DB
