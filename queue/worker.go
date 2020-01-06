@@ -57,6 +57,8 @@ func (w *worker) process(ctx context.Context, job *Job) error {
 	switch job.Detail.Name {
 	case model.JobPinlCreated:
 		err = w.processPinlCreated(ctx, job)
+	case model.JobPinlUpdated:
+		err = w.processPinlCreated(ctx, job)
 	case model.JobMonlCreated:
 		err = w.processMonlCreated(ctx, job)
 	case model.JobMonlRegularUpdate:
@@ -137,6 +139,7 @@ func (w *worker) processMonlCreated(ctx context.Context, job *Job) error {
 	if err != nil {
 		return err
 	}
+	defer r.Close()
 
 	t.URL = r.RawURL()
 	t.VendorURI = r.URI()
@@ -170,6 +173,7 @@ func (w *worker) processMonlRegularUpdate(ctx context.Context, job *Job) error {
 	if err != nil {
 		return err
 	}
+	defer r.Close()
 
 	err = w.parseMonlReport(ctx, t, r)
 	if err != nil {
