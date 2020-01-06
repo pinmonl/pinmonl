@@ -20,9 +20,10 @@ func main() {
 	mp := initMigrationPlan(db)
 
 	ss := initStores(db)
+	sess := initSessionStore(cfg)
 	ml := initMonl(cfg, ss)
 	qm := initQueueManager(cfg, ss, ml)
-	h := initHTTPHandler(cfg, ss, qm)
+	h := initHTTPHandler(cfg, ss, qm, sess)
 
 	app := initCli(cfg, db, mp, h, ml, qm)
 	err = app.Run(os.Args)

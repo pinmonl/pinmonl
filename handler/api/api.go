@@ -10,12 +10,14 @@ import (
 	"github.com/pinmonl/pinmonl/handler/api/tag"
 	"github.com/pinmonl/pinmonl/logx"
 	"github.com/pinmonl/pinmonl/queue"
+	"github.com/pinmonl/pinmonl/session"
 	"github.com/pinmonl/pinmonl/store"
 )
 
 // ServerOpts defines the options of server initiation.
 type ServerOpts struct {
-	QueueManager *queue.Manager
+	QueueManager  *queue.Manager
+	CookieSession *session.CookieStore
 
 	Store     store.Store
 	Users     store.UserStore
@@ -24,11 +26,13 @@ type ServerOpts struct {
 	Taggables store.TaggableStore
 	Shares    store.ShareStore
 	Sharetags store.ShareTagStore
+	Images    store.ImageStore
 }
 
 // Server defines the api server.
 type Server struct {
-	qm *queue.Manager
+	qm     *queue.Manager
+	cookie *session.CookieStore
 
 	store     store.Store
 	users     store.UserStore
@@ -37,12 +41,15 @@ type Server struct {
 	taggables store.TaggableStore
 	shares    store.ShareStore
 	sharetags store.ShareTagStore
+	images    store.ImageStore
 }
 
 // NewServer creates api server.
 func NewServer(opts ServerOpts) *Server {
 	return &Server{
-		qm:        opts.QueueManager,
+		qm:     opts.QueueManager,
+		cookie: opts.CookieSession,
+
 		store:     opts.Store,
 		users:     opts.Users,
 		pinls:     opts.Pinls,
