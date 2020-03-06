@@ -18,6 +18,7 @@ type ShareOpts struct {
 // ShareStore defines the services of share.
 type ShareStore interface {
 	List(context.Context, *ShareOpts) ([]model.Share, error)
+	Count(context.Context, *ShareOpts) (int64, error)
 	Find(context.Context, *model.Share) error
 	FindByName(context.Context, *model.Share) error
 	Create(context.Context, *model.Share) error
@@ -36,7 +37,7 @@ type dbShareStore struct {
 
 // List retrieves shares by the filter parameters.
 func (s *dbShareStore) List(ctx context.Context, opts *ShareOpts) ([]model.Share, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindShareOpts(opts)
 	br.From = shareTB
 	stmt := br.String()
@@ -58,9 +59,33 @@ func (s *dbShareStore) List(ctx context.Context, opts *ShareOpts) ([]model.Share
 	return list, nil
 }
 
+// Count counts the number of share by the filter parameter.
+func (s *dbShareStore) Count(ctx context.Context, opts *ShareOpts) (int64, error) {
+	e := s.Queryer(ctx)
+	br, args := bindShareOpts(opts)
+	br.Columns = []string{"COUNT(*) as count"}
+	br.From = shareTB
+	stmt := br.String()
+	rows, err := e.NamedQuery(stmt, args)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return 0, sql.ErrNoRows
+	}
+	var count int64
+	err = rows.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // Find retrieves share by id.
 func (s *dbShareStore) Find(ctx context.Context, m *model.Share) error {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	stmt := database.SelectBuilder{
 		From:  shareTB,
 		Where: []string{"id = :id"},
@@ -86,7 +111,7 @@ func (s *dbShareStore) Find(ctx context.Context, m *model.Share) error {
 
 // FindByName retieves user's share by name.
 func (s *dbShareStore) FindByName(ctx context.Context, m *model.Share) error {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	stmt := database.SelectBuilder{
 		From:  shareTB,
 		Where: []string{"user_id = :user_id", "name = :name"},
@@ -115,7 +140,7 @@ func (s *dbShareStore) Create(ctx context.Context, m *model.Share) error {
 	m2 := *m
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.InsertBuilder{
 		Into: shareTB,
 		Fields: map[string]interface{}{
@@ -123,6 +148,7 @@ func (s *dbShareStore) Create(ctx context.Context, m *model.Share) error {
 			"user_id":     nil,
 			"name":        nil,
 			"description": nil,
+			"readme":      nil,
 			"image_id":    nil,
 			"created_at":  nil,
 		},
@@ -139,13 +165,14 @@ func (s *dbShareStore) Create(ctx context.Context, m *model.Share) error {
 func (s *dbShareStore) Update(ctx context.Context, m *model.Share) error {
 	m2 := *m
 	m2.UpdatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.UpdateBuilder{
 		From: shareTB,
 		Fields: map[string]interface{}{
 			"user_id":     nil,
 			"name":        nil,
 			"description": nil,
+			"readme":      nil,
 			"image_id":    nil,
 			"updated_at":  nil,
 		},
@@ -161,7 +188,7 @@ func (s *dbShareStore) Update(ctx context.Context, m *model.Share) error {
 
 // Delete removes share by id.
 func (s *dbShareStore) Delete(ctx context.Context, m *model.Share) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.DeleteBuilder{
 		From:  shareTB,
 		Where: []string{"id = :id"},

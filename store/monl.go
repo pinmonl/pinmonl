@@ -36,7 +36,7 @@ type dbMonlStore struct {
 
 // List retrieves monls by the filter parameters.
 func (s *dbMonlStore) List(ctx context.Context, opts *MonlOpts) ([]model.Monl, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindMonlOpts(opts)
 	br.From = monlTB
 	stmt := br.String()
@@ -60,7 +60,7 @@ func (s *dbMonlStore) List(ctx context.Context, opts *MonlOpts) ([]model.Monl, e
 
 // Find retrieves monl by id.
 func (s *dbMonlStore) Find(ctx context.Context, m *model.Monl) error {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	stmt := database.SelectBuilder{
 		From:  monlTB,
 		Where: []string{"id = :id"},
@@ -89,18 +89,15 @@ func (s *dbMonlStore) Create(ctx context.Context, m *model.Monl) error {
 	m2 := *m
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.InsertBuilder{
 		Into: monlTB,
 		Fields: map[string]interface{}{
 			"id":          nil,
 			"url":         nil,
-			"vendor":      nil,
-			"vendor_uri":  nil,
 			"title":       nil,
 			"description": nil,
 			"readme":      nil,
-			"labels":      nil,
 			"image_id":    nil,
 			"created_at":  nil,
 		},
@@ -117,17 +114,14 @@ func (s *dbMonlStore) Create(ctx context.Context, m *model.Monl) error {
 func (s *dbMonlStore) Update(ctx context.Context, m *model.Monl) error {
 	m2 := *m
 	m2.UpdatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.UpdateBuilder{
 		From: monlTB,
 		Fields: map[string]interface{}{
 			"url":         nil,
-			"vendor":      nil,
-			"vendor_uri":  nil,
 			"title":       nil,
 			"description": nil,
 			"readme":      nil,
-			"labels":      nil,
 			"image_id":    nil,
 			"updated_at":  nil,
 		},
@@ -143,7 +137,7 @@ func (s *dbMonlStore) Update(ctx context.Context, m *model.Monl) error {
 
 // Delete removes monl by id.
 func (s *dbMonlStore) Delete(ctx context.Context, m *model.Monl) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.DeleteBuilder{
 		From:  monlTB,
 		Where: []string{"id = :id"},
@@ -154,7 +148,7 @@ func (s *dbMonlStore) Delete(ctx context.Context, m *model.Monl) error {
 
 func bindMonlOpts(opts *MonlOpts) (database.SelectBuilder, map[string]interface{}) {
 	br := database.SelectBuilder{}
-	if opts != nil {
+	if opts == nil {
 		return br, nil
 	}
 
@@ -163,14 +157,6 @@ func bindMonlOpts(opts *MonlOpts) (database.SelectBuilder, map[string]interface{
 	if opts.URL != "" {
 		br.Where = append(br.Where, "url = :url")
 		args["url"] = opts.URL
-	}
-	if opts.Vendor != "" {
-		br.Where = append(br.Where, "vendor = :vendor")
-		args["vendor"] = opts.Vendor
-	}
-	if opts.VendorURI != "" {
-		br.Where = append(br.Where, "vendor_uri = :vendor_uri")
-		args["vendor_uri"] = opts.VendorURI
 	}
 
 	return br, args

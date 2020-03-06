@@ -30,7 +30,8 @@ func initCli(
 	generate := cmd.Generate{}
 
 	return &cli.App{
-		Name: "pinmonl",
+		Name:    "pinmonl",
+		Version: "0.1.0",
 		Commands: []cli.Command{
 			server.Command(),
 			migration.Command(),

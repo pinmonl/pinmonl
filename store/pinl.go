@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/model"
@@ -11,12 +13,16 @@ import (
 // PinlOpts defines the paramters for pinl filtering.
 type PinlOpts struct {
 	ListOpts
-	UserID string
+	ID         string
+	UserID     string
+	MustTagIDs []string
+	AnyTagIDs  []string
 }
 
 // PinlStore defines the services of pinl.
 type PinlStore interface {
 	List(context.Context, *PinlOpts) ([]model.Pinl, error)
+	Count(context.Context, *PinlOpts) (int64, error)
 	Find(context.Context, *model.Pinl) error
 	Create(context.Context, *model.Pinl) error
 	Update(context.Context, *model.Pinl) error
@@ -34,7 +40,7 @@ type dbPinlStore struct {
 
 // List retrieves pinls by the filter parameters.
 func (s *dbPinlStore) List(ctx context.Context, opts *PinlOpts) ([]model.Pinl, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindPinlOpts(opts)
 	br.From = pinlTB
 	stmt := br.String()
@@ -56,9 +62,33 @@ func (s *dbPinlStore) List(ctx context.Context, opts *PinlOpts) ([]model.Pinl, e
 	return list, nil
 }
 
+// Count counts the number of pinls with the filter parameters.
+func (s *dbPinlStore) Count(ctx context.Context, opts *PinlOpts) (int64, error) {
+	e := s.Queryer(ctx)
+	br, args := bindPinlOpts(opts)
+	br.Columns = []string{"COUNT(*) as count"}
+	br.From = pinlTB
+	stmt := br.String()
+	rows, err := e.NamedQuery(stmt, args)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return 0, sql.ErrNoRows
+	}
+	var count int64
+	err = rows.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // Find retrieves pinl by id.
 func (s *dbPinlStore) Find(ctx context.Context, m *model.Pinl) error {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	stmt := database.SelectBuilder{
 		From:  pinlTB,
 		Where: []string{"id = :id"},
@@ -87,7 +117,7 @@ func (s *dbPinlStore) Create(ctx context.Context, m *model.Pinl) error {
 	m2 := *m
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.InsertBuilder{
 		Into: pinlTB,
 		Fields: map[string]interface{}{
@@ -113,7 +143,7 @@ func (s *dbPinlStore) Create(ctx context.Context, m *model.Pinl) error {
 func (s *dbPinlStore) Update(ctx context.Context, m *model.Pinl) error {
 	m2 := *m
 	m2.UpdatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.UpdateBuilder{
 		From: pinlTB,
 		Fields: map[string]interface{}{
@@ -137,7 +167,7 @@ func (s *dbPinlStore) Update(ctx context.Context, m *model.Pinl) error {
 
 // Delete removes pinl by id.
 func (s *dbPinlStore) Delete(ctx context.Context, m *model.Pinl) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.DeleteBuilder{
 		From:  pinlTB,
 		Where: []string{"id = :id"},
@@ -157,6 +187,57 @@ func bindPinlOpts(opts *PinlOpts) (database.SelectBuilder, map[string]interface{
 	if opts.UserID != "" {
 		br.Where = append(br.Where, "user_id = :user_id")
 		args["user_id"] = opts.UserID
+	}
+
+	if opts.ID != "" {
+		br.Where = append(br.Where, "id = :id")
+		args["id"] = opts.ID
+	}
+
+	if opts.MustTagIDs != nil {
+		sq := database.SelectBuilder{
+			Columns: []string{"1"},
+			From:    taggableTB,
+			Where: []string{
+				"target_name = :must_tag_target_name",
+				fmt.Sprintf("target_id = %s.id", pinlTB),
+			},
+			GroupBy: []string{"target_id"},
+			Having:  []string{"COUNT(DISTINCT tag_id) = :must_tag_count"},
+		}
+		args["must_tag_target_name"] = model.Pinl{}.MorphName()
+		args["must_tag_count"] = len(opts.MustTagIDs)
+
+		ks := make([]string, len(opts.MustTagIDs))
+		for i, t := range opts.MustTagIDs {
+			k := fmt.Sprintf("must_tag_id%d", i)
+			args[k] = t
+			ks[i] = ":" + k
+		}
+		sq.Where = append(sq.Where, fmt.Sprintf("tag_id IN (%s)", strings.Join(ks, ", ")))
+		br.Where = append(br.Where, fmt.Sprintf("EXISTS (%s)", sq.String()))
+	}
+
+	if opts.AnyTagIDs != nil {
+		sq := database.SelectBuilder{
+			Columns: []string{"1"},
+			From:    taggableTB,
+			Where: []string{
+				"target_name = :any_tag_target_name",
+				fmt.Sprintf("target_id = %s.id", pinlTB),
+			},
+			GroupBy: []string{"target_id"},
+		}
+		args["any_tag_target_name"] = model.Pinl{}.MorphName()
+
+		ks := make([]string, len(opts.AnyTagIDs))
+		for i, t := range opts.AnyTagIDs {
+			k := fmt.Sprintf("any_tag_id%d", i)
+			args[k] = t
+			ks[i] = ":" + k
+		}
+		sq.Where = append(sq.Where, fmt.Sprintf("tag_id IN (%s)", strings.Join(ks, ", ")))
+		br.Where = append(br.Where, fmt.Sprintf("EXISTS (%s)", sq.String()))
 	}
 
 	return br, args

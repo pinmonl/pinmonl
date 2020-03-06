@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pinmonl/pinmonl/handler/api/request"
 	"github.com/pinmonl/pinmonl/handler/api/response"
 	"github.com/pinmonl/pinmonl/model"
-	"github.com/pinmonl/pinmonl/pkg/password"
-	"github.com/pinmonl/pinmonl/session"
 	"github.com/pinmonl/pinmonl/store"
 )
 
@@ -17,8 +16,8 @@ var (
 	ErrLogin = errors.New("please check your login and password")
 )
 
-// HandleRegister handles and validates user registration.
-func HandleRegister(sess session.Store, users store.UserStore) http.HandlerFunc {
+// HandleCreate creates User.
+func HandleCreate(users store.UserStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		in, err := ReadInput(r.Body)
 		if err != nil {
@@ -71,14 +70,20 @@ func HandleRegister(sess session.Store, users store.UserStore) http.HandlerFunc 
 			return
 		}
 
-		sv := &session.Values{UserID: m.ID}
-		sess.Set(w, sv)
 		response.JSON(w, Resp(m))
 	}
 }
 
-// HandleLogin returns session from store after validating user credentials.
-func HandleLogin(sess session.Store, users store.UserStore) http.HandlerFunc {
+// HandleGetMe returns the user profile of current user.
+func HandleGetMe() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m, _ := request.UserFrom(r.Context())
+		response.JSON(w, Resp(m))
+	}
+}
+
+// HandleUpdateMe updates the user profile of current user.
+func HandleUpdateMe(users store.UserStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		in, err := ReadInput(r.Body)
 		if err != nil {
@@ -86,36 +91,25 @@ func HandleLogin(sess session.Store, users store.UserStore) http.HandlerFunc {
 			return
 		}
 
-		err = in.ValidateLogin()
+		err = in.ValidateUpdate()
 		if err != nil {
-			response.BadRequest(w, ErrLogin)
+			response.BadRequest(w, err)
 			return
 		}
 
 		ctx := r.Context()
-		m := model.User{Login: in.Login}
-		err = users.FindLogin(ctx, &m)
+		m, _ := request.UserFrom(ctx)
+		err = in.FillDirty(&m)
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
+		err = users.Update(ctx, &m)
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		err = password.Compare(m.Password, in.Password)
-		if err != nil {
-			response.BadRequest(w, ErrLogin)
-			return
-		}
-
-		sv := &session.Values{UserID: m.ID}
-		sess.Set(w, sv)
 		response.JSON(w, Resp(m))
-	}
-}
-
-// HandleLogout clears the user session from store.
-func HandleLogout(sess session.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		sess.Del(w, r)
-		response.NoContent(w)
 	}
 }

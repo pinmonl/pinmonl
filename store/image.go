@@ -34,7 +34,7 @@ type dbImageStore struct {
 
 // List retrieves images by the filter parameters.
 func (s *dbImageStore) List(ctx context.Context, opts *ImageOpts) ([]model.Image, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindImageOpts(opts)
 	br.From = imageTB
 	stmt := br.String()
@@ -58,7 +58,7 @@ func (s *dbImageStore) List(ctx context.Context, opts *ImageOpts) ([]model.Image
 
 // Find retrieves image by id.
 func (s *dbImageStore) Find(ctx context.Context, m *model.Image) error {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	stmt := database.SelectBuilder{
 		From:  imageTB,
 		Where: []string{"id = :id"},
@@ -71,6 +71,7 @@ func (s *dbImageStore) Find(ctx context.Context, m *model.Image) error {
 	if !rows.Next() {
 		return sql.ErrNoRows
 	}
+	defer rows.Close()
 
 	var m2 model.Image
 	err = rows.StructScan(&m2)
@@ -86,7 +87,7 @@ func (s *dbImageStore) Create(ctx context.Context, m *model.Image) error {
 	m2 := *m
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.InsertBuilder{
 		Into: imageTB,
 		Fields: map[string]interface{}{
@@ -114,7 +115,7 @@ func (s *dbImageStore) Create(ctx context.Context, m *model.Image) error {
 func (s *dbImageStore) Update(ctx context.Context, m *model.Image) error {
 	m2 := *m
 	m2.UpdatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.UpdateBuilder{
 		From: imageTB,
 		Fields: map[string]interface{}{
@@ -140,7 +141,7 @@ func (s *dbImageStore) Update(ctx context.Context, m *model.Image) error {
 
 // Delete removes image by id.
 func (s *dbImageStore) Delete(ctx context.Context, m *model.Image) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.DeleteBuilder{
 		From:  imageTB,
 		Where: []string{"id = :id"},

@@ -37,7 +37,7 @@ type dbPinmonStore struct {
 
 // List retrieves pinmons by the filter parameters.
 func (s *dbPinmonStore) List(ctx context.Context, opts *PinmonOpts) ([]model.Pinmon, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindPinmonOpts(opts)
 	br.From = pinmonTB
 	stmt := br.String()
@@ -61,14 +61,14 @@ func (s *dbPinmonStore) List(ctx context.Context, opts *PinmonOpts) ([]model.Pin
 
 // Create inserts the fields of pinmon.
 func (s *dbPinmonStore) Create(ctx context.Context, m *model.Pinmon) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.InsertBuilder{
 		Into: pinmonTB,
 		Fields: map[string]interface{}{
 			"user_id": nil,
 			"pinl_id": nil,
 			"monl_id": nil,
-			`"sort"`:  ":sort",
+			"sort":    nil,
 		},
 	}.String()
 	_, err := e.NamedExec(stmt, m)
@@ -77,7 +77,7 @@ func (s *dbPinmonStore) Create(ctx context.Context, m *model.Pinmon) error {
 
 // Delete removes pinmon by the relationship.
 func (s *dbPinmonStore) Delete(ctx context.Context, m *model.Pinmon) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.DeleteBuilder{
 		From: pinmonTB,
 		Where: []string{

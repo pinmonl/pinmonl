@@ -3,6 +3,7 @@ package share
 import (
 	"net/http"
 
+	"github.com/pinmonl/pinmonl/handler/api/apiutils"
 	"github.com/pinmonl/pinmonl/handler/api/request"
 	"github.com/pinmonl/pinmonl/handler/api/response"
 	"github.com/pinmonl/pinmonl/model"
@@ -10,19 +11,24 @@ import (
 )
 
 // HandleList returns shares.
-func HandleList(shares store.ShareStore) http.HandlerFunc {
+func HandleList(shares store.ShareStore, sharetags store.ShareTagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		u, _ := request.UserFrom(ctx)
-		ml, err := shares.List(ctx, &store.ShareOpts{UserID: u.ID})
+		ms, err := shares.List(ctx, &store.ShareOpts{UserID: u.ID})
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		resp := make([]interface{}, len(ml))
-		for i, m := range ml {
-			resp[i] = Resp(m)
+		mts, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
+			Kind:     model.MustTag,
+			ShareIDs: (model.ShareList)(ms).Keys(),
+		})
+
+		resp := make([]interface{}, len(ms))
+		for i, m := range ms {
+			resp[i] = Resp(m, mts[m.ID])
 		}
 		response.JSON(w, resp)
 	}
@@ -81,29 +87,26 @@ func HandleCreate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 			return
 		}
 
-		mts, err := tags.List(ctx, &store.TagOpts{Names: in.MustTags})
+		mts, err := apiutils.FindOrCreateTagsByName(ctx, tags, u, in.MustTags)
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
-		err = sharetags.ReAssocTags(ctx, m, model.MustTag, mts)
+		err = sharetags.ReAssocTags(ctx, m, model.MustTag, rebuildMustTags(mts))
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		ats := make([]model.Tag, 0)
-		if len(in.AnyTags) > 0 {
-			ats, err = tags.List(ctx, &store.TagOpts{Names: in.AnyTags})
-			if err != nil {
-				response.InternalError(w, err)
-				return
-			}
-			err = sharetags.ReAssocTags(ctx, m, model.AnyTag, ats)
-			if err != nil {
-				response.InternalError(w, err)
-				return
-			}
+		ats, err := apiutils.FindOrCreateTagsByName(ctx, tags, u, in.AnyTags)
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
+		err = sharetags.ReAssocTags(ctx, m, model.AnyTag, ats)
+		if err != nil {
+			response.InternalError(w, err)
+			return
 		}
 
 		response.JSON(w, DetailResp(m, mts, ats))
@@ -126,41 +129,39 @@ func HandleUpdate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 		}
 
 		ctx := r.Context()
+		u, _ := request.UserFrom(ctx)
 		m, _ := request.ShareFrom(ctx)
 		err = in.Fill(&m)
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
-		err = shares.Create(ctx, &m)
+		err = shares.Update(ctx, &m)
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		mts, err := tags.List(ctx, &store.TagOpts{Names: in.MustTags})
+		mts, err := apiutils.FindOrCreateTagsByName(ctx, tags, u, in.MustTags)
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
-		err = sharetags.ReAssocTags(ctx, m, model.MustTag, mts)
+		err = sharetags.ReAssocTags(ctx, m, model.MustTag, rebuildMustTags(mts))
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		ats := make([]model.Tag, 0)
-		if len(in.AnyTags) > 0 {
-			ats, err = tags.List(ctx, &store.TagOpts{Names: in.AnyTags})
-			if err != nil {
-				response.InternalError(w, err)
-				return
-			}
-			err = sharetags.ReAssocTags(ctx, m, model.AnyTag, ats)
-			if err != nil {
-				response.InternalError(w, err)
-				return
-			}
+		ats, err := apiutils.FindOrCreateTagsByName(ctx, tags, u, in.AnyTags)
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
+		err = sharetags.ReAssocTags(ctx, m, model.AnyTag, rebuildAnyTags(ats))
+		if err != nil {
+			response.InternalError(w, err)
+			return
 		}
 
 		response.JSON(w, DetailResp(m, mts, ats))
@@ -193,4 +194,42 @@ func HandleDelete(shares store.ShareStore, sharetags store.ShareTagStore) http.H
 
 		response.NoContent(w)
 	}
+}
+
+// HandlePageInfo returns the page info of Share.
+func HandlePageInfo(shares store.ShareStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		u, _ := request.UserFrom(ctx)
+		count, err := shares.Count(ctx, &store.ShareOpts{UserID: u.ID})
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
+
+		pi := response.PageInfo{
+			Count: count,
+		}
+		response.JSON(w, pi)
+	}
+}
+
+func rebuildMustTags(tags []model.Tag) []model.Tag {
+	for i := range tags {
+		tags[i].ParentID = ""
+	}
+	return tags
+}
+
+func rebuildAnyTags(tags []model.Tag) []model.Tag {
+	byID := make(map[string]model.Tag)
+	for _, t := range tags {
+		byID[t.ID] = t
+	}
+	for i, t := range tags {
+		if _, has := byID[t.ParentID]; !has {
+			tags[i].ParentID = ""
+		}
+	}
+	return tags
 }

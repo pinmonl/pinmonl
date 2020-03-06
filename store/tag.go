@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -24,6 +25,7 @@ type TagOpts struct {
 // TagStore defines the services of tag.
 type TagStore interface {
 	List(context.Context, *TagOpts) ([]model.Tag, error)
+	Count(context.Context, *TagOpts) (int64, error)
 	Find(context.Context, *model.Tag) error
 	FindByName(context.Context, *model.Tag) error
 	Create(context.Context, *model.Tag) error
@@ -42,7 +44,7 @@ type dbTagStore struct {
 
 // List retrieves tags by the filter parameters.
 func (s *dbTagStore) List(ctx context.Context, opts *TagOpts) ([]model.Tag, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindTagOpts(opts)
 	br.From = tagTB
 	stmt := br.String()
@@ -64,9 +66,33 @@ func (s *dbTagStore) List(ctx context.Context, opts *TagOpts) ([]model.Tag, erro
 	return list, nil
 }
 
+// Count counts number of tags with the filter parameters.
+func (s *dbTagStore) Count(ctx context.Context, opts *TagOpts) (int64, error) {
+	e := s.Queryer(ctx)
+	br, args := bindTagOpts(opts)
+	br.Columns = []string{"COUNT(*) as count"}
+	br.From = tagTB
+	stmt := br.String()
+	rows, err := e.NamedQuery(stmt, args)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return 0, sql.ErrNoRows
+	}
+	var count int64
+	err = rows.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // Find retrieves tag by id.
 func (s *dbTagStore) Find(ctx context.Context, m *model.Tag) error {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	stmt := database.SelectBuilder{
 		From:  tagTB,
 		Where: []string{"id = :id"},
@@ -90,7 +116,7 @@ func (s *dbTagStore) Find(ctx context.Context, m *model.Tag) error {
 
 // FindByName retrieves tag by user and tag name.
 func (s *dbTagStore) FindByName(ctx context.Context, m *model.Tag) error {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	stmt := database.SelectBuilder{
 		From:  tagTB,
 		Where: []string{"user_id = :user_id", "name = :name"},
@@ -117,7 +143,7 @@ func (s *dbTagStore) Create(ctx context.Context, m *model.Tag) error {
 	m2 := *m
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.InsertBuilder{
 		Into: tagTB,
 		Fields: map[string]interface{}{
@@ -141,7 +167,7 @@ func (s *dbTagStore) Create(ctx context.Context, m *model.Tag) error {
 func (s *dbTagStore) Update(ctx context.Context, m *model.Tag) error {
 	m2 := *m
 	m2.UpdatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.UpdateBuilder{
 		From: tagTB,
 		Fields: map[string]interface{}{
@@ -163,7 +189,7 @@ func (s *dbTagStore) Update(ctx context.Context, m *model.Tag) error {
 
 // Delete removes tag by id.
 func (s *dbTagStore) Delete(ctx context.Context, m *model.Tag) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.DeleteBuilder{
 		From:  tagTB,
 		Where: []string{"id = :id"},
@@ -223,6 +249,11 @@ func bindTagOpts(opts *TagOpts) (database.SelectBuilder, map[string]interface{})
 			ks[i] = ":" + k
 		}
 		br.Where = append(br.Where, fmt.Sprintf("name IN (%s)", strings.Join(ks, ", ")))
+	}
+
+	if opts.UserID != "" {
+		br.Where = append(br.Where, "user_id = :user_id")
+		args["user_id"] = opts.UserID
 	}
 
 	return br, args

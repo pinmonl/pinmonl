@@ -13,6 +13,7 @@ import (
 type Input struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
+	Readme      string   `json:"readme"`
 	MustTags    []string `json:"mustTags"`
 	AnyTags     []string `json:"anyTags"`
 }
@@ -61,5 +62,6 @@ func (in *Input) Validate() error {
 func (in *Input) Fill(m *model.Share) error {
 	m.Name = in.Name
 	m.Description = in.Description
+	m.Readme = in.Readme
 	return nil
 }

@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/pinmonl/pinmonl/logx"
 	"github.com/pinmonl/pinmonl/model"
@@ -16,8 +17,9 @@ type worker struct {
 	monl    *monl.Monl
 
 	store store.Store
-	pinls store.PinlStore
 	monls store.MonlStore
+	pkgs  store.PkgStore
+	pinls store.PinlStore
 	stats store.StatStore
 }
 
@@ -46,31 +48,30 @@ func (w *worker) process(ctx context.Context, job *Job) error {
 		logx.Fatal("queue worker: fails to start tx, err: %s", err)
 		return err
 	}
-	defer func() {
-		if err != nil {
-			w.store.Rollback(ctx)
-		} else {
-			w.store.Commit(ctx)
-		}
-	}()
 
 	switch job.Detail.Name {
 	case model.JobPinlCreated:
 		err = w.processPinlCreated(ctx, job)
 	case model.JobPinlUpdated:
 		err = w.processPinlCreated(ctx, job)
-	case model.JobMonlCreated:
-		err = w.processMonlCreated(ctx, job)
-	case model.JobMonlRegularUpdate:
-		err = w.processMonlRegularUpdate(ctx, job)
+	case model.JobPkgCreated:
+		err = w.processPkgCreated(ctx, job)
+	case model.JobPkgRegularUpdate:
+		err = w.processPkgRegularUpdate(ctx, job)
 	default:
+		defer w.store.Commit(ctx)
 		return w.jobStopped(ctx, job, fmt.Errorf("queue worker: job name is not defined"))
 	}
 
 	if err != nil {
 		logx.Errorf("queue worker: err: %s", err)
+		w.store.Rollback(ctx)
+		ctx, _ = w.store.EndTx(ctx)
+		ctx, _ = w.store.BeginTx(ctx)
+		defer w.store.Commit(ctx)
 		return w.jobStopped(ctx, job, err)
 	}
+	defer w.store.Commit(ctx)
 	return w.manager.jobCompleted(ctx, job)
 }
 
@@ -90,11 +91,17 @@ func (w *worker) processPinlCreated(ctx context.Context, job *Job) error {
 		return nil
 	}
 
+	tm := model.Monl{URL: t.URL}
+	err = w.monls.Create(ctx, &tm)
+	if err != nil {
+		return err
+	}
+
 	vendors := w.monl.GuessURL(t.URL)
 	for _, v := range vendors {
 		logx.Debugf("queue worker: working on monl vendor - %s", v.Name())
-		ml, err := w.monls.List(ctx, &store.MonlOpts{
-			URL:    t.URL,
+		ml, err := w.pkgs.List(ctx, &store.PkgOpts{
+			MonlID: tm.ID,
 			Vendor: v.Name(),
 		})
 		if err != nil {
@@ -104,14 +111,14 @@ func (w *worker) processPinlCreated(ctx context.Context, job *Job) error {
 			continue
 		}
 
-		m := model.Monl{URL: t.URL, Vendor: v.Name()}
-		err = w.monls.Create(ctx, &m)
+		m := model.Pkg{MonlID: tm.ID, Vendor: v.Name()}
+		err = w.pkgs.Create(ctx, &m)
 		if err != nil {
 			return err
 		}
 
 		err = w.manager.Enqueue(ctx, &model.Job{
-			Name:     model.JobMonlCreated,
+			Name:     model.JobPkgCreated,
 			TargetID: m.ID,
 		})
 		if err != nil {
@@ -122,10 +129,15 @@ func (w *worker) processPinlCreated(ctx context.Context, job *Job) error {
 	return nil
 }
 
-// processMonlCreated handles the hook after monl created.
-func (w *worker) processMonlCreated(ctx context.Context, job *Job) error {
-	t := model.Monl{ID: job.Detail.TargetID}
-	err := w.monls.Find(ctx, &t)
+// processPkgCreated handles the hook after pkg created.
+func (w *worker) processPkgCreated(ctx context.Context, job *Job) error {
+	t := model.Pkg{ID: job.Detail.TargetID}
+	err := w.pkgs.Find(ctx, &t)
+	if err != nil {
+		return err
+	}
+	tm := model.Monl{ID: t.MonlID}
+	err = w.monls.Find(ctx, &tm)
 	if err != nil {
 		return err
 	}
@@ -135,7 +147,7 @@ func (w *worker) processMonlCreated(ctx context.Context, job *Job) error {
 		return err
 	}
 
-	r, err := v.Load(ctx, t.URL)
+	r, err := v.Load(ctx, tm.URL)
 	if err != nil {
 		return err
 	}
@@ -143,7 +155,7 @@ func (w *worker) processMonlCreated(ctx context.Context, job *Job) error {
 
 	t.URL = r.RawURL()
 	t.VendorURI = r.URI()
-	err = w.monls.Update(ctx, &t)
+	err = w.pkgs.Update(ctx, &t)
 	if err != nil {
 		return err
 	}
@@ -153,13 +165,18 @@ func (w *worker) processMonlCreated(ctx context.Context, job *Job) error {
 		return err
 	}
 
+	schd := w.makeScheduleJobForPkg(*job)
+	err = w.scheduleJob(ctx, &schd)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-// processMonlRegularUpdate handles regular update of monl.
-func (w *worker) processMonlRegularUpdate(ctx context.Context, job *Job) error {
-	t := model.Monl{ID: job.Detail.TargetID}
-	err := w.monls.Find(ctx, &t)
+// processPkgRegularUpdate handles regular update of pkg.
+func (w *worker) processPkgRegularUpdate(ctx context.Context, job *Job) error {
+	t := model.Pkg{ID: job.Detail.TargetID}
+	err := w.pkgs.Find(ctx, &t)
 	if err != nil {
 		return err
 	}
@@ -180,59 +197,67 @@ func (w *worker) processMonlRegularUpdate(ctx context.Context, job *Job) error {
 		logx.Debugf("queue worker: fails to parse Monl report, err(%s)", err)
 		return err
 	}
+
+	schd := w.makeScheduleJobForPkg(*job)
+	err = w.scheduleJob(ctx, &schd)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 // parseMonlReport parses monl.Report into store.
-func (w *worker) parseMonlReport(ctx context.Context, target model.Monl, report monl.Report) error {
-	// Save stat of release kind
-	saved, err := w.stats.List(ctx, &store.StatOpts{
-		MonlID: target.ID,
-		Kind:   report.Latest().Group(),
-	})
-	if err != nil {
-		return err
-	}
-	for report.Next() {
-		rs := report.Stat()
-		logx.WithField("value", rs.Value()).Debugf("queue worker: stat")
-		isLatest := rs.Value() == report.Latest().Value()
-		sm := model.StatList(saved).
-			FindKind(rs.Group()).
-			FindValue(rs.Value())
-		if len(sm) > 0 {
-			so := sm[0]
-			if isLatest {
+func (w *worker) parseMonlReport(ctx context.Context, target model.Pkg, report monl.Report) error {
+	if report.Latest() != nil {
+		// Save stat of release kind
+		saved, err := w.stats.List(ctx, &store.StatOpts{
+			PkgID: target.ID,
+			Kind:  report.Latest().Group(),
+		})
+		if err != nil {
+			return err
+		}
+		for report.Next() {
+			rs := report.Stat()
+			logx.WithField("value", rs.Value()).Debugf("queue worker: stat")
+			isLatest := rs.Value() == report.Latest().Value()
+			sm := model.StatList(saved).
+				FindKind(rs.Group()).
+				FindValue(rs.Value())
+			if len(sm) > 0 {
+				so := sm[0]
+				if isLatest {
+					break
+				}
+				if !so.IsLatest {
+					break
+				}
+				so.IsLatest = false
+				err = w.stats.Update(ctx, &so)
+				if err != nil {
+					return err
+				}
 				break
 			}
-			if !so.IsLatest {
-				break
+
+			s := model.Stat{
+				PkgID:      target.ID,
+				RecordedAt: (field.Time)(rs.Date()),
+				Kind:       rs.Group(),
+				Value:      rs.Value(),
+				IsLatest:   isLatest,
+				Manifest:   rs.Manifest(),
 			}
-			so.IsLatest = false
-			err = w.stats.Update(ctx, &so)
+			err = w.stats.Create(ctx, &s)
 			if err != nil {
 				return err
 			}
-			break
-		}
-
-		s := model.Stat{
-			MonlID:     target.ID,
-			RecordedAt: (field.Time)(rs.Date()),
-			Kind:       rs.Group(),
-			Value:      rs.Value(),
-			IsLatest:   isLatest,
-			Manifest:   rs.Manifest(),
-		}
-		err = w.stats.Create(ctx, &s)
-		if err != nil {
-			return err
 		}
 	}
 
 	// Save stats of popularity
 	sl, err := w.stats.List(ctx, &store.StatOpts{
-		MonlID:     target.ID,
+		PkgID:      target.ID,
 		WithLatest: true,
 	})
 	for _, sp := range report.Popularity() {
@@ -246,11 +271,12 @@ func (w *worker) parseMonlReport(ctx context.Context, target model.Monl, report 
 			}
 		}
 		s := model.Stat{
-			MonlID:     target.ID,
+			PkgID:      target.ID,
 			RecordedAt: (field.Time)(sp.Date()),
 			Kind:       sp.Group(),
 			Value:      sp.Value(),
 			IsLatest:   true,
+			Manifest:   sp.Manifest(),
 		}
 		err = w.stats.Create(ctx, &s)
 		if err != nil {
@@ -269,4 +295,28 @@ func (w *worker) jobStopped(ctx context.Context, job *Job, msg error) error {
 		return err
 	}
 	return msg
+}
+
+func (w *worker) scheduleJob(ctx context.Context, job *Job) error {
+	return w.manager.scheduleJob(ctx, job)
+}
+
+func (w *worker) makeScheduleJobForPkg(orig Job) Job {
+	j := Job{}
+	j.Detail.Status = model.JobStatusPending
+	j.Detail.Name = model.JobPkgRegularUpdate
+	j.Detail.TargetID = orig.Detail.TargetID
+
+	var at time.Time
+	intv := time.Hour
+	if orig.Detail.ScheduledAt.Time().IsZero() {
+		at = time.Now()
+		at = at.Truncate(time.Hour)
+		at = at.Add(intv + time.Hour)
+	} else {
+		at = orig.Detail.ScheduledAt.Time()
+		at = at.Add(intv)
+	}
+	j.Detail.ScheduledAt = field.Time(at)
+	return j
 }

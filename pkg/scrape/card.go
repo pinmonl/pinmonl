@@ -27,10 +27,16 @@ func NewCardFromDoc(doc *goquery.Document) (*Card, error) {
 	if ct == "" {
 		ct, _ = h.Find("meta[name='twitter:title']").Attr("content")
 	}
+	if ct == "" {
+		ct = h.Find("title").Text()
+	}
 
 	cd, _ := h.Find("meta[property='og:description']").Attr("content")
 	if cd == "" {
 		cd, _ = h.Find("meta[name='twitter:description']").Attr("content")
+	}
+	if cd == "" {
+		cd, _ = h.Find("meta[name='description']").Attr("content")
 	}
 
 	ci, _ := h.Find("meta[property='og:image']").Attr("content")
@@ -57,17 +63,22 @@ func (c *Card) Description() string {
 
 // Image downloads image from the image url.
 func (c *Card) Image() ([]byte, error) {
-	if c.image == nil {
-		res, err := http.Get(c.imageURL)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-		bs, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return nil, err
-		}
-		c.image = bs
+	if c.image != nil {
+		return c.image, nil
 	}
+	if c.imageURL == "" {
+		return nil, nil
+	}
+
+	res, err := http.Get(c.imageURL)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	bs, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	c.image = bs
 	return c.image, nil
 }

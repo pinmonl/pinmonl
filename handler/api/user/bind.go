@@ -23,7 +23,7 @@ func Authenticate(sess session.Store, users store.UserStore) func(http.Handler) 
 func requestWithUser(r *http.Request, sess session.Store, users store.UserStore) *http.Request {
 	val, err := sess.Get(r)
 	if err != nil {
-		logx.Errorf("api: fails to authenticate user, err: %s", err)
+		logx.Tracef("api: fails to authenticate user, err: %s", err)
 		return r
 	}
 

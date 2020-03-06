@@ -9,6 +9,7 @@ type User struct {
 	Password  string     `json:"-"         db:"password"`
 	Name      string     `json:"name"      db:"name"`
 	Email     string     `json:"email"     db:"email"`
+	ImageID   string     `json:"imageId"   db:"image_id"`
 	CreatedAt field.Time `json:"createdAt" db:"created_at"`
 	UpdatedAt field.Time `json:"updatedAt" db:"updated_at"`
 }

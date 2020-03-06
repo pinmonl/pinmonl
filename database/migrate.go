@@ -53,6 +53,12 @@ func (mp *MigrationPlan) Install() error {
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				name VARCHAR(255) UNIQUE
 			)`, mp.TableName()))
+	case "mysql":
+		_, err = mp.db.Exec(fmt.Sprintf(`
+			CREATE TABLE %s (
+				id INTEGER PRIMARY KEY AUTO_INCREMENT,
+				name VARCHAR(255) UNIQUE
+			)`, mp.TableName()))
 	case "postgres":
 		_, err = mp.db.Exec(fmt.Sprintf(`
 			CREATE TABLE %s (

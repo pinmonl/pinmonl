@@ -13,7 +13,9 @@ type Store interface {
 	EndTx(context.Context) (context.Context, error)
 	Rollback(context.Context) error
 	Commit(context.Context) error
-	Exter(context.Context) database.Ext
+	Queryer(context.Context) database.Queryer
+	Execer(context.Context) database.Execer
+	Ext(context.Context) database.Ext
 }
 
 // NewStore creates the store with database.
@@ -64,11 +66,19 @@ func (s *dbStore) Rollback(ctx context.Context) error {
 	return nil
 }
 
-// Exter returns the Tx from context if exists, otherwise returns the DB.
-func (s *dbStore) Exter(ctx context.Context) database.Ext {
+func (s *dbStore) Queryer(ctx context.Context) database.Queryer {
+	return s.db
+}
+
+func (s *dbStore) Execer(ctx context.Context) database.Execer {
 	tx := TxFrom(ctx)
 	if tx != nil {
 		return tx
 	}
+	return s.db
+}
+
+// Ext returns the Tx from context if exists, otherwise returns the DB.
+func (s *dbStore) Ext(ctx context.Context) database.Ext {
 	return s.db
 }

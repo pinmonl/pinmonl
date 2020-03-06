@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pinmonl/pinmonl/config"
@@ -17,6 +18,7 @@ func main() {
 	if err != nil {
 		logx.Fatal(err)
 	}
+	defer db.Close()
 	mp := initMigrationPlan(db)
 
 	ss := initStores(db)

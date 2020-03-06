@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/model"
@@ -13,6 +14,8 @@ type TaggableOpts struct {
 	ListOpts
 	Target  model.Morphable
 	Targets []model.Morphable
+	Tags    []model.Tag
+	TagIDs  []string
 }
 
 // TaggableStore defines the services of taggable.
@@ -40,7 +43,7 @@ type dbTaggableStore struct {
 
 // List retrieves taggables by the filter parameters..
 func (s *dbTaggableStore) List(ctx context.Context, opts *TaggableOpts) ([]model.Taggable, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindTaggableOpts(opts)
 	br.From = taggableTB
 	stmt := br.String()
@@ -64,7 +67,7 @@ func (s *dbTaggableStore) List(ctx context.Context, opts *TaggableOpts) ([]model
 
 // ListTags retrieves tags by taggable relationship.
 func (s *dbTaggableStore) ListTags(ctx context.Context, opts *TaggableOpts) (map[string][]model.Tag, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindTaggableOpts(opts)
 	br.From = taggableTB
 	br.Join = []string{fmt.Sprintf("INNER JOIN %s ON %s.tag_id = %s.id", tagTB, taggableTB, tagTB)}
@@ -93,7 +96,7 @@ func (s *dbTaggableStore) ListTags(ctx context.Context, opts *TaggableOpts) (map
 
 // Create inserts the fields of taggable.
 func (s *dbTaggableStore) Create(ctx context.Context, m *model.Taggable) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.InsertBuilder{
 		Into: taggableTB,
 		Fields: map[string]interface{}{
@@ -109,7 +112,7 @@ func (s *dbTaggableStore) Create(ctx context.Context, m *model.Taggable) error {
 
 // Delete removes taggable by the relationship.
 func (s *dbTaggableStore) Delete(ctx context.Context, m *model.Taggable) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.DeleteBuilder{
 		From: taggableTB,
 		Where: []string{
@@ -173,7 +176,7 @@ func (s *dbTaggableStore) DissocTags(ctx context.Context, target model.Morphable
 
 // ClearTags removes all tag relations from the target.
 func (s *dbTaggableStore) ClearTags(ctx context.Context, target model.Morphable) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.DeleteBuilder{
 		From:  taggableTB,
 		Where: []string{"target_id = :target_id", "target_name = :target_name"},
@@ -207,6 +210,20 @@ func bindTaggableOpts(opts *TaggableOpts) (database.SelectBuilder, map[string]in
 		br.Where = append(br.Where, "target_name = :target_name")
 		args["target_id"] = opts.Target.MorphKey()
 		args["target_name"] = opts.Target.MorphName()
+	}
+
+	if opts.Tags != nil {
+		ids := make([]string, len(opts.Tags))
+		for i, t := range opts.Tags {
+			ids[i] = t.ID
+		}
+	}
+	if opts.TagIDs != nil {
+		ks, ids := bindQueryIDs("tag_ids", opts.TagIDs)
+		for k, id := range ids {
+			args[k] = id
+		}
+		br.Where = append(br.Where, fmt.Sprintf("tag_id IN (%s)", strings.Join(ks, ",")))
 	}
 
 	return br, args

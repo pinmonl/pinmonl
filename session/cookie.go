@@ -53,13 +53,13 @@ func (s *CookieStore) Get(r *http.Request) (*Values, error) {
 }
 
 // Set returns cookie header to client.
-func (s *CookieStore) Set(w http.ResponseWriter, val *Values) error {
+func (s *CookieStore) Set(w http.ResponseWriter, val *Values) (*Response, error) {
 	cookie, err := s.Cookie(val)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	http.SetCookie(w, cookie)
-	return nil
+	return &Response{}, nil
 }
 
 // Del removes the cookie from client.

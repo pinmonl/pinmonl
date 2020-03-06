@@ -7,6 +7,7 @@ import (
 
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/model/field"
 )
 
 // ShareTagOpts defines the parameters for share tag filtering.
@@ -44,7 +45,7 @@ type dbShareTagStore struct {
 
 // List retrieves share tags by the filter parameters.
 func (s *dbShareTagStore) List(ctx context.Context, opts *ShareTagOpts) ([]model.ShareTag, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindShareTagOpts(opts)
 	br.From = shareTagTB
 	stmt := br.String()
@@ -68,8 +69,15 @@ func (s *dbShareTagStore) List(ctx context.Context, opts *ShareTagOpts) ([]model
 
 // ListTags retrieves tags by share tag relationship.
 func (s *dbShareTagStore) ListTags(ctx context.Context, opts *ShareTagOpts) (map[string][]model.Tag, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindShareTagOpts(opts)
+	br.Columns = []string{
+		fmt.Sprintf("%s.*", shareTagTB),
+		fmt.Sprintf("%s.name", tagTB),
+		fmt.Sprintf("%s.user_id", tagTB),
+		fmt.Sprintf("%s.created_at", tagTB),
+		fmt.Sprintf("%s.updated_at", tagTB),
+	}
 	br.From = shareTagTB
 	br.Join = []string{fmt.Sprintf("INNER JOIN %s ON %s.tag_id = %s.id", tagTB, shareTagTB, tagTB)}
 	stmt := br.String()
@@ -80,30 +88,48 @@ func (s *dbShareTagStore) ListTags(ctx context.Context, opts *ShareTagOpts) (map
 	defer rows.Close()
 
 	list := make(map[string][]model.Tag)
-	var r struct {
-		model.Tag
-		model.ShareTag
-	}
 	for rows.Next() {
+		var r struct {
+			ShareID   string     `db:"share_id"`
+			TagID     string     `db:"tag_id"`
+			Kind      string     `db:"kind"`
+			ParentID  string     `db:"parent_id"`
+			Sort      int64      `db:"sort"`
+			Name      string     `db:"name"`
+			UserID    string     `db:"user_id"`
+			CreatedAt field.Time `db:"created_at"`
+			UpdatedAt field.Time `db:"updated_at"`
+		}
 		err = rows.StructScan(&r)
 		if err != nil {
 			return nil, err
 		}
-		k := r.ShareTag.ShareID
-		list[k] = append(list[k], r.Tag)
+		t := model.Tag{
+			ID:        r.TagID,
+			Name:      r.Name,
+			ParentID:  r.ParentID,
+			UserID:    r.UserID,
+			Sort:      r.Sort,
+			CreatedAt: r.CreatedAt,
+			UpdatedAt: r.UpdatedAt,
+		}
+		k := r.ShareID
+		list[k] = append(list[k], t)
 	}
 	return list, nil
 }
 
 // Create inserts the fields of share tag.
 func (s *dbShareTagStore) Create(ctx context.Context, m *model.ShareTag) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.InsertBuilder{
 		Into: shareTagTB,
 		Fields: map[string]interface{}{
-			"share_id": nil,
-			"tag_id":   nil,
-			"kind":     nil,
+			"share_id":  nil,
+			"tag_id":    nil,
+			"kind":      nil,
+			"parent_id": nil,
+			"sort":      nil,
 		},
 	}.String()
 	_, err := e.NamedExec(stmt, m)
@@ -112,7 +138,7 @@ func (s *dbShareTagStore) Create(ctx context.Context, m *model.ShareTag) error {
 
 // Delete removes share tag by the relationship.
 func (s *dbShareTagStore) Delete(ctx context.Context, m *model.ShareTag) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.DeleteBuilder{
 		From:  shareTagTB,
 		Where: []string{"share_id = :share_id", "tag_id = :tag_id"},
@@ -123,18 +149,21 @@ func (s *dbShareTagStore) Delete(ctx context.Context, m *model.ShareTag) error {
 
 func (s *dbShareTagStore) AssocTag(ctx context.Context, share model.Share, kind model.ShareTagKind, tag model.Tag) error {
 	return s.Create(ctx, &model.ShareTag{
-		ShareID: share.ID,
-		TagID:   tag.ID,
-		Kind:    string(kind),
+		ShareID:  share.ID,
+		TagID:    tag.ID,
+		Kind:     string(kind),
+		ParentID: tag.ParentID,
 	})
 }
 
 func (s *dbShareTagStore) AssocTags(ctx context.Context, share model.Share, kind model.ShareTagKind, tags []model.Tag) error {
-	for _, t := range tags {
+	for i, t := range tags {
 		err := s.Create(ctx, &model.ShareTag{
-			ShareID: share.ID,
-			TagID:   t.ID,
-			Kind:    string(kind),
+			ShareID:  share.ID,
+			TagID:    t.ID,
+			Kind:     string(kind),
+			ParentID: t.ParentID,
+			Sort:     int64(i),
 		})
 		if err != nil {
 			return err
@@ -164,7 +193,7 @@ func (s *dbShareTagStore) DissocTags(ctx context.Context, share model.Share, kin
 }
 
 func (s *dbShareTagStore) ClearByKind(ctx context.Context, share model.Share, kind model.ShareTagKind) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.DeleteBuilder{
 		From:  shareTagTB,
 		Where: []string{"share_id = :share_id", "kind = :kind"},

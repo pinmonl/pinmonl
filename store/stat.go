@@ -16,8 +16,8 @@ type StatOpts struct {
 	Kind          string
 	WithLatest    bool
 	WithoutLatest bool
-	MonlID        string
-	MonlIDs       []string
+	PkgID         string
+	PkgIDs        []string
 	After         time.Time
 	Before        time.Time
 }
@@ -40,7 +40,7 @@ type dbStatStore struct {
 
 // List retrieves stats by the filter parameters.
 func (s *dbStatStore) List(ctx context.Context, opts *StatOpts) ([]model.Stat, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindStatOpts(opts)
 	br.From = statTB
 	stmt := br.String()
@@ -66,12 +66,12 @@ func (s *dbStatStore) List(ctx context.Context, opts *StatOpts) ([]model.Stat, e
 func (s *dbStatStore) Create(ctx context.Context, m *model.Stat) error {
 	m2 := *m
 	m2.ID = newUID()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.InsertBuilder{
 		Into: statTB,
 		Fields: map[string]interface{}{
 			"id":          nil,
-			"monl_id":     nil,
+			"pkg_id":      nil,
 			"recorded_at": nil,
 			"kind":        nil,
 			"value":       nil,
@@ -89,11 +89,11 @@ func (s *dbStatStore) Create(ctx context.Context, m *model.Stat) error {
 
 // Update updates the fields of stat by id.
 func (s *dbStatStore) Update(ctx context.Context, m *model.Stat) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.UpdateBuilder{
 		From: statTB,
 		Fields: map[string]interface{}{
-			"monl_id":     nil,
+			"pkg_id":      nil,
 			"recorded_at": nil,
 			"kind":        nil,
 			"value":       nil,
@@ -119,23 +119,23 @@ func bindStatOpts(opts *StatOpts) (database.SelectBuilder, map[string]interface{
 		args["kind"] = opts.Kind
 	}
 
-	if opts.MonlID != "" {
-		opts.MonlIDs = append(opts.MonlIDs, opts.MonlID)
+	if opts.PkgID != "" {
+		opts.PkgIDs = append(opts.PkgIDs, opts.PkgID)
 	}
-	if opts.MonlIDs != nil {
-		idKeys := make([]string, 0)
-		for i, id := range opts.MonlIDs {
-			key := fmt.Sprintf("monl_id%d", i)
-			idKeys = append(idKeys, fmt.Sprintf(":%s", key))
-			args[key] = id
+	if opts.PkgIDs != nil {
+		ks, ids := bindQueryIDs("pkg_ids", opts.PkgIDs)
+		for k, id := range ids {
+			args[k] = id
 		}
-		br.Where = append(br.Where, "monl_id IN ("+strings.Join(idKeys, ", ")+")")
+		br.Where = append(br.Where, fmt.Sprintf("pkg_id IN (%s)", strings.Join(ks, ",")))
 	}
 
 	if opts.WithLatest {
-		br.Where = append(br.Where, "is_latest = 1")
+		br.Where = append(br.Where, "is_latest = :is_latest")
+		args["is_latest"] = true
 	} else if opts.WithoutLatest {
-		br.Where = append(br.Where, "is_latest = 0")
+		br.Where = append(br.Where, "is_latest = :is_latest")
+		args["is_latest"] = false
 	}
 
 	if !opts.After.IsZero() {

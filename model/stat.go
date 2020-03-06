@@ -7,7 +7,7 @@ import (
 // Stat stores the value at the given date and time.
 type Stat struct {
 	ID         string       `json:"id"         db:"id"`
-	MonlID     string       `json:"monlId"     db:"monl_id"`
+	PkgID      string       `json:"pkgId"      db:"pkg_id"`
 	RecordedAt field.Time   `json:"recordedAt" db:"recorded_at"`
 	Kind       string       `json:"kind"       db:"kind"`
 	Value      string       `json:"value"      db:"value"`
@@ -18,7 +18,7 @@ type Stat struct {
 // StatList is slice of Stat.
 type StatList []Stat
 
-// FindKind filters stats by kind.
+// FindKind filters Stats by kind.
 func (sl StatList) FindKind(kind string) StatList {
 	var out []Stat
 	for _, s := range sl {
@@ -29,11 +29,22 @@ func (sl StatList) FindKind(kind string) StatList {
 	return out
 }
 
-// FindValue filters stats by value.
+// FindValue filters Stats by value.
 func (sl StatList) FindValue(value string) StatList {
 	var out []Stat
 	for _, s := range sl {
 		if value == s.Value {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// FindPkg filters Stats by Pkg.
+func (sl StatList) FindPkg(m Pkg) StatList {
+	var out []Stat
+	for _, s := range sl {
+		if m.ID == s.PkgID {
 			out = append(out, s)
 		}
 	}

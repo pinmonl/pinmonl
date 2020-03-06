@@ -40,7 +40,7 @@ var jobCols = []string{"id", "name", "target_id", "status", "error", "scheduled_
 
 // List retrieves jobs by the filter parameters.
 func (s *dbJobStore) List(ctx context.Context, opts *JobOpts) ([]model.Job, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindJobOpts(opts)
 	br.Columns = jobCols
 	br.From = jobTB
@@ -65,7 +65,7 @@ func (s *dbJobStore) List(ctx context.Context, opts *JobOpts) ([]model.Job, erro
 
 // Find retrieves job by id.
 func (s *dbJobStore) Find(ctx context.Context, m *model.Job) error {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	stmt := database.SelectBuilder{
 		From:    jobTB,
 		Columns: jobCols,
@@ -95,7 +95,7 @@ func (s *dbJobStore) Create(ctx context.Context, m *model.Job) error {
 	m2 := *m
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.InsertBuilder{
 		Into: jobTB,
 		Fields: map[string]interface{}{
@@ -120,7 +120,7 @@ func (s *dbJobStore) Create(ctx context.Context, m *model.Job) error {
 // Update updates job by id.
 func (s *dbJobStore) Update(ctx context.Context, m *model.Job) error {
 	m2 := *m
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.UpdateBuilder{
 		From: jobTB,
 		Fields: map[string]interface{}{
@@ -143,7 +143,7 @@ func (s *dbJobStore) Update(ctx context.Context, m *model.Job) error {
 
 // Delete removes job by id.
 func (s *dbJobStore) Delete(ctx context.Context, m *model.Job) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.DeleteBuilder{
 		From:  jobTB,
 		Where: []string{"id = :id"},

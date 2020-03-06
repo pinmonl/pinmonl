@@ -17,7 +17,8 @@ type Config struct {
 		Token string
 	}
 	HTTP struct {
-		Endpoint string
+		Endpoint  string
+		DevServer string
 	}
 	Queue struct {
 		Parallel int
@@ -52,7 +53,8 @@ func newViper() *viper.Viper {
 	v.SetDefault("db.dsn", "file:pinmonl.db?cache=shared")
 	v.SetDefault("github.token", "")
 	v.SetDefault("http.endpoint", ":8080")
-	v.SetDefault("loglevel", "debug")
+	v.SetDefault("http.devserver", "")
+	v.SetDefault("loglevel", "info")
 	v.SetDefault("queue.interval", "1s")
 	v.SetDefault("queue.parallel", 1)
 	v.SetDefault("cookie.name", "session")

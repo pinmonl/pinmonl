@@ -24,7 +24,7 @@ func NewStat(date time.Time, group, value string, manifest field.Labels) Stat {
 	}
 }
 
-// SimpleStat stores stat which does not require extra handling.
+// basicStat stores stat which does not require extra handling.
 type basicStat struct {
 	date     time.Time
 	group    string

@@ -45,7 +45,13 @@ var jobStatusSeqs = []string{
 
 // Scan implements sql.Scanner interface.
 func (js *JobStatus) Scan(value interface{}) error {
-	vs := value.(string)
+	var vs string
+	switch value.(type) {
+	case []uint8:
+		vs = string(value.([]uint8))
+	case string:
+		vs = value.(string)
+	}
 	for i, s := range jobStatusSeqs {
 		if s == vs {
 			*js = JobStatus(i)
@@ -82,23 +88,29 @@ const (
 	JobPinlCreated
 	// JobPinlUpdated defines the job after pinl updated.
 	JobPinlUpdated
-	// JobMonlCreate defines the job after monl created.
-	JobMonlCreated
-	// JobMonlRegularUpdate defines the job of monl regular update.
-	JobMonlRegularUpdate
+	// JobPkgCreated defines the job after pkg created.
+	JobPkgCreated
+	// JobPkgRegularUpdate defines the job of pkg regular update.
+	JobPkgRegularUpdate
 )
 
 var jobNameSeqs = []string{
 	"",
 	"pinl.created",
 	"pinl.updated",
-	"monl.created",
-	"monl.regular_update",
+	"pkg.created",
+	"pkg.regular_update",
 }
 
 // Scan implements sql.Scanner interface.
 func (jn *JobName) Scan(value interface{}) error {
-	vs := value.(string)
+	var vs string
+	switch value.(type) {
+	case []uint8:
+		vs = string(value.([]uint8))
+	case string:
+		vs = value.(string)
+	}
 	for i, s := range jobNameSeqs {
 		if s == vs {
 			*jn = JobName(i)

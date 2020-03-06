@@ -98,3 +98,21 @@ func HandleDelete(tags store.TagStore) http.HandlerFunc {
 		response.NoContent(w)
 	}
 }
+
+// HandlePageInfo returns the page info of Tag.
+func HandlePageInfo(tags store.TagStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		u, _ := request.UserFrom(ctx)
+		count, err := tags.Count(ctx, &store.TagOpts{UserID: u.ID})
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
+
+		pi := response.PageInfo{
+			Count: count,
+		}
+		response.JSON(w, pi)
+	}
+}

@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"net/http"
 	"regexp"
 
 	"github.com/pinmonl/pinmonl/monl"
@@ -43,7 +44,7 @@ func (v *Vendor) Load(ctx context.Context, rawurl string) (monl.Report, error) {
 		return nil, err
 	}
 
-	err = r.Download()
+	err = r.Download(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -55,9 +56,13 @@ func (v *Vendor) isValidURL(rawurl string) bool {
 		`^https?://github\.com/([^/]+)/([^/]+)`,
 	}
 	for _, pattern := range patterns {
-		if regexp.MustCompile(pattern).MatchString(rawurl) {
-			return true
+		if !regexp.MustCompile(pattern).MatchString(rawurl) {
+			return false
 		}
 	}
-	return false
+	r, err := http.Get(rawurl)
+	if err != nil {
+		return false
+	}
+	return r.StatusCode >= 200 && r.StatusCode < 300
 }

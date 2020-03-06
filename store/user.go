@@ -36,7 +36,7 @@ type dbUserStore struct {
 
 // List retrieves users by the filter parameters.
 func (s *dbUserStore) List(ctx context.Context, opts *UserOpts) ([]model.User, error) {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	br, args := bindUserOpts(opts)
 	br.From = userTB
 	stmt := br.String()
@@ -60,7 +60,7 @@ func (s *dbUserStore) List(ctx context.Context, opts *UserOpts) ([]model.User, e
 
 // Find retrieves user by id.
 func (s *dbUserStore) Find(ctx context.Context, m *model.User) error {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	stmt := database.SelectBuilder{
 		From:  userTB,
 		Where: []string{"id = :id"},
@@ -85,7 +85,7 @@ func (s *dbUserStore) Find(ctx context.Context, m *model.User) error {
 
 // FindLogin retrieves user by login.
 func (s *dbUserStore) FindLogin(ctx context.Context, m *model.User) error {
-	e := s.Exter(ctx)
+	e := s.Queryer(ctx)
 	stmt := database.SelectBuilder{
 		From:  userTB,
 		Where: []string{"login = :login"},
@@ -94,8 +94,8 @@ func (s *dbUserStore) FindLogin(ctx context.Context, m *model.User) error {
 	if err != nil {
 		return err
 	}
-
 	defer rows.Close()
+
 	if !rows.Next() {
 		return sql.ErrNoRows
 	}
@@ -113,7 +113,7 @@ func (s *dbUserStore) Create(ctx context.Context, m *model.User) error {
 	m2 := *m
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.InsertBuilder{
 		Into: userTB,
 		Fields: map[string]interface{}{
@@ -122,6 +122,7 @@ func (s *dbUserStore) Create(ctx context.Context, m *model.User) error {
 			"password":   nil,
 			"name":       nil,
 			"email":      nil,
+			"image_id":   nil,
 			"created_at": nil,
 		},
 	}.String()
@@ -137,7 +138,7 @@ func (s *dbUserStore) Create(ctx context.Context, m *model.User) error {
 func (s *dbUserStore) Update(ctx context.Context, m *model.User) error {
 	m2 := *m
 	m2.UpdatedAt = timestamp()
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.UpdateBuilder{
 		From: userTB,
 		Fields: map[string]interface{}{
@@ -145,6 +146,7 @@ func (s *dbUserStore) Update(ctx context.Context, m *model.User) error {
 			"password":   nil,
 			"name":       nil,
 			"email":      nil,
+			"image_id":   nil,
 			"updated_at": nil,
 		},
 		Where: []string{"id = :id"},
@@ -159,7 +161,7 @@ func (s *dbUserStore) Update(ctx context.Context, m *model.User) error {
 
 // Delete removes user by id.
 func (s *dbUserStore) Delete(ctx context.Context, m *model.User) error {
-	e := s.Exter(ctx)
+	e := s.Execer(ctx)
 	stmt := database.DeleteBuilder{
 		From:  userTB,
 		Where: []string{"id = :id"},

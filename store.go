@@ -12,6 +12,7 @@ type stores struct {
 	monls     store.MonlStore
 	pinls     store.PinlStore
 	pinmons   store.PinmonStore
+	pkgs      store.PkgStore
 	shares    store.ShareStore
 	sharetags store.ShareTagStore
 	stats     store.StatStore
@@ -29,6 +30,7 @@ func initStores(db *database.DB) stores {
 		monls:     store.NewMonlStore(s),
 		pinls:     store.NewPinlStore(s),
 		pinmons:   store.NewPinmonStore(s),
+		pkgs:      store.NewPkgStore(s),
 		shares:    store.NewShareStore(s),
 		sharetags: store.NewShareTagStore(s),
 		stats:     store.NewStatStore(s),

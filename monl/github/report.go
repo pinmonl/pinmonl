@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/pinmonl/pinmonl/monl"
 	"github.com/pinmonl/pinmonl/monl/github/api"
 )
@@ -21,6 +22,7 @@ type Report struct {
 	repoData        *api.Repo
 	repoRelPageInfo *api.PageInfo
 	repoRels        monl.StatCollection
+	useTag          bool
 
 	latestRel monl.Stat
 	totalRel  int
@@ -43,7 +45,7 @@ func NewReport(vendorName, rawurl string, httpClient *http.Client) (*Report, err
 func (r *Report) RawURL() string { return r.rawurl }
 
 // URI returns the unique name of the repo.
-func (r *Report) URI() string { return strings.Join(r.uriPaths(), "/") }
+func (r *Report) URI() string { return strings.Join(r.uriParts(), "/") }
 
 // Vendor returns the vendor name.
 func (r *Report) Vendor() string { return r.vendorName }
@@ -68,13 +70,22 @@ func (r *Report) Popularity() monl.StatCollection {
 		watcherStat   = monl.NewStat(now, "watcher", strconv.Itoa(data.Watchers.TotalCount), nil)
 		starStat      = monl.NewStat(now, "star", strconv.Itoa(data.Stargazers.TotalCount), nil)
 		openIssueStat = monl.NewStat(now, "open_issue", strconv.Itoa(data.OpenIssues.TotalCount), nil)
+
+		stats = []monl.Stat{
+			starStat,
+			forkStat,
+			watcherStat,
+			openIssueStat,
+		}
 	)
-	return []monl.Stat{
-		starStat,
-		forkStat,
-		watcherStat,
-		openIssueStat,
+	if data.Languages.TotalCount > 0 {
+		lang := data.Languages.Edges[0]
+		stats = append(stats, monl.NewStat(now, "lang", lang.Node.Name, field.Labels{
+			"color": lang.Node.Color,
+		}))
 	}
+
+	return stats
 }
 
 // Next moves the cursor if not reach the end.
@@ -94,16 +105,28 @@ func (r *Report) Next() bool {
 	}
 
 	// Download the releases
-	infos := r.uriPaths()
+	infos := r.uriParts()
 	po := &api.PageOption{First: 50, After: pi.EndCursor}
-	repo, err := r.client.ListRepoReleases(context.Background(), infos[0], infos[1], po)
-	if err != nil {
-		return false
-	}
-	r.repoRelPageInfo = repo.Releases.PageInfo
-	for _, rel := range repo.Releases.Nodes {
-		relStat := r.parseRelease(rel)
-		r.repoRels = append(r.repoRels, relStat)
+	if !r.useTag {
+		repo, err := r.client.ListRepoReleases(context.Background(), infos[0], infos[1], po)
+		if err != nil {
+			return false
+		}
+		r.repoRelPageInfo = repo.Releases.PageInfo
+		for _, rel := range repo.Releases.Nodes {
+			relStat := r.parseRelease(rel)
+			r.repoRels = append(r.repoRels, relStat)
+		}
+	} else {
+		repo, err := r.client.ListRepoTags(context.Background(), infos[0], infos[1], po)
+		if err != nil {
+			return false
+		}
+		r.repoRelPageInfo = repo.Tags.PageInfo
+		for _, tag := range repo.Tags.Nodes {
+			relStat := r.parseTag(tag)
+			r.repoRels = append(r.repoRels, relStat)
+		}
 	}
 
 	r.cursor = r.cursor + 1
@@ -125,9 +148,9 @@ func (r *Report) Stat() monl.Stat {
 }
 
 // Download gets the repo info.
-func (r *Report) Download() error {
-	infos := r.uriPaths()
-	repo, err := r.client.GetRepo(context.Background(), infos[0], infos[1])
+func (r *Report) Download(ctx context.Context) error {
+	urips := r.uriParts()
+	repo, err := r.client.GetRepo(ctx, urips[0], urips[1])
 	if err != nil {
 		return err
 	}
@@ -137,6 +160,14 @@ func (r *Report) Download() error {
 	r.totalRel = repo.Releases.TotalCount
 	if nodes := repo.Releases.Nodes; len(nodes) > 0 {
 		relStat := r.parseRelease(nodes[0])
+		r.latestRel = relStat
+		r.repoRels = append(r.repoRels, relStat)
+	} else if nodes := repo.Tags.Nodes; len(nodes) > 0 {
+		r.useTag = true
+		r.repoRelPageInfo = repo.Tags.PageInfo
+		r.totalRel = repo.Tags.TotalCount
+
+		relStat := r.parseTag(nodes[0])
 		r.latestRel = relStat
 		r.repoRels = append(r.repoRels, relStat)
 	}
@@ -153,7 +184,7 @@ func (r *Report) Close() error {
 	return nil
 }
 
-func (r *Report) uriPaths() []string {
+func (r *Report) uriParts() []string {
 	url, err := url.Parse(r.RawURL())
 	if err != nil {
 		return []string{"", ""}
@@ -167,4 +198,14 @@ func (r *Report) uriPaths() []string {
 
 func (*Report) parseRelease(rel api.RepoReleaseNode) monl.Stat {
 	return monl.NewStat(rel.CreatedAt, "tag", rel.TagName, nil)
+}
+
+func (*Report) parseTag(tag api.RepoTagNode) monl.Stat {
+	var at time.Time
+	if c := tag.Target.Commit.CommittedDate; c != nil {
+		at = *c
+	} else if t := tag.Target.Tag.Tagger.Date; t != nil {
+		at = *t
+	}
+	return monl.NewStat(at, "tag", tag.Name, nil)
 }

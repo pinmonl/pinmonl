@@ -22,23 +22,32 @@ func Open(driverName, dataSourceName string) (*DB, error) {
 	return &DB{dbx}, nil
 }
 
+// Binder provides database bind var functions.
+type Binder interface {
+	Rebind(string) string
+	BindNamed(string, interface{}) (string, []interface{}, error)
+}
+
 // Execer extends sqlx.Execer.
 type Execer interface {
 	sqlx.Execer
+	Binder
 	NamedExec(query string, arg interface{}) (sql.Result, error)
 }
 
 // Queryer extends sqlx.Queryer.
 type Queryer interface {
 	sqlx.Queryer
+	Binder
 	NamedQuery(query string, arg interface{}) (*sqlx.Rows, error)
 }
 
 // Ext combines Execer and Queryer.
 type Ext interface {
-	Execer
-	Queryer
+	sqlx.Execer
+	sqlx.Queryer
+	Binder
 	DriverName() string
-	Rebind(string) string
-	BindNamed(string, interface{}) (string, []interface{}, error)
+	NamedExec(query string, arg interface{}) (sql.Result, error)
+	NamedQuery(query string, arg interface{}) (*sqlx.Rows, error)
 }

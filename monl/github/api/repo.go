@@ -25,8 +25,20 @@ type Repo struct {
 		Nodes      []RepoReleaseNode
 	} `graphql:"releases(orderBy: {field: CREATED_AT, direction: DESC}, first: 1)"`
 	Tags struct {
+		PageInfo   *PageInfo
 		TotalCount int
-	} `graphql:"refs(refPrefix: \"refs/tags/\")"`
+		Nodes      []RepoTagNode
+	} `graphql:"refs(refPrefix: \"refs/tags/\", orderBy: {field: TAG_COMMIT_DATE, direction: DESC}, first: 1)"`
+	Languages struct {
+		Edges []struct {
+			Size int
+			Node struct {
+				Color string
+				Name  string
+			}
+		}
+		TotalCount int
+	} `graphql:"languages(orderBy: {field: SIZE, direction: DESC}, first: 3)"`
 }
 
 // RepoReleases handles releases of repository with pagination.
@@ -44,7 +56,7 @@ type RepoTags struct {
 		PageInfo   *PageInfo
 		TotalCount int
 		Nodes      []RepoTagNode
-	} `graphql:"refs(refPrefix: \"refs/tags/\", orderBy: {field: TAG_COMMIT_DATE, direction: DESC}, first: $first, after: $after, before: $before, after: $after)"`
+	} `graphql:"refs(refPrefix: \"refs/tags/\", orderBy: {field: TAG_COMMIT_DATE, direction: DESC}, first: $first, after: $after, before: $before, last: $last)"`
 }
 
 // RepoReleaseNode defines the structure of release.
@@ -59,12 +71,12 @@ type RepoTagNode struct {
 	Name string
 
 	Target struct {
-		Commit *struct {
-			CommittedDate time.Time
+		Commit struct {
+			CommittedDate *time.Time
 		} `graphql:"... on Commit"`
-		Tag *struct {
+		Tag struct {
 			Tagger struct {
-				Date time.Time
+				Date *time.Time
 			}
 		} `graphql:"... on Tag"`
 	}

@@ -1,0 +1,38 @@
+version: '3'
+services:
+  go:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    working_dir: /go/src/github.com/pinmonl/pinmonl
+    command: tail -f /dev/null
+    volumes:
+      - .:/go/src/github.com/pinmonl/pinmonl
+      - /tmp/gomod/:/go/pkg/mod/
+    ports:
+      - 8080:8080
+  node:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.node.dev
+    working_dir: /www/webui
+    command: tail -f /dev/null
+    volumes:
+      - .:/www
+  pg:
+    image: postgres:alpine
+    environment:
+      POSTGRES_DB: pinmonl
+      POSTGRES_USER: pinmonl
+      POSTGRES_PASSWORD: pinmonl
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pinmonl
+      MYSQL_USER: pinmonl
+      MYSQL_PASSWORD: pinmonl
+  adminer:
+    image: adminer
+    ports:
+      - 8000:8080

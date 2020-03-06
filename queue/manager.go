@@ -23,6 +23,7 @@ type ManagerOpts struct {
 	Jobs  store.JobStore
 	Pinls store.PinlStore
 	Monls store.MonlStore
+	Pkgs  store.PkgStore
 	Stats store.StatStore
 }
 
@@ -59,6 +60,7 @@ func NewManager(opts ManagerOpts) *Manager {
 			store: opts.Store,
 			pinls: opts.Pinls,
 			monls: opts.Monls,
+			pkgs:  opts.Pkgs,
 			stats: opts.Stats,
 		}
 	}
@@ -199,6 +201,32 @@ func (m *Manager) jobStopped(ctx context.Context, job *Job) error {
 	jd.Status = model.JobStatusStopped
 	jd.Error = job.Error.Error()
 
+	err := m.jobs.Update(ctx, &jd)
+	if err != nil {
+		return err
+	}
+	job.Detail = jd
+	return nil
+}
+
+func (m *Manager) scheduleJob(ctx context.Context, job *Job) error {
+	m.Lock()
+	defer m.Unlock()
+
+	jd := job.Detail
+	err := m.jobs.Create(ctx, &jd)
+	if err != nil {
+		return err
+	}
+	job.Detail = jd
+	return nil
+}
+
+func (m *Manager) rescheduleJob(ctx context.Context, job *Job) error {
+	m.Lock()
+	defer m.Unlock()
+
+	jd := job.Detail
 	err := m.jobs.Update(ctx, &jd)
 	if err != nil {
 		return err
