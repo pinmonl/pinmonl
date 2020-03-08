@@ -1,0 +1,46 @@
+html,
+body {
+  @apply w-full;
+  @apply h-full;
+  @apply m-0;
+}
+
+:root {
+  @each $name, $color in $colors {
+    --color-#{$name}: #{$color};
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+h1 {
+  @apply text-3xl;
+}
+
+h2 {
+  @apply text-2xl;
+}
+
+h3 {
+  @apply text-xl;
+}
+
+input,
+textarea {
+  @apply outline-none;
+  @apply w-full;
+  @apply bg-transparent;
+}
+
+button {
+  &,
+  &:focus {
+    @apply outline-none;
+  }
+}
+
+[contenteditable] {
+  @apply outline-none;
+}

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="100"
+   height="100"
+   viewBox="0 0 26.458332 26.458333"
+   version="1.1"
+   id="SVGRoot"
+   inkscape:version="0.92.4 5da689c313, 2019-01-14"
+   sodipodi:docname="pinmonl logo2.svg">
+  <defs
+     id="defs138" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="5.6568542"
+     inkscape:cx="50.130186"
+     inkscape:cy="37.135687"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1046"
+     inkscape:window-x="0"
+     inkscape:window-y="16"
+     inkscape:window-maximized="0"
+     inkscape:lockguides="true"
+     units="px"
+     fit-margin-top="0"
+     fit-margin-left="50"
+     fit-margin-right="50"
+     fit-margin-bottom="0" />
+  <metadata
+     id="metadata141">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-58.486126,-94.582608)">
+    <g
+       id="g6298"
+       transform="matrix(0.27153226,0,0,0.27153226,22.247392,87.424965)"
+       style="fill:#000046;fill-opacity:1;stroke:#000047;stroke-opacity:1">
+      <g
+         id="g7114"
+         style="fill:#000046;fill-opacity:1;stroke:#000047;stroke-opacity:1">
+        <path
+           style="fill:#000046;fill-opacity:1;stroke:#000047;stroke-width:1.05306804;stroke-opacity:1"
+           d="M 130.14258,0.52734375 A 129.61547,132.56458 0 0 0 0.52734375,133.0918 129.61547,132.56458 0 0 0 12.083984,187.4082 C 23.469399,224.33195 54.994741,293.58714 131.08203,367.54688 222.28092,278.89812 249.46201,197.01832 254.66406,169.47852 A 129.61547,132.56458 0 0 0 259.75781,133.0918 129.61547,132.56458 0 0 0 130.14258,0.52734375 Z M 88.273438,68.347656 a 64.615471,66.085658 10 0 1 10.982421,0.958985 64.615471,66.085658 10 0 1 52.158201,76.302739 64.615471,66.085658 10 0 1 -5.65039,17.42578 c -4.25515,11.26112 -20.03172,40.8992 -57.843748,71.67578 13.042698,27.26101 32.721618,52.44778 49.089848,79.22461 1.50698,2.46744 -1.09376,5.39512 -3.72071,4.1875 C 109.85693,307.3492 83.923859,279.77765 63.017578,242.51172 35.986377,202.67036 27.380189,168.89253 25.119141,150.83789 A 64.615471,66.085658 10 0 1 24.146484,123.16797 64.615471,66.085658 10 0 1 88.273438,68.347656 Z M 88.150391,96.119141 A 37.753504,39.231262 10 0 0 50.576172,128.75 37.753504,39.231262 10 0 0 80.943359,173.94141 37.753504,39.231262 10 0 0 124.93555,141.86133 37.753504,39.231262 10 0 0 94.568359,96.671875 37.753504,39.231262 10 0 0 88.150391,96.119141 Z"
+           transform="matrix(0.26458333,0,0,0.26458333,147.74701,26.359982)"
+           id="path162"
+           inkscape:connector-curvature="0" />
+      </g>
+    </g>
+    <g
+       id="g7109"
+       transform="rotate(10,116.9409,-476.87775)">
+      <g
+         transform="matrix(0.49851666,0,0,0.49851666,81.068366,31.368813)"
+         id="g6293" />
+    </g>
+  </g>
+</svg>
