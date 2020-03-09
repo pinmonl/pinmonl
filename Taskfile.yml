@@ -64,3 +64,10 @@ tasks:
     dir: webui
     cmds:
       - yarn run lint
+
+  docker:build:
+    cmds:
+      - echo "Building pinmonl/pinmonl:{{.TAG}}"
+      - docker build . -f docker/Dockerfile -t pinmonl/pinmonl:{{.TAG}} 1>/dev/null
+    vars:
+      TAG: '{{default "latest" .TAG}}'
