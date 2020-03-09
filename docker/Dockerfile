@@ -1,8 +1,8 @@
 FROM alpine
 
-COPY ./release/pinmonl-linux /app/pinmonl
+COPY ./release/pinmonl-linux /usr/local/bin/pinmonl
 WORKDIR /app
-RUN chmod -R 755 /app \
-  && ln -sf /app/pinmonl /usr/local/bin/pinmonl
+RUN chmod 755 /usr/local/bin/pinmonl \
+  && chmod -R 755 /app
 
 CMD ["pinmonl", "server"]
