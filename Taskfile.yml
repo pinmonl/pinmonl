@@ -1,0 +1,66 @@
+# https://taskfile.dev
+
+version: '2'
+
+silent: true
+vars:
+  APP_NAME: pinmonl
+  BUILD_DIR: release/
+
+tasks:
+  lint:
+    cmds:
+      - |
+        RET=$(golint ./...)
+        if [[ ! -z $RET ]]; then
+          echo $RET && exit 1
+        fi
+
+  fmt:
+    cmds:
+      - goimports -w .
+
+  build:
+    cmds:
+      - cmd: packr2
+      - cmd: echo "Start building for linux."
+      - task: build-linux
+      - cmd: echo "Start building for windows."
+      - task: build-win
+      - cmd: echo "Start building for darwin."
+      - task: build-darwin
+      - cmd: packr2 clean
+
+  build-linux:
+    cmds:
+      - task: gobuild
+        vars: {GOOS: linux, FILE: "{{.APP_NAME}}-linux"}
+
+  build-darwin:
+    cmds:
+      - task: gobuild
+        vars: {GOOS: darwin, FILE: "{{.APP_NAME}}-darwin"}
+
+  build-win:
+    cmds:
+      - task: gobuild
+        vars: {GOOS: windows, FILE: "{{.APP_NAME}}-win.exe"}
+
+  gobuild:
+    cmds:
+      - GOOS={{.GOOS}} go build -o {{.BUILD_DIR}}{{.FILE}}
+
+  webui:build:
+    dir: webui
+    cmds:
+      - yarn run build
+
+  webui:serve:
+    dir: webui
+    cmds:
+      - yarn run serve
+
+  webui:lint:
+    dir: webui
+    cmds:
+      - yarn run lint

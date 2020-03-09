@@ -46,6 +46,45 @@ Functional features must be part of the OSS and always be tracking & ad. free.
 - Browser extension
 - CLI
 
+## Get started
+
+##### 1. Configuration
+by `config.yaml`
+```yaml
+db:
+  # driver: sqlite3
+  # dsn: file:pinmonl.db?cache=shared
+  # - OR -
+  # driver: postgres
+  # dsn: postgres://pinmonl:pinmonl@pg:5432/pinmonl?sslmode=disable
+  # - OR -
+  # driver: mysql
+  # dsn: pinmonl:pinmonl@tcp(mysql:3306)/pinmonl
+github:
+  token: YourGitHubToken
+cookie:
+  hashkey: hash_with_at_least_32_length
+  blockkey: hash_with_at_least_32_length
+```
+
+or use environment
+```ini
+DB_DRIVER=sqlite3
+DB_DSN=file:pinmonl.db?cache=shared
+GITHUB_TOKEN=YourGitHubToken
+COOKIE_HASHKEY=hash_with_at_least_32_length
+COOKIE_BLOCKKEY=hash_with_at_least_32_length
+```
+
+##### 2. Setup migration table
+`pinmonl migration install`
+
+##### 3. Run migrations
+`pinmonl migration up`
+
+##### 4. Start server
+`pinmonl server`
+
 ## Support the project
 [Patreon](https://patreon.com/pinmonl)
 

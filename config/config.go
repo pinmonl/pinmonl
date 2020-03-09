@@ -1,6 +1,8 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/pinmonl/pinmonl/pkg/generate"
 	"github.com/spf13/viper"
 )
@@ -47,6 +49,7 @@ func newViper() *viper.Viper {
 	v.AddConfigPath(".")
 	v.ReadInConfig()
 
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
 	v.SetDefault("db.driver", "sqlite3")
