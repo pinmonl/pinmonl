@@ -13,7 +13,7 @@ type Time time.Time
 func (t *Time) Scan(src interface{}) error {
 	st, ok := src.(time.Time)
 	if ok {
-		*t = Time(st)
+		*t = Time(st.UTC())
 	}
 	return nil
 }
@@ -54,7 +54,7 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	if t2 != nil {
-		*t = Time(*t2)
+		*t = Time((*t2).UTC())
 	}
 	return nil
 }
