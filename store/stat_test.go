@@ -32,8 +32,8 @@ func TestStatStore(t *testing.T) {
 func testStatCreate(ctx context.Context, stats StatStore) func(t *testing.T) {
 	return func(t *testing.T) {
 		testData := []model.Stat{
-			{Kind: "tag", Value: "v1.0.0", RecordedAt: field.Time(time.Now()), IsLatest: false},
-			{Kind: "tag", Value: "v2.0.0", RecordedAt: field.Time(time.Now()), IsLatest: true},
+			{Kind: "tag", Value: "v1.0.0", RecordedAt: field.Time(time.Now()), IsLatest: false, Labels: field.Labels{"a1": "v1"}},
+			{Kind: "tag", Value: "v2.0.0", RecordedAt: field.Time(time.Now()), IsLatest: true, Labels: field.Labels{"a2": "v2"}},
 		}
 
 		for _, stat := range testData {

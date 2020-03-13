@@ -51,8 +51,8 @@ func TestGithubRepo(t *testing.T) {
 		passFn func(*Report, error) bool
 	}{
 		{
-			name:   "ahxshum/empty",
-			rawurl: "http://github.com/ahxshum/empty",
+			name:   "ahshum/empty",
+			rawurl: "http://github.com/ahshum/empty",
 			passFn: func(r *Report, err error) bool {
 				return err == nil &&
 					r != nil &&
@@ -61,34 +61,34 @@ func TestGithubRepo(t *testing.T) {
 			},
 		},
 		{
-			name:   "ahxshum/not-exist",
-			rawurl: "https://github.com/ahxshum/not-exist",
+			name:   "ahshum/not-exist",
+			rawurl: "https://github.com/ahshum/not-exist",
 			passFn: func(r *Report, err error) bool {
 				return err != nil &&
 					r != nil
 			},
 		},
 		{
-			name:   "ahxshum/release",
-			rawurl: "https://github.com/ahxshum/release",
+			name:   "ahshum/release",
+			rawurl: "https://github.com/ahshum/release",
 			passFn: func(r *Report, err error) bool {
 				if err != nil || r == nil {
 					return false
 				}
 
-				prev := r.Previous()
 				return r.Length() == 2 &&
-					r.Latest() != nil &&
-					r.Latest().Value() == "v2.0.0" &&
-					prev != nil &&
-					prev.Value() == "v1.0.0"
+					r.Next() &&
+					r.Stat().Value() == "v2.0.0" &&
+					r.Next() &&
+					r.Stat().Value() == "v1.0.0"
 			},
 		},
 	}
 
+	ctx := context.TODO()
 	for _, tc := range testCases {
 		r, _ := NewReport("test", tc.rawurl, createClient())
-		err := r.Download()
+		err := r.Download(ctx)
 		if !tc.passFn(r, err) {
 			t.Errorf("case %q fails, err: %v", tc.name, err)
 		}

@@ -13,12 +13,14 @@ require (
 	github.com/lib/pq v1.0.0
 	github.com/mattn/go-sqlite3 v2.0.1+incompatible
 	github.com/microcosm-cc/bluemonday v1.0.2
+	github.com/prometheus/common v0.4.0
 	github.com/rs/xid v1.2.1
 	github.com/russross/blackfriday v2.0.0+incompatible
 	github.com/shurcooL/githubv4 v0.0.0-20191127044304-8f68eb5628d0
 	github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/viper v1.6.1
+	github.com/stretchr/testify v1.5.1
 	github.com/urfave/cli v1.22.2
 	golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4
 	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6

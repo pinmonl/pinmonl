@@ -10,16 +10,16 @@ func TestVendorCheck(t *testing.T) {
 		wants bool
 	}{
 		{
-			url:   "http://invalid_domain/ahxshum/empty",
+			url:   "http://invalid_domain/ahshum/empty",
 			wants: false,
 		},
 		{
-			url:   "http://github.com/ahxshum/empty",
+			url:   "http://github.com/ahshum/empty",
 			wants: true,
 		},
 		{
-			url:   "https://github.com/ahxshum/not-existed",
-			wants: true,
+			url:   "https://github.com/ahshum/not-existed",
+			wants: false,
 		},
 	}
 

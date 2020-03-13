@@ -25,8 +25,8 @@ func TestGetRepo(t *testing.T) {
 		passFn    func(*Repo, error) bool
 	}{
 		{
-			name:      "ahxshum/empty",
-			repoOwner: "ahxshum",
+			name:      "ahshum/empty",
+			repoOwner: "ahshum",
 			repoName:  "empty",
 			passFn: func(repo *Repo, err error) bool {
 				return err == nil &&

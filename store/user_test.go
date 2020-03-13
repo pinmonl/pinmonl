@@ -33,9 +33,9 @@ func TestUserStore(t *testing.T) {
 func testUserCreate(ctx context.Context, users UserStore) func(t *testing.T) {
 	return func(t *testing.T) {
 		testData := []model.User{
-			{Login: "user1", Name: "User 1", Email: "user1@email.com"},
-			{Login: "user2", Name: "User 2", Email: "user2@email.com"},
-			{Login: "user3", Name: "User 3", Email: "user3@email.com"},
+			{Login: "user1", Name: "User 1"},
+			{Login: "user2", Name: "User 2"},
+			{Login: "user3", Name: "User 3"},
 		}
 
 		for _, user := range testData {
@@ -54,11 +54,6 @@ func testUserList(ctx context.Context, users UserStore) func(t *testing.T) {
 
 		want := testData[0:1]
 		got, err := users.List(ctx, &UserOpts{Login: want[0].Login})
-		assert.Nil(t, err)
-		assert.Equal(t, want, got)
-
-		want = testData[1:2]
-		got, err = users.List(ctx, &UserOpts{Email: want[0].Email})
 		assert.Nil(t, err)
 		assert.Equal(t, want, got)
 	}
@@ -91,7 +86,7 @@ func testUserUpdate(ctx context.Context, users UserStore) func(t *testing.T) {
 		testData, _ := users.List(ctx, nil)
 
 		want := testData[2]
-		want.Email = "user3@changed.com"
+		want.Name = "user3 new"
 		assert.Nil(t, users.Update(ctx, &want))
 		assert.False(t, want.UpdatedAt.Time().IsZero())
 
