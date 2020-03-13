@@ -16,11 +16,12 @@ type worker struct {
 	manager *Manager
 	monl    *monl.Monl
 
-	store store.Store
-	monls store.MonlStore
-	pkgs  store.PkgStore
-	pinls store.PinlStore
-	stats store.StatStore
+	store    store.Store
+	monls    store.MonlStore
+	pkgs     store.PkgStore
+	pinls    store.PinlStore
+	stats    store.StatStore
+	substats store.SubstatStore
 }
 
 // run is goroutine which listens to job queue.

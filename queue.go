@@ -16,11 +16,12 @@ func initQueueManager(cfg *config.Config, ss stores, monl *monl.Monl) *queue.Man
 		Interval: itv,
 		Monl:     monl,
 
-		Store: ss.store,
-		Jobs:  ss.jobs,
-		Pkgs:  ss.pkgs,
-		Monls: ss.monls,
-		Pinls: ss.pinls,
-		Stats: ss.stats,
+		Store:    ss.store,
+		Jobs:     ss.jobs,
+		Pkgs:     ss.pkgs,
+		Monls:    ss.monls,
+		Pinls:    ss.pinls,
+		Stats:    ss.stats,
+		Substats: ss.substats,
 	})
 }

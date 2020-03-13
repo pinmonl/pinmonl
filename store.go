@@ -19,6 +19,7 @@ type stores struct {
 	taggables store.TaggableStore
 	tags      store.TagStore
 	users     store.UserStore
+	substats  store.SubstatStore
 }
 
 func initStores(db *database.DB) stores {
@@ -37,5 +38,6 @@ func initStores(db *database.DB) stores {
 		taggables: store.NewTaggableStore(s),
 		tags:      store.NewTagStore(s),
 		users:     store.NewUserStore(s),
+		substats:  store.NewSubstatStore(s),
 	}
 }

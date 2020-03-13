@@ -19,12 +19,13 @@ type ManagerOpts struct {
 	Interval time.Duration
 	Monl     *monl.Monl
 
-	Store store.Store
-	Jobs  store.JobStore
-	Pinls store.PinlStore
-	Monls store.MonlStore
-	Pkgs  store.PkgStore
-	Stats store.StatStore
+	Store    store.Store
+	Jobs     store.JobStore
+	Pinls    store.PinlStore
+	Monls    store.MonlStore
+	Pkgs     store.PkgStore
+	Stats    store.StatStore
+	Substats store.SubstatStore
 }
 
 // Manager operates the job queue and workers.
@@ -57,11 +58,12 @@ func NewManager(opts ManagerOpts) *Manager {
 			monl:    opts.Monl,
 			manager: m,
 
-			store: opts.Store,
-			pinls: opts.Pinls,
-			monls: opts.Monls,
-			pkgs:  opts.Pkgs,
-			stats: opts.Stats,
+			store:    opts.Store,
+			pinls:    opts.Pinls,
+			monls:    opts.Monls,
+			pkgs:     opts.Pkgs,
+			stats:    opts.Stats,
+			substats: opts.Substats,
 		}
 	}
 
