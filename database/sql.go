@@ -188,6 +188,7 @@ func builderFields(m map[string]interface{}) ([]string, []string) {
 	return cols, binds
 }
 
+// NamespacedColumn appends table name to the column.
 func NamespacedColumn(columnNames []string, tableName string) []string {
 	if len(columnNames) == 0 {
 		return []string{tableName + ".*"}
