@@ -21,7 +21,7 @@ func HandleFind(
 
 		mtsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
 			ShareID: m.ID,
-			Kind:    model.MustTag,
+			Kind:    model.ShareTagKindMust,
 		})
 		if err != nil {
 			response.InternalError(w, err)
@@ -41,7 +41,7 @@ func HandleListTags(sharetags store.ShareTagStore) http.HandlerFunc {
 
 		atsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
 			ShareID: m.ID,
-			Kind:    model.AnyTag,
+			Kind:    model.ShareTagKindAny,
 		})
 		if err != nil {
 			response.InternalError(w, err)
@@ -70,7 +70,7 @@ func HandleListPinls(
 
 		mtsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
 			ShareID: m.ID,
-			Kind:    model.MustTag,
+			Kind:    model.ShareTagKindMust,
 		})
 		if err != nil {
 			response.InternalError(w, err)
@@ -78,7 +78,7 @@ func HandleListPinls(
 		}
 		atsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
 			ShareID: m.ID,
-			Kind:    model.AnyTag,
+			Kind:    model.ShareTagKindAny,
 		})
 		if err != nil {
 			response.InternalError(w, err)
@@ -131,7 +131,7 @@ func HandleFindPinl(
 
 		mtsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
 			ShareID: m.ID,
-			Kind:    model.MustTag,
+			Kind:    model.ShareTagKindMust,
 		})
 		if err != nil {
 			response.InternalError(w, err)
@@ -139,7 +139,7 @@ func HandleFindPinl(
 		}
 		atsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
 			ShareID: m.ID,
-			Kind:    model.AnyTag,
+			Kind:    model.ShareTagKindAny,
 		})
 		if err != nil {
 			response.InternalError(w, err)

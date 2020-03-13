@@ -42,9 +42,7 @@ type dbPinlStore struct {
 func (s *dbPinlStore) List(ctx context.Context, opts *PinlOpts) ([]model.Pinl, error) {
 	e := s.Queryer(ctx)
 	br, args := bindPinlOpts(opts)
-	br.From = pinlTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -67,9 +65,7 @@ func (s *dbPinlStore) Count(ctx context.Context, opts *PinlOpts) (int64, error) 
 	e := s.Queryer(ctx)
 	br, args := bindPinlOpts(opts)
 	br.Columns = []string{"COUNT(*) as count"}
-	br.From = pinlTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return 0, err
 	}
@@ -89,12 +85,10 @@ func (s *dbPinlStore) Count(ctx context.Context, opts *PinlOpts) (int64, error) 
 // Find retrieves pinl by id.
 func (s *dbPinlStore) Find(ctx context.Context, m *model.Pinl) error {
 	e := s.Queryer(ctx)
-	stmt := database.SelectBuilder{
-		From:  pinlTB,
-		Where: []string{"id = :id"},
-		Limit: 1,
-	}.String()
-	rows, err := e.NamedQuery(stmt, m)
+	br, _ := bindPinlOpts(nil)
+	br.Where = []string{"id = :id"}
+	br.Limit = 1
+	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
 		return err
 	}
@@ -177,13 +171,20 @@ func (s *dbPinlStore) Delete(ctx context.Context, m *model.Pinl) error {
 }
 
 func bindPinlOpts(opts *PinlOpts) (database.SelectBuilder, map[string]interface{}) {
-	br := database.SelectBuilder{}
+	br := database.SelectBuilder{
+		From: pinlTB,
+		Columns: database.NamespacedColumn(
+			[]string{"id", "user_id", "url", "title", "description", "readme", "image_id", "created_at", "updated_at"},
+			pinlTB,
+		),
+	}
 	if opts == nil {
 		return br, nil
 	}
 
-	br = bindListOpts(opts.ListOpts)
+	br = appendListOpts(br, opts.ListOpts)
 	args := make(map[string]interface{})
+
 	if opts.UserID != "" {
 		br.Where = append(br.Where, "user_id = :user_id")
 		args["user_id"] = opts.UserID

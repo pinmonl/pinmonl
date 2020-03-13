@@ -41,6 +41,7 @@ func TagResp(m model.Tag) map[string]interface{} {
 		"name":     m.Name,
 		"parentId": m.ParentID,
 		"sort":     m.Sort,
+		"level":    m.Level,
 	}
 }
 

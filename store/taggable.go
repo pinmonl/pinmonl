@@ -45,9 +45,7 @@ type dbTaggableStore struct {
 func (s *dbTaggableStore) List(ctx context.Context, opts *TaggableOpts) ([]model.Taggable, error) {
 	e := s.Queryer(ctx)
 	br, args := bindTaggableOpts(opts)
-	br.From = taggableTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -69,10 +67,8 @@ func (s *dbTaggableStore) List(ctx context.Context, opts *TaggableOpts) ([]model
 func (s *dbTaggableStore) ListTags(ctx context.Context, opts *TaggableOpts) (map[string][]model.Tag, error) {
 	e := s.Queryer(ctx)
 	br, args := bindTaggableOpts(opts)
-	br.From = taggableTB
 	br.Join = []string{fmt.Sprintf("INNER JOIN %s ON %s.tag_id = %s.id", tagTB, taggableTB, tagTB)}
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -199,12 +195,20 @@ func (s *dbTaggableStore) ReAssocTags(ctx context.Context, target model.Morphabl
 }
 
 func bindTaggableOpts(opts *TaggableOpts) (database.SelectBuilder, map[string]interface{}) {
-	br := database.SelectBuilder{}
+	br := database.SelectBuilder{
+		From: taggableTB,
+		Columns: database.NamespacedColumn(
+			[]string{"tag_id", "target_id", "target_name", "sort"},
+			taggableTB,
+		),
+	}
 	if opts == nil {
 		return br, nil
 	}
 
+	br = appendListOpts(br, opts.ListOpts)
 	args := make(map[string]interface{})
+
 	if opts.Target != nil {
 		br.Where = append(br.Where, "target_id = :target_id")
 		br.Where = append(br.Where, "target_name = :target_name")

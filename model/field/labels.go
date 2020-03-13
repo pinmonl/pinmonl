@@ -56,3 +56,8 @@ func (l *Labels) UnmarshalJSON(data []byte) error {
 	*l = Labels(v)
 	return nil
 }
+
+// Equal reports whether l and s contain identical name-value pair.
+func (l Labels) Equal(s Labels) bool {
+	return l.String() == s.String()
+}

@@ -11,7 +11,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-func initCli(
+func initCmd(
 	cfg *config.Config,
 	db *database.DB,
 	mp *database.MigrationPlan,

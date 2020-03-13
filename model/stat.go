@@ -12,7 +12,7 @@ type Stat struct {
 	Kind       string       `json:"kind"       db:"kind"`
 	Value      string       `json:"value"      db:"value"`
 	IsLatest   bool         `json:"isLatest"   db:"is_latest"`
-	Manifest   field.Labels `json:"manifest"   db:"manifest"`
+	Labels     field.Labels `json:"labels"     db:"labels"`
 }
 
 // StatList is slice of Stat.

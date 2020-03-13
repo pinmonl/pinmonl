@@ -39,9 +39,7 @@ type dbPinmonStore struct {
 func (s *dbPinmonStore) List(ctx context.Context, opts *PinmonOpts) ([]model.Pinmon, error) {
 	e := s.Queryer(ctx)
 	br, args := bindPinmonOpts(opts)
-	br.From = pinmonTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -91,12 +89,20 @@ func (s *dbPinmonStore) Delete(ctx context.Context, m *model.Pinmon) error {
 }
 
 func bindPinmonOpts(opts *PinmonOpts) (database.SelectBuilder, map[string]interface{}) {
-	br := database.SelectBuilder{}
+	br := database.SelectBuilder{
+		From: pinmonTB,
+		Columns: database.NamespacedColumn(
+			[]string{"user_id", "pinl_id", "pkg_id", "sort"},
+			pinmonTB,
+		),
+	}
 	if opts == nil {
 		return br, nil
 	}
 
+	br = appendListOpts(br, opts.ListOpts)
 	args := make(map[string]interface{})
+
 	if opts.UserID != "" {
 		br.Where = append(br.Where, "user_id = :user_id")
 		args["user_id"] = opts.UserID

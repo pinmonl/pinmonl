@@ -183,7 +183,7 @@ func (m *Manager) jobCompleted(ctx context.Context, job *Job) error {
 	defer m.Unlock()
 
 	jd := job.Detail
-	jd.Status = model.JobStatusNotSet
+	jd.Status = model.JobStatusEmpty
 
 	err := m.jobs.Update(ctx, &jd)
 	if err != nil {

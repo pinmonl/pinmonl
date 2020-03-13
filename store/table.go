@@ -13,4 +13,5 @@ var (
 	tagTB      = "tags"
 	userTB     = "users"
 	jobTB      = "jobs"
+	substatTB  = "substats"
 )

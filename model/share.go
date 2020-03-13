@@ -35,19 +35,22 @@ func (sl ShareList) Keys() []string {
 
 // ShareTag defines the connection between share and tag.
 type ShareTag struct {
-	ShareID  string `json:"shareId"  db:"share_id"`
-	TagID    string `json:"tagId"    db:"tag_id"`
-	Kind     string `json:"kind"     db:"kind"`
-	ParentID string `json:"parentId" db:"parent_id"`
-	Sort     int64  `json:"sort"     db:"sort"`
+	ShareID  string       `json:"shareId"  db:"share_id"`
+	TagID    string       `json:"tagId"    db:"tag_id"`
+	Kind     ShareTagKind `json:"kind"     db:"kind"`
+	ParentID string       `json:"parentId" db:"parent_id"`
+	Sort     int64        `json:"sort"     db:"sort"`
+	Level    int64        `json:"level"    db:"level"`
 }
 
 // ShareTagKind categories the group of ShareTag.
-type ShareTagKind string
+type ShareTagKind int
 
 const (
-	// MustTag defines the key of must-exist kind.
-	MustTag ShareTagKind = "must"
-	// AnyTag defines the key of any kind.
-	AnyTag ShareTagKind = "any"
+	// ShareTagKindEmpty indicates the zero value of ShareTagKind.
+	ShareTagKindEmpty ShareTagKind = iota
+	// ShareTagKindMust defines the key of must-exist kind.
+	ShareTagKindMust
+	// ShareTagKindAny defines the key of any kind.
+	ShareTagKindAny
 )

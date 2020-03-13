@@ -36,9 +36,7 @@ type dbImageStore struct {
 func (s *dbImageStore) List(ctx context.Context, opts *ImageOpts) ([]model.Image, error) {
 	e := s.Queryer(ctx)
 	br, args := bindImageOpts(opts)
-	br.From = imageTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -59,12 +57,10 @@ func (s *dbImageStore) List(ctx context.Context, opts *ImageOpts) ([]model.Image
 // Find retrieves image by id.
 func (s *dbImageStore) Find(ctx context.Context, m *model.Image) error {
 	e := s.Queryer(ctx)
-	stmt := database.SelectBuilder{
-		From:  imageTB,
-		Where: []string{"id = :id"},
-		Limit: 1,
-	}.String()
-	rows, err := e.NamedQuery(stmt, m)
+	br, _ := bindImageOpts(nil)
+	br.Where = []string{"id = :id"}
+	br.Limit = 1
+	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
 		return err
 	}
@@ -91,16 +87,16 @@ func (s *dbImageStore) Create(ctx context.Context, m *model.Image) error {
 	stmt := database.InsertBuilder{
 		Into: imageTB,
 		Fields: map[string]interface{}{
-			"id":          nil,
-			"target_id":   nil,
-			"target_name": nil,
-			"kind":        nil,
-			"sort":        nil,
-			"filename":    nil,
-			"content":     nil,
-			"description": nil,
-			"size":        nil,
-			"created_at":  nil,
+			"id":           nil,
+			"target_id":    nil,
+			"target_name":  nil,
+			"content_type": nil,
+			"sort":         nil,
+			"filename":     nil,
+			"content":      nil,
+			"description":  nil,
+			"size":         nil,
+			"created_at":   nil,
 		},
 	}.String()
 	_, err := e.NamedExec(stmt, m2)
@@ -119,15 +115,15 @@ func (s *dbImageStore) Update(ctx context.Context, m *model.Image) error {
 	stmt := database.UpdateBuilder{
 		From: imageTB,
 		Fields: map[string]interface{}{
-			"target_id":   nil,
-			"target_name": nil,
-			"kind":        nil,
-			"sort":        nil,
-			"filename":    nil,
-			"content":     nil,
-			"description": nil,
-			"size":        nil,
-			"updated_at":  nil,
+			"target_id":    nil,
+			"target_name":  nil,
+			"content_type": nil,
+			"sort":         nil,
+			"filename":     nil,
+			"content":      nil,
+			"description":  nil,
+			"size":         nil,
+			"updated_at":   nil,
 		},
 		Where: []string{"id = :id"},
 	}.String()
@@ -151,12 +147,20 @@ func (s *dbImageStore) Delete(ctx context.Context, m *model.Image) error {
 }
 
 func bindImageOpts(opts *ImageOpts) (database.SelectBuilder, map[string]interface{}) {
-	br := database.SelectBuilder{}
+	br := database.SelectBuilder{
+		From: imageTB,
+		Columns: database.NamespacedColumn(
+			[]string{"id", "target_id", "target_name", "content_type", "sort", "filename", "content", "description", "size", "created_at", "updated_at"},
+			imageTB,
+		),
+	}
 	if opts == nil {
 		return br, nil
 	}
 
+	br = appendListOpts(br, opts.ListOpts)
 	args := make(map[string]interface{})
+
 	if opts.Target != nil {
 		br.Where = append(br.Where, "target_id = :target_id")
 		br.Where = append(br.Where, "target_name = :target_name")

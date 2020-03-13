@@ -246,7 +246,7 @@ func (w *worker) parseMonlReport(ctx context.Context, target model.Pkg, report m
 				Kind:       rs.Group(),
 				Value:      rs.Value(),
 				IsLatest:   isLatest,
-				Manifest:   rs.Manifest(),
+				Labels:     rs.Labels(),
 			}
 			err = w.stats.Create(ctx, &s)
 			if err != nil {
@@ -276,7 +276,7 @@ func (w *worker) parseMonlReport(ctx context.Context, target model.Pkg, report m
 			Kind:       sp.Group(),
 			Value:      sp.Value(),
 			IsLatest:   true,
-			Manifest:   sp.Manifest(),
+			Labels:     sp.Labels(),
 		}
 		err = w.stats.Create(ctx, &s)
 		if err != nil {

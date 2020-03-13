@@ -30,7 +30,7 @@ func StatResp(s model.Stat) map[string]interface{} {
 		"kind":       s.Kind,
 		"value":      s.Value,
 		"recordedAt": s.RecordedAt,
-		"manifest":   s.Manifest,
+		"labels":     s.Labels,
 	}
 	return resp
 }

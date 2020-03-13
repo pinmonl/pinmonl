@@ -12,7 +12,6 @@ import (
 type UserOpts struct {
 	ListOpts
 	Login string
-	Email string
 }
 
 // UserStore defines the services of user.
@@ -38,9 +37,7 @@ type dbUserStore struct {
 func (s *dbUserStore) List(ctx context.Context, opts *UserOpts) ([]model.User, error) {
 	e := s.Queryer(ctx)
 	br, args := bindUserOpts(opts)
-	br.From = userTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -61,11 +58,10 @@ func (s *dbUserStore) List(ctx context.Context, opts *UserOpts) ([]model.User, e
 // Find retrieves user by id.
 func (s *dbUserStore) Find(ctx context.Context, m *model.User) error {
 	e := s.Queryer(ctx)
-	stmt := database.SelectBuilder{
-		From:  userTB,
-		Where: []string{"id = :id"},
-	}.String()
-	rows, err := e.NamedQuery(stmt, m)
+	br, _ := bindUserOpts(nil)
+	br.Where = []string{"id = :id"}
+	br.Limit = 1
+	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
 		return err
 	}
@@ -86,11 +82,10 @@ func (s *dbUserStore) Find(ctx context.Context, m *model.User) error {
 // FindLogin retrieves user by login.
 func (s *dbUserStore) FindLogin(ctx context.Context, m *model.User) error {
 	e := s.Queryer(ctx)
-	stmt := database.SelectBuilder{
-		From:  userTB,
-		Where: []string{"login = :login"},
-	}.String()
-	rows, err := e.NamedQuery(stmt, m)
+	br, _ := bindUserOpts(nil)
+	br.Where = []string{"login = :login"}
+	br.Limit = 1
+	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
 		return err
 	}
@@ -121,9 +116,11 @@ func (s *dbUserStore) Create(ctx context.Context, m *model.User) error {
 			"login":      nil,
 			"password":   nil,
 			"name":       nil,
-			"email":      nil,
 			"image_id":   nil,
+			"role":       nil,
+			"hash":       nil,
 			"created_at": nil,
+			"last_log":   nil,
 		},
 	}.String()
 	_, err := e.NamedExec(stmt, m2)
@@ -145,9 +142,11 @@ func (s *dbUserStore) Update(ctx context.Context, m *model.User) error {
 			"login":      nil,
 			"password":   nil,
 			"name":       nil,
-			"email":      nil,
 			"image_id":   nil,
+			"role":       nil,
+			"hash":       nil,
 			"updated_at": nil,
+			"last_log":   nil,
 		},
 		Where: []string{"id = :id"},
 	}.String()
@@ -171,20 +170,23 @@ func (s *dbUserStore) Delete(ctx context.Context, m *model.User) error {
 }
 
 func bindUserOpts(opts *UserOpts) (database.SelectBuilder, map[string]interface{}) {
-	br := database.SelectBuilder{}
+	br := database.SelectBuilder{
+		From: userTB,
+		Columns: database.NamespacedColumn(
+			[]string{"id", "login", "password", "name", "image_id", "role", "hash", "created_at", "updated_at", "last_log"},
+			userTB,
+		),
+	}
 	if opts == nil {
 		return br, nil
 	}
 
-	br = bindListOpts(opts.ListOpts)
+	br = appendListOpts(br, opts.ListOpts)
 	args := make(map[string]interface{})
+
 	if opts.Login != "" {
 		br.Where = append(br.Where, "login = :login")
 		args["login"] = opts.Login
-	}
-	if opts.Email != "" {
-		br.Where = append(br.Where, "email = :email")
-		args["email"] = opts.Email
 	}
 
 	return br, args

@@ -11,9 +11,7 @@ import (
 // MonlOpts defines the parameters for monl filtering.
 type MonlOpts struct {
 	ListOpts
-	URL       string
-	Vendor    string
-	VendorURI string
+	URL string
 }
 
 // MonlStore defines the services of monl.
@@ -38,9 +36,7 @@ type dbMonlStore struct {
 func (s *dbMonlStore) List(ctx context.Context, opts *MonlOpts) ([]model.Monl, error) {
 	e := s.Queryer(ctx)
 	br, args := bindMonlOpts(opts)
-	br.From = monlTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -61,12 +57,10 @@ func (s *dbMonlStore) List(ctx context.Context, opts *MonlOpts) ([]model.Monl, e
 // Find retrieves monl by id.
 func (s *dbMonlStore) Find(ctx context.Context, m *model.Monl) error {
 	e := s.Queryer(ctx)
-	stmt := database.SelectBuilder{
-		From:  monlTB,
-		Where: []string{"id = :id"},
-		Limit: 1,
-	}.String()
-	rows, err := e.NamedQuery(stmt, m)
+	br, _ := bindMonlOpts(nil)
+	br.Where = []string{"id = :id"}
+	br.Limit = 1
+	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
 		return err
 	}
@@ -147,13 +141,20 @@ func (s *dbMonlStore) Delete(ctx context.Context, m *model.Monl) error {
 }
 
 func bindMonlOpts(opts *MonlOpts) (database.SelectBuilder, map[string]interface{}) {
-	br := database.SelectBuilder{}
+	br := database.SelectBuilder{
+		From: monlTB,
+		Columns: database.NamespacedColumn(
+			[]string{"id", "url", "title", "description", "readme", "image_id", "created_at", "updated_at"},
+			monlTB,
+		),
+	}
 	if opts == nil {
 		return br, nil
 	}
 
-	br = bindListOpts(opts.ListOpts)
+	br = appendListOpts(br, opts.ListOpts)
 	args := make(map[string]interface{})
+
 	if opts.URL != "" {
 		br.Where = append(br.Where, "url = :url")
 		args["url"] = opts.URL

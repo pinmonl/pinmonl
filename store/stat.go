@@ -42,9 +42,7 @@ type dbStatStore struct {
 func (s *dbStatStore) List(ctx context.Context, opts *StatOpts) ([]model.Stat, error) {
 	e := s.Queryer(ctx)
 	br, args := bindStatOpts(opts)
-	br.From = statTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +74,7 @@ func (s *dbStatStore) Create(ctx context.Context, m *model.Stat) error {
 			"kind":        nil,
 			"value":       nil,
 			"is_latest":   nil,
-			"manifest":    nil,
+			"labels":      nil,
 		},
 	}.String()
 	_, err := e.NamedExec(stmt, m2)
@@ -98,7 +96,7 @@ func (s *dbStatStore) Update(ctx context.Context, m *model.Stat) error {
 			"kind":        nil,
 			"value":       nil,
 			"is_latest":   nil,
-			"manifest":    nil,
+			"labels":      nil,
 		},
 		Where: []string{"id = :id"},
 	}.String()
@@ -107,13 +105,20 @@ func (s *dbStatStore) Update(ctx context.Context, m *model.Stat) error {
 }
 
 func bindStatOpts(opts *StatOpts) (database.SelectBuilder, map[string]interface{}) {
-	br := database.SelectBuilder{}
+	br := database.SelectBuilder{
+		From: statTB,
+		Columns: database.NamespacedColumn(
+			[]string{"id", "pkg_id", "recorded_at", "kind", "value", "is_latest", "labels"},
+			statTB,
+		),
+	}
 	if opts == nil {
 		return br, nil
 	}
 
-	br = bindListOpts(opts.ListOpts)
+	br = appendListOpts(br, opts.ListOpts)
 	args := make(map[string]interface{})
+
 	if opts.Kind != "" {
 		br.Where = append(br.Where, "kind = :kind")
 		args["kind"] = opts.Kind

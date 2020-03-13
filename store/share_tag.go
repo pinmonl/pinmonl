@@ -47,9 +47,7 @@ type dbShareTagStore struct {
 func (s *dbShareTagStore) List(ctx context.Context, opts *ShareTagOpts) ([]model.ShareTag, error) {
 	e := s.Queryer(ctx)
 	br, args := bindShareTagOpts(opts)
-	br.From = shareTagTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -78,10 +76,8 @@ func (s *dbShareTagStore) ListTags(ctx context.Context, opts *ShareTagOpts) (map
 		fmt.Sprintf("%s.created_at", tagTB),
 		fmt.Sprintf("%s.updated_at", tagTB),
 	}
-	br.From = shareTagTB
 	br.Join = []string{fmt.Sprintf("INNER JOIN %s ON %s.tag_id = %s.id", tagTB, shareTagTB, tagTB)}
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -95,6 +91,7 @@ func (s *dbShareTagStore) ListTags(ctx context.Context, opts *ShareTagOpts) (map
 			Kind      string     `db:"kind"`
 			ParentID  string     `db:"parent_id"`
 			Sort      int64      `db:"sort"`
+			Level     int64      `db:"level"`
 			Name      string     `db:"name"`
 			UserID    string     `db:"user_id"`
 			CreatedAt field.Time `db:"created_at"`
@@ -110,6 +107,7 @@ func (s *dbShareTagStore) ListTags(ctx context.Context, opts *ShareTagOpts) (map
 			ParentID:  r.ParentID,
 			UserID:    r.UserID,
 			Sort:      r.Sort,
+			Level:     r.Level,
 			CreatedAt: r.CreatedAt,
 			UpdatedAt: r.UpdatedAt,
 		}
@@ -130,6 +128,7 @@ func (s *dbShareTagStore) Create(ctx context.Context, m *model.ShareTag) error {
 			"kind":      nil,
 			"parent_id": nil,
 			"sort":      nil,
+			"level":     nil,
 		},
 	}.String()
 	_, err := e.NamedExec(stmt, m)
@@ -151,7 +150,7 @@ func (s *dbShareTagStore) AssocTag(ctx context.Context, share model.Share, kind 
 	return s.Create(ctx, &model.ShareTag{
 		ShareID:  share.ID,
 		TagID:    tag.ID,
-		Kind:     string(kind),
+		Kind:     kind,
 		ParentID: tag.ParentID,
 	})
 }
@@ -161,7 +160,7 @@ func (s *dbShareTagStore) AssocTags(ctx context.Context, share model.Share, kind
 		err := s.Create(ctx, &model.ShareTag{
 			ShareID:  share.ID,
 			TagID:    t.ID,
-			Kind:     string(kind),
+			Kind:     kind,
 			ParentID: t.ParentID,
 			Sort:     int64(i),
 		})
@@ -215,12 +214,18 @@ func (s *dbShareTagStore) ReAssocTags(ctx context.Context, share model.Share, ki
 }
 
 func bindShareTagOpts(opts *ShareTagOpts) (database.SelectBuilder, map[string]interface{}) {
-	br := database.SelectBuilder{}
+	br := database.SelectBuilder{
+		From: shareTagTB,
+		Columns: database.NamespacedColumn(
+			[]string{"share_id", "tag_id", "kind", "parent_id", "sort", "level"},
+			shareTagTB,
+		),
+	}
 	if opts == nil {
 		return br, nil
 	}
 
-	br = bindListOpts(opts.ListOpts)
+	br = appendListOpts(br, opts.ListOpts)
 	args := make(map[string]interface{})
 
 	if opts.ShareID != "" {
@@ -249,7 +254,7 @@ func bindShareTagOpts(opts *ShareTagOpts) (database.SelectBuilder, map[string]in
 		br.Where = append(br.Where, fmt.Sprintf("tag_id in (%s)", strings.Join(ks, ", ")))
 	}
 
-	if opts.Kind != "" {
+	if opts.Kind != model.ShareTagKindEmpty {
 		br.Where = append(br.Where, "kind = :kind")
 		args["kind"] = opts.Kind
 	}

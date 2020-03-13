@@ -11,16 +11,18 @@ type Stat interface {
 	Date() time.Time
 	Group() string
 	Value() string
-	Manifest() field.Labels
+	Labels() field.Labels
+	Substats() []Stat
 }
 
 // NewStat creates simple stat which does not need handling.
-func NewStat(date time.Time, group, value string, manifest field.Labels) Stat {
+func NewStat(date time.Time, group, value string, labels field.Labels, substats []Stat) Stat {
 	return &basicStat{
 		date:     date,
 		group:    group,
 		value:    value,
-		manifest: manifest,
+		labels:   labels,
+		substats: substats,
 	}
 }
 
@@ -29,7 +31,8 @@ type basicStat struct {
 	date     time.Time
 	group    string
 	value    string
-	manifest field.Labels
+	labels   field.Labels
+	substats []Stat
 }
 
 // Date returns the date of stat.
@@ -41,8 +44,11 @@ func (bs *basicStat) Group() string { return bs.group }
 // Value returns the value of stat.
 func (bs *basicStat) Value() string { return bs.value }
 
-// Manifest returns the manifest of stat.
-func (bs *basicStat) Manifest() field.Labels { return bs.manifest }
+// Labels returns the labels of stat.
+func (bs *basicStat) Labels() field.Labels { return bs.labels }
+
+// Substats returns list of substat.
+func (bs *basicStat) Substats() []Stat { return bs.substats }
 
 // StatCollection holds array of stat.
 type StatCollection []Stat

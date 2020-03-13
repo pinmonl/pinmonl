@@ -40,9 +40,7 @@ type dbPkgStore struct {
 func (s *dbPkgStore) List(ctx context.Context, opts *PkgOpts) ([]model.Pkg, error) {
 	e := s.Queryer(ctx)
 	br, args := bindPkgOpts(opts)
-	br.From = pkgTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -63,12 +61,10 @@ func (s *dbPkgStore) List(ctx context.Context, opts *PkgOpts) ([]model.Pkg, erro
 // Find retrieves Pkg by ID.
 func (s *dbPkgStore) Find(ctx context.Context, m *model.Pkg) error {
 	e := s.Queryer(ctx)
-	stmt := database.SelectBuilder{
-		From:  pkgTB,
-		Where: []string{"id = :id"},
-		Limit: 1,
-	}.String()
-	rows, err := e.NamedQuery(stmt, m)
+	br, _ := bindPkgOpts(nil)
+	br.Where = []string{"id = :id"}
+	br.Limit = 1
+	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
 		return err
 	}
@@ -157,13 +153,20 @@ func (s *dbPkgStore) Delete(ctx context.Context, m *model.Pkg) error {
 }
 
 func bindPkgOpts(opts *PkgOpts) (database.SelectBuilder, map[string]interface{}) {
-	br := database.SelectBuilder{}
+	br := database.SelectBuilder{
+		From: pkgTB,
+		Columns: database.NamespacedColumn(
+			[]string{"id", "url", "monl_id", "vendor", "vendor_uri", "title", "description", "readme", "image_id", "labels", "created_at", "updated_at"},
+			pkgTB,
+		),
+	}
 	if opts == nil {
 		return br, nil
 	}
 
-	br = bindListOpts(opts.ListOpts)
+	br = appendListOpts(br, opts.ListOpts)
 	args := make(map[string]interface{})
+
 	if opts.MonlID != "" {
 		br.Where = append(br.Where, "monl_id = :monl_id")
 		args["monl_id"] = opts.MonlID

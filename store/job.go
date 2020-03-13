@@ -36,16 +36,11 @@ func NewJobStore(s Store) JobStore {
 	return &dbJobStore{s}
 }
 
-var jobCols = []string{"id", "name", "target_id", "status", "error", "scheduled_at", "started_at", "created_at"}
-
 // List retrieves jobs by the filter parameters.
 func (s *dbJobStore) List(ctx context.Context, opts *JobOpts) ([]model.Job, error) {
 	e := s.Queryer(ctx)
 	br, args := bindJobOpts(opts)
-	br.Columns = jobCols
-	br.From = jobTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -66,13 +61,10 @@ func (s *dbJobStore) List(ctx context.Context, opts *JobOpts) ([]model.Job, erro
 // Find retrieves job by id.
 func (s *dbJobStore) Find(ctx context.Context, m *model.Job) error {
 	e := s.Queryer(ctx)
-	stmt := database.SelectBuilder{
-		From:    jobTB,
-		Columns: jobCols,
-		Where:   []string{"id = :id"},
-		Limit:   1,
-	}.String()
-	rows, err := e.NamedQuery(stmt, m)
+	br, _ := bindJobOpts(nil)
+	br.Where = []string{"id = :id"}
+	br.Limit = 1
+	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
 		return err
 	}
@@ -153,20 +145,26 @@ func (s *dbJobStore) Delete(ctx context.Context, m *model.Job) error {
 }
 
 func bindJobOpts(opts *JobOpts) (database.SelectBuilder, map[string]interface{}) {
-	br := database.SelectBuilder{}
+	br := database.SelectBuilder{
+		From: jobTB,
+		Columns: database.NamespacedColumn(
+			[]string{"id", "name", "target_id", "status", "error", "scheduled_at", "started_at", "created_at"},
+			jobTB,
+		),
+	}
 	if opts == nil {
 		return br, nil
 	}
 
-	br = bindListOpts(opts.ListOpts)
+	br = appendListOpts(br, opts.ListOpts)
 	args := make(map[string]interface{})
 
-	if opts.Status != model.JobStatusNotSet {
+	if opts.Status != model.JobStatusEmpty {
 		br.Where = append(br.Where, "status = :status")
 		args["status"] = opts.Status
 	}
 
-	if opts.Name != model.JobNotSet {
+	if opts.Name != model.JobEmpty {
 		br.Where = append(br.Where, "name = :name")
 		args["name"] = opts.Name
 	}

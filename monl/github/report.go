@@ -66,10 +66,10 @@ func (r *Report) Popularity() monl.StatCollection {
 		now  = time.Now()
 		data = r.repoData
 
-		forkStat      = monl.NewStat(now, "fork", strconv.Itoa(data.ForkCount), nil)
-		watcherStat   = monl.NewStat(now, "watcher", strconv.Itoa(data.Watchers.TotalCount), nil)
-		starStat      = monl.NewStat(now, "star", strconv.Itoa(data.Stargazers.TotalCount), nil)
-		openIssueStat = monl.NewStat(now, "open_issue", strconv.Itoa(data.OpenIssues.TotalCount), nil)
+		forkStat      = monl.NewStat(now, "fork", strconv.Itoa(data.ForkCount), nil, nil)
+		watcherStat   = monl.NewStat(now, "watcher", strconv.Itoa(data.Watchers.TotalCount), nil, nil)
+		starStat      = monl.NewStat(now, "star", strconv.Itoa(data.Stargazers.TotalCount), nil, nil)
+		openIssueStat = monl.NewStat(now, "open_issue", strconv.Itoa(data.OpenIssues.TotalCount), nil, nil)
 
 		stats = []monl.Stat{
 			starStat,
@@ -82,7 +82,7 @@ func (r *Report) Popularity() monl.StatCollection {
 		lang := data.Languages.Edges[0]
 		stats = append(stats, monl.NewStat(now, "lang", lang.Node.Name, field.Labels{
 			"color": lang.Node.Color,
-		}))
+		}, nil))
 	}
 
 	return stats
@@ -144,6 +144,9 @@ func (r *Report) Previous() bool {
 
 // Stat returns the stat at current cursor.
 func (r *Report) Stat() monl.Stat {
+	if r.cursor < 0 {
+		return r.Latest()
+	}
 	return r.repoRels[r.cursor]
 }
 
@@ -197,7 +200,7 @@ func (r *Report) uriParts() []string {
 }
 
 func (*Report) parseRelease(rel api.RepoReleaseNode) monl.Stat {
-	return monl.NewStat(rel.CreatedAt, "tag", rel.TagName, nil)
+	return monl.NewStat(rel.CreatedAt, "tag", rel.TagName, nil, nil)
 }
 
 func (*Report) parseTag(tag api.RepoTagNode) monl.Stat {
@@ -207,5 +210,5 @@ func (*Report) parseTag(tag api.RepoTagNode) monl.Stat {
 	} else if t := tag.Target.Tag.Tagger.Date; t != nil {
 		at = *t
 	}
-	return monl.NewStat(at, "tag", tag.Name, nil)
+	return monl.NewStat(at, "tag", tag.Name, nil, nil)
 }

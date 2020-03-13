@@ -39,9 +39,7 @@ type dbShareStore struct {
 func (s *dbShareStore) List(ctx context.Context, opts *ShareOpts) ([]model.Share, error) {
 	e := s.Queryer(ctx)
 	br, args := bindShareOpts(opts)
-	br.From = shareTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return nil, err
 	}
@@ -64,9 +62,7 @@ func (s *dbShareStore) Count(ctx context.Context, opts *ShareOpts) (int64, error
 	e := s.Queryer(ctx)
 	br, args := bindShareOpts(opts)
 	br.Columns = []string{"COUNT(*) as count"}
-	br.From = shareTB
-	stmt := br.String()
-	rows, err := e.NamedQuery(stmt, args)
+	rows, err := e.NamedQuery(br.String(), args)
 	if err != nil {
 		return 0, err
 	}
@@ -86,12 +82,10 @@ func (s *dbShareStore) Count(ctx context.Context, opts *ShareOpts) (int64, error
 // Find retrieves share by id.
 func (s *dbShareStore) Find(ctx context.Context, m *model.Share) error {
 	e := s.Queryer(ctx)
-	stmt := database.SelectBuilder{
-		From:  shareTB,
-		Where: []string{"id = :id"},
-		Limit: 1,
-	}.String()
-	rows, err := e.NamedQuery(stmt, m)
+	br, _ := bindShareOpts(nil)
+	br.Where = []string{"id = :id"}
+	br.Limit = 1
+	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
 		return err
 	}
@@ -112,12 +106,10 @@ func (s *dbShareStore) Find(ctx context.Context, m *model.Share) error {
 // FindByName retieves user's share by name.
 func (s *dbShareStore) FindByName(ctx context.Context, m *model.Share) error {
 	e := s.Queryer(ctx)
-	stmt := database.SelectBuilder{
-		From:  shareTB,
-		Where: []string{"user_id = :user_id", "name = :name"},
-		Limit: 1,
-	}.String()
-	rows, err := e.NamedQuery(stmt, m)
+	br, _ := bindShareOpts(nil)
+	br.Where = []string{"user_id = :user_id", "name = :name"}
+	br.Limit = 1
+	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
 		return err
 	}
@@ -198,13 +190,20 @@ func (s *dbShareStore) Delete(ctx context.Context, m *model.Share) error {
 }
 
 func bindShareOpts(opts *ShareOpts) (database.SelectBuilder, map[string]interface{}) {
-	br := database.SelectBuilder{}
+	br := database.SelectBuilder{
+		From: shareTB,
+		Columns: database.NamespacedColumn(
+			[]string{"id", "user_id", "name", "description", "readme", "image_id", "created_at", "updated_at"},
+			shareTB,
+		),
+	}
 	if opts == nil {
 		return br, nil
 	}
 
-	br = bindListOpts(opts.ListOpts)
+	br = appendListOpts(br, opts.ListOpts)
 	args := make(map[string]interface{})
+
 	if opts.Name != "" {
 		br.Where = append(br.Where, "name = :name")
 		args["name"] = opts.Name

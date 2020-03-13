@@ -13,7 +13,7 @@ func newUID() string {
 }
 
 func timestamp() field.Time {
-	t := time.Now().Truncate(time.Nanosecond)
+	t := time.Now().Round(time.Second).UTC()
 	return (field.Time)(t)
 }
 

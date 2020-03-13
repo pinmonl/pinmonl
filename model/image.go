@@ -7,7 +7,7 @@ type Image struct {
 	ID          string     `json:"id"          db:"id"`
 	TargetID    string     `json:"-"           db:"target_id"`
 	TargetName  string     `json:"-"           db:"target_name"`
-	Kind        string     `json:"kind"        db:"kind"`
+	ContentType string     `json:"contentType" db:"content_type"`
 	Sort        int64      `json:"sort"        db:"sort"`
 	Filename    string     `json:"filename"    db:"filename"`
 	Content     []byte     `json:"content"     db:"content"`

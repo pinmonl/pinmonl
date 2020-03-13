@@ -13,6 +13,7 @@ type Tag struct {
 	UserID    string     `json:"userId"    db:"user_id"`
 	ParentID  string     `json:"parentId"  db:"parent_id"`
 	Sort      int64      `json:"sort"      db:"sort"`
+	Level     int64      `json:"level"     db:"level"`
 	CreatedAt field.Time `json:"createdAt" db:"created_at"`
 	UpdatedAt field.Time `json:"updatedAt" db:"updated_at"`
 

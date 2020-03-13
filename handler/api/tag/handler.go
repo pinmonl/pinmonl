@@ -46,6 +46,17 @@ func HandleCreate(tags store.TagStore) http.HandlerFunc {
 		u, _ := request.UserFrom(ctx)
 		m := model.Tag{UserID: u.ID}
 		in.Fill(&m)
+
+		if m.ParentID != "" {
+			pt := model.Tag{ID: m.ParentID}
+			err := tags.Find(ctx, &pt)
+			if err != nil {
+				response.BadRequest(w, err)
+				return
+			}
+			m.Level = pt.Level + 1
+		}
+
 		err = tags.Create(ctx, &m)
 		if err != nil {
 			response.InternalError(w, err)
@@ -73,6 +84,17 @@ func HandleUpdate(tags store.TagStore) http.HandlerFunc {
 		ctx := r.Context()
 		m, _ := request.TagFrom(ctx)
 		in.Fill(&m)
+
+		if m.ParentID != "" {
+			pt := model.Tag{ID: m.ParentID}
+			err := tags.Find(ctx, &pt)
+			if err != nil {
+				response.BadRequest(w, err)
+				return
+			}
+			m.Level = pt.Level + 1
+		}
+
 		err = tags.Update(r.Context(), &m)
 		if err != nil {
 			response.InternalError(w, err)

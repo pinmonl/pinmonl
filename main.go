@@ -27,7 +27,7 @@ func main() {
 	qm := initQueueManager(cfg, ss, ml)
 	h := initHTTPHandler(cfg, ss, qm, sess)
 
-	app := initCli(cfg, db, mp, h, ml, qm)
+	app := initCmd(cfg, db, mp, h, ml, qm)
 	err = app.Run(os.Args)
 	if err != nil {
 		logx.Fatal(err)

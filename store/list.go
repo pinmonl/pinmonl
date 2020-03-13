@@ -28,3 +28,11 @@ func bindListOpts(opts ListOpts) database.SelectBuilder {
 
 	return br
 }
+
+func appendListOpts(br database.SelectBuilder, opts ListOpts) database.SelectBuilder {
+	lbr := bindListOpts(opts)
+	br.Limit = lbr.Limit
+	br.Offset = lbr.Offset
+	br.OrderBy = lbr.OrderBy
+	return br
+}

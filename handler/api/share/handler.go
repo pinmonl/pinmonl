@@ -22,7 +22,7 @@ func HandleList(shares store.ShareStore, sharetags store.ShareTagStore) http.Han
 		}
 
 		mts, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
-			Kind:     model.MustTag,
+			Kind:     model.ShareTagKindMust,
 			ShareIDs: (model.ShareList)(ms).Keys(),
 		})
 
@@ -40,14 +40,14 @@ func HandleFind(shares store.ShareStore, sharetags store.ShareTagStore) http.Han
 		ctx := r.Context()
 		m, _ := request.ShareFrom(ctx)
 
-		mtsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{ShareID: m.ID, Kind: model.MustTag})
+		mtsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{ShareID: m.ID, Kind: model.ShareTagKindMust})
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 		mts := mtsm[m.ID]
 
-		atsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{ShareID: m.ID, Kind: model.AnyTag})
+		atsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{ShareID: m.ID, Kind: model.ShareTagKindAny})
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -92,7 +92,7 @@ func HandleCreate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 			response.InternalError(w, err)
 			return
 		}
-		err = sharetags.ReAssocTags(ctx, m, model.MustTag, rebuildMustTags(mts))
+		err = sharetags.ReAssocTags(ctx, m, model.ShareTagKindMust, rebuildMustTags(mts))
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -103,7 +103,7 @@ func HandleCreate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 			response.InternalError(w, err)
 			return
 		}
-		err = sharetags.ReAssocTags(ctx, m, model.AnyTag, ats)
+		err = sharetags.ReAssocTags(ctx, m, model.ShareTagKindAny, ats)
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -147,7 +147,7 @@ func HandleUpdate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 			response.InternalError(w, err)
 			return
 		}
-		err = sharetags.ReAssocTags(ctx, m, model.MustTag, rebuildMustTags(mts))
+		err = sharetags.ReAssocTags(ctx, m, model.ShareTagKindMust, rebuildMustTags(mts))
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -158,7 +158,7 @@ func HandleUpdate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 			response.InternalError(w, err)
 			return
 		}
-		err = sharetags.ReAssocTags(ctx, m, model.AnyTag, rebuildAnyTags(ats))
+		err = sharetags.ReAssocTags(ctx, m, model.ShareTagKindAny, rebuildAnyTags(ats))
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -180,13 +180,13 @@ func HandleDelete(shares store.ShareStore, sharetags store.ShareTagStore) http.H
 			return
 		}
 
-		err = sharetags.ClearByKind(ctx, m, model.MustTag)
+		err = sharetags.ClearByKind(ctx, m, model.ShareTagKindMust)
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		err = sharetags.ClearByKind(ctx, m, model.AnyTag)
+		err = sharetags.ClearByKind(ctx, m, model.ShareTagKindAny)
 		if err != nil {
 			response.InternalError(w, err)
 			return

@@ -187,3 +187,18 @@ func builderFields(m map[string]interface{}) ([]string, []string) {
 	}
 	return cols, binds
 }
+
+func NamespacedColumn(columnNames []string, tableName string) []string {
+	if len(columnNames) == 0 {
+		return []string{tableName + ".*"}
+	}
+	nsCols := make([]string, len(columnNames))
+	for i, col := range columnNames {
+		if strings.ContainsAny(col, ".") {
+			nsCols[i] = col
+		} else {
+			nsCols[i] = tableName + "." + col
+		}
+	}
+	return nsCols
+}

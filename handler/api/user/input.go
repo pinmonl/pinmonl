@@ -33,7 +33,6 @@ func (in *Input) Validate() error {
 	var err validate.Errors
 	err = append(err, in.validateLogin()...)
 	err = append(err, in.validatePassword()...)
-	err = append(err, in.validateEmail()...)
 	err = append(err, in.validateName()...)
 	return err.Result()
 }
@@ -59,9 +58,6 @@ func (in *Input) ValidateUpdate() error {
 	if in.Password != "" {
 		err = append(err, in.validatePassword()...)
 	}
-	if in.Email != "" {
-		err = append(err, in.validateEmail()...)
-	}
 	if in.Name != "" {
 		err = append(err, in.validateName()...)
 	}
@@ -77,7 +73,6 @@ func (in *Input) Fill(m *model.User) error {
 
 	m.Login = in.Login
 	m.Password = pw
-	m.Email = in.Email
 	m.Name = in.Name
 	return nil
 }
@@ -90,9 +85,6 @@ func (in *Input) FillDirty(m *model.User) error {
 			return err
 		}
 		m.Password = pw
-	}
-	if in.Email != "" {
-		m.Email = in.Email
 	}
 	if in.Name != "" {
 		m.Name = in.Name
@@ -128,17 +120,6 @@ func (in *Input) validateName() []error {
 	switch name := in.Name; {
 	case name == "":
 		err = append(err, fmt.Errorf("name cannot be empty"))
-	}
-	return err
-}
-
-func (in *Input) validateEmail() []error {
-	var err []error
-	switch email := in.Email; {
-	case email == "":
-		err = append(err, fmt.Errorf("email cannot be empty"))
-	case !validate.IsEmail(email):
-		err = append(err, fmt.Errorf("invalid email format"))
 	}
 	return err
 }

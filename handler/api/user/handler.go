@@ -45,19 +45,6 @@ func HandleCreate(users store.UserStore) http.HandlerFunc {
 			return
 		}
 
-		cu, err = users.List(ctx, &store.UserOpts{
-			Email:    in.Email,
-			ListOpts: store.ListOpts{Limit: 1},
-		})
-		if err != nil {
-			response.InternalError(w, err)
-			return
-		}
-		if len(cu) > 0 {
-			response.BadRequest(w, fmt.Errorf("email has already been used"))
-			return
-		}
-
 		m := model.User{}
 		err = in.Fill(&m)
 		if err != nil {

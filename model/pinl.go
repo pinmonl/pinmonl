@@ -23,10 +23,10 @@ func (p Pinl) MorphKey() string { return p.ID }
 // MorphName returns the name of Pinl.
 func (p Pinl) MorphName() string { return "pinl" }
 
-// Pinmon defines the connection between Pinl and Monl.
+// Pinmon defines the connection between Pinl and Pkg.
 type Pinmon struct {
-	PinlID string `json:"pinlId" db:"pinl_id"`
-	MonlID string `json:"monlId" db:"monl_id"`
 	UserID string `json:"userId" db:"user_id"`
+	PinlID string `json:"pinlId" db:"pinl_id"`
+	PkgID  string `json:"pkgId"  db:"pkg_id"`
 	Sort   int64  `json:"sort"   db:"sort"`
 }
