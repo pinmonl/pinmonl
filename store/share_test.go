@@ -20,42 +20,52 @@ func TestShareStore(t *testing.T) {
 		dbtest.Close(db)
 	}()
 
+	mockData := []*model.Share{
+		{Name: "Share 1", Description: "Share 1 desc", Readme: "Share 1 readme", UserID: "user1"},
+		{Name: "Share 2", Description: "Share 2 desc", Readme: "Share 2 readme", UserID: "user2"},
+		{Name: "Share 3", Description: "Share 3 desc", Readme: "Share 3 readme", UserID: "user3"},
+	}
+
 	store := NewStore(db)
 	shares := NewShareStore(store)
 	ctx := context.TODO()
-	t.Run("Create", testShareCreate(ctx, shares))
-	t.Run("List", testShareList(ctx, shares))
-	t.Run("Find", testShareFind(ctx, shares))
-	t.Run("FindByName", testShareFindByName(ctx, shares))
-	t.Run("Count", testShareCount(ctx, shares))
-	t.Run("Update", testShareUpdate(ctx, shares))
-	t.Run("Delete", testShareDelete(ctx, shares))
+	t.Run("Create", testShareCreate(ctx, shares, mockData))
+	t.Run("List", testShareList(ctx, shares, mockData))
+	t.Run("Find", testShareFind(ctx, shares, mockData))
+	t.Run("FindByName", testShareFindByName(ctx, shares, mockData))
+	t.Run("Count", testShareCount(ctx, shares, mockData))
+	t.Run("Update", testShareUpdate(ctx, shares, mockData))
+	t.Run("Delete", testShareDelete(ctx, shares, mockData))
 }
 
-func testShareCreate(ctx context.Context, shares ShareStore) func(*testing.T) {
+func testShareCreate(ctx context.Context, shares ShareStore, mockData []*model.Share) func(*testing.T) {
 	return func(t *testing.T) {
-		testData := []model.Share{
-			{Name: "Share 1", Description: "Share 1 desc", Readme: "Share 1 readme", UserID: "user1"},
-			{Name: "Share 2", Description: "Share 2 desc", Readme: "Share 2 readme", UserID: "user2"},
-			{Name: "Share 3", Description: "Share 3 desc", Readme: "Share 3 readme", UserID: "user3"},
-		}
-
-		for _, share := range testData {
-			assert.Nil(t, shares.Create(ctx, &share))
+		for _, share := range mockData {
+			assert.Nil(t, shares.Create(ctx, share))
 			assert.NotEmpty(t, share.ID)
 			assert.False(t, share.CreatedAt.Time().IsZero())
 		}
 	}
 }
 
-func testShareList(ctx context.Context, shares ShareStore) func(*testing.T) {
+func testShareList(ctx context.Context, shares ShareStore, mockData []*model.Share) func(*testing.T) {
 	return func(t *testing.T) {
-		testData, err := shares.List(ctx, nil)
-		assert.Nil(t, err)
-		assert.Equal(t, 3, len(testData))
+		deRef := func(data []*model.Share) []model.Share {
+			out := make([]model.Share, len(data))
+			for i, ms := range data {
+				m := *ms
+				out[i] = m
+			}
+			return out
+		}
 
-		want := testData[:1]
-		got, err := shares.List(ctx, &ShareOpts{UserID: want[0].UserID})
+		want := deRef(mockData)
+		got, err := shares.List(ctx, nil)
+		assert.Nil(t, err)
+		assert.Equal(t, want, got)
+
+		want = deRef(mockData[:1])
+		got, err = shares.List(ctx, &ShareOpts{UserID: want[0].UserID})
 		assert.Nil(t, err)
 		assert.Equal(t, want, got)
 
@@ -65,22 +75,18 @@ func testShareList(ctx context.Context, shares ShareStore) func(*testing.T) {
 	}
 }
 
-func testShareFind(ctx context.Context, shares ShareStore) func(*testing.T) {
+func testShareFind(ctx context.Context, shares ShareStore, mockData []*model.Share) func(*testing.T) {
 	return func(t *testing.T) {
-		testData, _ := shares.List(ctx, nil)
-
-		want := testData[0]
+		want := mockData[0]
 		got := model.Share{ID: want.ID}
 		assert.Nil(t, shares.Find(ctx, &got))
-		assert.Equal(t, want, got)
+		assert.Equal(t, *want, got)
 	}
 }
 
-func testShareFindByName(ctx context.Context, shares ShareStore) func(*testing.T) {
+func testShareFindByName(ctx context.Context, shares ShareStore, mockData []*model.Share) func(*testing.T) {
 	return func(t *testing.T) {
-		testData, _ := shares.List(ctx, nil)
-
-		want := testData[0]
+		want := mockData[0]
 		got := model.Share{Name: want.Name}
 		assert.Equal(t, sql.ErrNoRows, shares.FindByName(ctx, &got))
 
@@ -89,43 +95,38 @@ func testShareFindByName(ctx context.Context, shares ShareStore) func(*testing.T
 
 		got = model.Share{Name: want.Name, UserID: want.UserID}
 		assert.Nil(t, shares.FindByName(ctx, &got))
-		assert.Equal(t, want, got)
+		assert.Equal(t, *want, got)
 	}
 }
 
-func testShareCount(ctx context.Context, shares ShareStore) func(*testing.T) {
+func testShareCount(ctx context.Context, shares ShareStore, mockData []*model.Share) func(*testing.T) {
 	return func(t *testing.T) {
-		testData, _ := shares.List(ctx, nil)
-
+		want := int64(len(mockData))
 		got, err := shares.Count(ctx, nil)
 		assert.Nil(t, err)
-		want := int64(len(testData))
 		assert.Equal(t, want, got)
 	}
 }
 
-func testShareUpdate(ctx context.Context, shares ShareStore) func(*testing.T) {
+func testShareUpdate(ctx context.Context, shares ShareStore, mockData []*model.Share) func(*testing.T) {
 	return func(t *testing.T) {
-		testData, _ := shares.List(ctx, nil)
-
-		want := testData[0]
+		want := mockData[0]
 		want.Name = "(changed) " + want.Name
-		assert.Nil(t, shares.Update(ctx, &want))
+		assert.Nil(t, shares.Update(ctx, want))
 		assert.False(t, want.UpdatedAt.Time().IsZero())
 
 		got := model.Share{ID: want.ID}
 		shares.Find(ctx, &got)
-		assert.Equal(t, want, got)
+		assert.Equal(t, *want, got)
 	}
 }
 
-func testShareDelete(ctx context.Context, shares ShareStore) func(*testing.T) {
+func testShareDelete(ctx context.Context, shares ShareStore, mockData []*model.Share) func(*testing.T) {
 	return func(t *testing.T) {
-		testData, _ := shares.List(ctx, nil)
+		del, want := mockData[0], mockData[1:]
+		assert.Nil(t, shares.Delete(ctx, del))
 
-		assert.Nil(t, shares.Delete(ctx, &testData[0]))
-
-		count, _ := shares.Count(ctx, nil)
-		assert.Equal(t, int64(2), count)
+		got, _ := shares.List(ctx, nil)
+		assert.Equal(t, len(want), len(got))
 	}
 }

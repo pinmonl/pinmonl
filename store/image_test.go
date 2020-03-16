@@ -19,72 +19,77 @@ func TestImageStore(t *testing.T) {
 		dbtest.Close(db)
 	}()
 
+	mockData := []*model.Image{
+		{Content: []byte{0x00, 0x02}, Size: 123456},
+		{Content: []byte{0x02, 0x03}, Size: 9},
+	}
+
 	store := NewStore(db)
 	images := NewImageStore(store)
 	ctx := context.TODO()
-	t.Run("Create", testImageCreate(ctx, images))
-	t.Run("List", testImageList(ctx, images))
-	t.Run("Find", testImageFind(ctx, images))
-	t.Run("Update", testImageUpdate(ctx, images))
-	t.Run("Delete", testImageDelete(ctx, images))
+	t.Run("Create", testImageCreate(ctx, images, mockData))
+	t.Run("List", testImageList(ctx, images, mockData))
+	t.Run("Find", testImageFind(ctx, images, mockData))
+	t.Run("Update", testImageUpdate(ctx, images, mockData))
+	t.Run("Delete", testImageDelete(ctx, images, mockData))
 }
 
-func testImageCreate(ctx context.Context, images ImageStore) func(*testing.T) {
+func testImageCreate(ctx context.Context, images ImageStore, mockData []*model.Image) func(*testing.T) {
 	return func(t *testing.T) {
-		testData := []model.Image{
-			{Content: []byte{0x00, 0x02}, Size: 123456},
-			{Content: []byte{0x02, 0x03}, Size: 9},
-		}
-
-		for _, image := range testData {
-			assert.Nil(t, images.Create(ctx, &image))
+		for _, image := range mockData {
+			assert.Nil(t, images.Create(ctx, image))
 			assert.NotEmpty(t, image.ID)
 			assert.False(t, image.CreatedAt.Time().IsZero())
 		}
 	}
 }
 
-func testImageList(ctx context.Context, images ImageStore) func(*testing.T) {
+func testImageList(ctx context.Context, images ImageStore, mockData []*model.Image) func(*testing.T) {
 	return func(t *testing.T) {
-		testData, err := images.List(ctx, nil)
+		deRef := func(data []*model.Image) []model.Image {
+			out := make([]model.Image, len(data))
+			for i, mi := range data {
+				m := *mi
+				out[i] = m
+			}
+			return out
+		}
+
+		want := deRef(mockData)
+		got, err := images.List(ctx, nil)
 		assert.Nil(t, err)
-		assert.Equal(t, 2, len(testData))
-	}
-}
-
-func testImageFind(ctx context.Context, images ImageStore) func(*testing.T) {
-	return func(t *testing.T) {
-		testData, _ := images.List(ctx, nil)
-
-		want := testData[0]
-		got := model.Image{ID: want.ID}
-		assert.Nil(t, images.Find(ctx, &got))
 		assert.Equal(t, want, got)
 	}
 }
 
-func testImageUpdate(ctx context.Context, images ImageStore) func(*testing.T) {
+func testImageFind(ctx context.Context, images ImageStore, mockData []*model.Image) func(*testing.T) {
 	return func(t *testing.T) {
-		testData, _ := images.List(ctx, nil)
+		want := mockData[0]
+		got := model.Image{ID: want.ID}
+		assert.Nil(t, images.Find(ctx, &got))
+		assert.Equal(t, *want, got)
+	}
+}
 
-		want := testData[1]
+func testImageUpdate(ctx context.Context, images ImageStore, mockData []*model.Image) func(*testing.T) {
+	return func(t *testing.T) {
+		want := mockData[1]
 		want.Content = []byte{0x03, 0x09}
-		assert.Nil(t, images.Update(ctx, &want))
+		assert.Nil(t, images.Update(ctx, want))
 		assert.False(t, want.UpdatedAt.Time().IsZero())
 
 		got := model.Image{ID: want.ID}
 		images.Find(ctx, &got)
-		assert.Equal(t, want, got)
+		assert.Equal(t, *want, got)
 	}
 }
 
-func testImageDelete(ctx context.Context, images ImageStore) func(*testing.T) {
+func testImageDelete(ctx context.Context, images ImageStore, mockData []*model.Image) func(*testing.T) {
 	return func(t *testing.T) {
-		testData, _ := images.List(ctx, nil)
+		del, want := mockData[0], mockData[1:]
+		assert.Nil(t, images.Delete(ctx, del))
 
-		assert.Nil(t, images.Delete(ctx, &testData[0]))
-
-		testData, _ = images.List(ctx, nil)
-		assert.Equal(t, 1, len(testData))
+		got, _ := images.List(ctx, nil)
+		assert.Equal(t, len(want), len(got))
 	}
 }
