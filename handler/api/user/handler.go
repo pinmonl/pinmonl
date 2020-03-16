@@ -57,7 +57,7 @@ func HandleCreate(users store.UserStore) http.HandlerFunc {
 			return
 		}
 
-		response.JSON(w, Resp(m))
+		response.JSON(w, NewBody(m))
 	}
 }
 
@@ -65,7 +65,7 @@ func HandleCreate(users store.UserStore) http.HandlerFunc {
 func HandleGetMe() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m, _ := request.UserFrom(r.Context())
-		response.JSON(w, Resp(m))
+		response.JSON(w, NewBody(m))
 	}
 }
 
@@ -97,6 +97,6 @@ func HandleUpdateMe(users store.UserStore) http.HandlerFunc {
 			return
 		}
 
-		response.JSON(w, Resp(m))
+		response.JSON(w, NewBody(m))
 	}
 }

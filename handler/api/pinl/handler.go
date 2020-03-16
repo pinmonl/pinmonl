@@ -16,7 +16,7 @@ import (
 )
 
 // HandleList returns pinls.
-func HandleList(pinls store.PinlStore, tags store.TagStore) http.HandlerFunc {
+func HandleList(pinls store.PinlStore, taggables store.TaggableStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		u, _ := request.UserFrom(ctx)
@@ -27,7 +27,7 @@ func HandleList(pinls store.PinlStore, tags store.TagStore) http.HandlerFunc {
 		}
 
 		mps := model.MustBeMorphables(ms)
-		ts, err := tags.List(ctx, &store.TagOpts{Targets: mps})
+		tsm, err := taggables.ListTags(ctx, &store.TaggableOpts{Targets: mps})
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -35,8 +35,7 @@ func HandleList(pinls store.PinlStore, tags store.TagStore) http.HandlerFunc {
 
 		resp := make([]interface{}, len(ms))
 		for i, m := range ms {
-			mt := (model.TagList)(ts).FindMorphable(m)
-			resp[i] = Resp(m, mt)
+			resp[i] = NewBody(m).WithTags(tsm[m.ID])
 		}
 		response.JSON(w, resp)
 	}
@@ -58,19 +57,7 @@ func HandleFind(tags store.TagStore, pkgs store.PkgStore, stats store.StatStore)
 			return
 		}
 
-		ms, err := getPkgsFromURL(ctx, pkgs, m.URL)
-		if err != nil {
-			response.InternalError(w, err)
-			return
-		}
-
-		mss, err := getStats(ctx, stats, ms)
-		if err != nil {
-			response.InternalError(w, err)
-			return
-		}
-
-		response.JSON(w, DetailResp(m, ts, ms, mss))
+		response.JSON(w, NewBody(m).WithTags(ts))
 	}
 }
 
@@ -135,19 +122,7 @@ func HandleCreate(
 			return
 		}
 
-		ms, err := getPkgsFromURL(ctx, pkgs, m.URL)
-		if err != nil {
-			response.InternalError(w, err)
-			return
-		}
-
-		mss, err := getStats(ctx, stats, ms)
-		if err != nil {
-			response.InternalError(w, err)
-			return
-		}
-
-		response.JSON(w, DetailResp(m, ts, ms, mss))
+		response.JSON(w, NewBody(m).WithTags(ts))
 	}
 }
 
@@ -212,19 +187,7 @@ func HandleUpdate(
 			return
 		}
 
-		ms, err := getPkgsFromURL(ctx, pkgs, m.URL)
-		if err != nil {
-			response.InternalError(w, err)
-			return
-		}
-
-		mss, err := getStats(ctx, stats, ms)
-		if err != nil {
-			response.InternalError(w, err)
-			return
-		}
-
-		response.JSON(w, DetailResp(m, ts, ms, mss))
+		response.JSON(w, NewBody(m).WithTags(ts))
 	}
 }
 
@@ -264,10 +227,7 @@ func HandlePageInfo(pinls store.PinlStore) http.HandlerFunc {
 			return
 		}
 
-		pi := response.PageInfo{
-			Count: count,
-		}
-		response.JSON(w, pi)
+		response.JSON(w, response.NewPageInfo(count))
 	}
 }
 
@@ -304,7 +264,7 @@ func fillCardIfEmpty(ctx context.Context, images store.ImageStore, m *model.Pinl
 }
 
 func getPkgsFromURL(ctx context.Context, pkgs store.PkgStore, url string) ([]model.Pkg, error) {
-	ms, err := pkgs.List(ctx, &store.PkgOpts{MonlURL: url})
+	ms, err := pkgs.List(ctx, &store.PkgOpts{ /* MonlURL: url */ })
 	if err != nil {
 		return nil, err
 	}

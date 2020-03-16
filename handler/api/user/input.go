@@ -12,10 +12,8 @@ import (
 
 // Input defines the accepted data from client.
 type Input struct {
-	Login    string `json:"login"`
+	model.User
 	Password string `json:"password"`
-	Email    string `json:"email"`
-	Name     string `json:"name"`
 }
 
 // ReadInput parses string as JSON.

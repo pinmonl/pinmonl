@@ -22,7 +22,7 @@ func HandleList(tags store.TagStore) http.HandlerFunc {
 
 		resp := make([]interface{}, len(ms))
 		for i, m := range ms {
-			resp[i] = Resp(m)
+			resp[i] = NewBody(m)
 		}
 		response.JSON(w, resp)
 	}
@@ -63,7 +63,7 @@ func HandleCreate(tags store.TagStore) http.HandlerFunc {
 			return
 		}
 
-		response.JSON(w, Resp(m))
+		response.JSON(w, NewBody(m))
 	}
 }
 
@@ -101,7 +101,7 @@ func HandleUpdate(tags store.TagStore) http.HandlerFunc {
 			return
 		}
 
-		response.JSON(w, Resp(m))
+		response.JSON(w, NewBody(m))
 	}
 }
 
@@ -132,9 +132,6 @@ func HandlePageInfo(tags store.TagStore) http.HandlerFunc {
 			return
 		}
 
-		pi := response.PageInfo{
-			Count: count,
-		}
-		response.JSON(w, pi)
+		response.JSON(w, response.NewPageInfo(count))
 	}
 }

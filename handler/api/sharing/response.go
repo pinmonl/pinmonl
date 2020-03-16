@@ -1,72 +1,39 @@
 package sharing
 
 import (
-	"github.com/pinmonl/pinmonl/handler/api/monl"
+	"github.com/pinmonl/pinmonl/handler/api/tag"
+	"github.com/pinmonl/pinmonl/handler/api/user"
 	"github.com/pinmonl/pinmonl/model"
-	"github.com/pinmonl/pinmonl/pkg/markdown"
 )
 
-// Resp defines the response body of Share.
-func Resp(m model.Share, u model.User, mustTags []model.Tag) map[string]interface{} {
-	resp := map[string]interface{}{
-		"id":          m.ID,
-		"name":        m.Name,
-		"description": m.Description,
-		"readme":      markdown.SafeHTML(m.Readme),
-		"imageId":     m.ImageID,
-		"owner":       UserResp(u),
-	}
-
-	rts := make([]interface{}, len(mustTags))
-	for i, t := range mustTags {
-		rts[i] = TagResp(t)
-	}
-	resp["mustTags"] = rts
-
-	return resp
+// Body defines the response body of Share.
+type Body struct {
+	model.Share
+	Owner    *user.Body  `json:"owner,omitempty"`
+	MustTags *[]tag.Body `json:"mustTags,omitempty"`
 }
 
-// UserResp defines the response body of User.
-func UserResp(u model.User) map[string]interface{} {
-	return map[string]interface{}{
-		"login": u.Login,
-		"name":  u.Name,
+// NewBody creates the response body.
+func NewBody(s model.Share) Body {
+	b := Body{
+		Share: s,
 	}
+	return b
 }
 
-// TagResp defines the response body of Tag.
-func TagResp(m model.Tag) map[string]interface{} {
-	return map[string]interface{}{
-		"id":       m.ID,
-		"name":     m.Name,
-		"parentId": m.ParentID,
-		"sort":     m.Sort,
-		"level":    m.Level,
-	}
+// WithOwner sets value of owner.
+func (b Body) WithOwner(u model.User) Body {
+	ub := user.NewBody(u)
+	b.Owner = &ub
+	return b
 }
 
-// PinlResp defines the response body of Pinl.
-func PinlResp(m model.Pinl, tags []model.Tag) map[string]interface{} {
-	return map[string]interface{}{
-		"id":          m.ID,
-		"title":       m.Title,
-		"description": m.Description,
-		"imageId":     m.ImageID,
-		"url":         m.URL,
-		"tags":        (model.TagList)(tags).PluckName(),
+// WithMustTags sets value of must tags.
+func (b Body) WithMustTags(ts []model.Tag) Body {
+	tbs := make([]tag.Body, len(ts))
+	for i, t := range ts {
+		tbs[i] = tag.NewBody(t)
 	}
-}
-
-// PinlDetailResp defines the response body of Pinl with detail.
-func PinlDetailResp(m model.Pinl, tags []model.Tag, pkgs []model.Pkg, stats []model.Stat) map[string]interface{} {
-	resp := PinlResp(m, tags)
-
-	rps := make([]interface{}, len(pkgs))
-	for i, p := range pkgs {
-		pss := (model.StatList)(stats).FindPkg(p)
-		rps[i] = monl.PkgResp(p, pss)
-	}
-	resp["pkgs"] = rps
-
-	return resp
+	b.MustTags = &tbs
+	return b
 }

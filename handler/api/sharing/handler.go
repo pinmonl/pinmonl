@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/pinmonl/pinmonl/handler/api/pinl"
 	"github.com/pinmonl/pinmonl/handler/api/response"
+	"github.com/pinmonl/pinmonl/handler/api/tag"
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/store"
 )
@@ -12,16 +14,16 @@ import (
 // HandleFind returns Share.
 func HandleFind(
 	shares store.ShareStore,
-	sharetags store.ShareTagStore,
+	sharetags store.SharetagStore,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		u, _ := UserFrom(ctx)
 		m, _ := ShareFrom(ctx)
 
-		mtsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
+		mtsm, err := sharetags.ListTags(ctx, &store.SharetagOpts{
 			ShareID: m.ID,
-			Kind:    model.ShareTagKindMust,
+			Kind:    model.SharetagKindMust,
 		})
 		if err != nil {
 			response.InternalError(w, err)
@@ -29,19 +31,19 @@ func HandleFind(
 		}
 		mts := mtsm[m.ID]
 
-		response.JSON(w, Resp(m, u, mts))
+		response.JSON(w, NewBody(m).WithOwner(u).WithMustTags(mts))
 	}
 }
 
 // HandleListTags returns the Tags with kind "AnyTags" from Share.
-func HandleListTags(sharetags store.ShareTagStore) http.HandlerFunc {
+func HandleListTags(sharetags store.SharetagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		m, _ := ShareFrom(ctx)
 
-		atsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
+		atsm, err := sharetags.ListTags(ctx, &store.SharetagOpts{
 			ShareID: m.ID,
-			Kind:    model.ShareTagKindAny,
+			Kind:    model.SharetagKindAny,
 		})
 		if err != nil {
 			response.InternalError(w, err)
@@ -51,7 +53,7 @@ func HandleListTags(sharetags store.ShareTagStore) http.HandlerFunc {
 
 		resp := make([]interface{}, len(ats))
 		for i, t := range ats {
-			resp[i] = TagResp(t)
+			resp[i] = tag.NewBody(t)
 		}
 		response.JSON(w, resp)
 	}
@@ -59,7 +61,7 @@ func HandleListTags(sharetags store.ShareTagStore) http.HandlerFunc {
 
 // HandleListPinls returns the Pinls from Share.
 func HandleListPinls(
-	sharetags store.ShareTagStore,
+	sharetags store.SharetagStore,
 	pinls store.PinlStore,
 	taggables store.TaggableStore,
 ) http.HandlerFunc {
@@ -68,17 +70,17 @@ func HandleListPinls(
 		u, _ := UserFrom(ctx)
 		m, _ := ShareFrom(ctx)
 
-		mtsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
+		mtsm, err := sharetags.ListTags(ctx, &store.SharetagOpts{
 			ShareID: m.ID,
-			Kind:    model.ShareTagKindMust,
+			Kind:    model.SharetagKindMust,
 		})
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
-		atsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
+		atsm, err := sharetags.ListTags(ctx, &store.SharetagOpts{
 			ShareID: m.ID,
-			Kind:    model.ShareTagKindAny,
+			Kind:    model.SharetagKindAny,
 		})
 		if err != nil {
 			response.InternalError(w, err)
@@ -110,7 +112,7 @@ func HandleListPinls(
 		resp := make([]interface{}, len(ps))
 		for i, p := range ps {
 			pt := ts[p.ID]
-			resp[i] = PinlResp(p, pt)
+			resp[i] = pinl.NewBody(p).WithTags(pt)
 		}
 		response.JSON(w, resp)
 	}
@@ -118,7 +120,7 @@ func HandleListPinls(
 
 // HandleFindPinl returns Pinl from Share with detail information.
 func HandleFindPinl(
-	sharetags store.ShareTagStore,
+	sharetags store.SharetagStore,
 	pinls store.PinlStore,
 	taggables store.TaggableStore,
 	pkgs store.PkgStore,
@@ -129,17 +131,17 @@ func HandleFindPinl(
 		u, _ := UserFrom(ctx)
 		m, _ := ShareFrom(ctx)
 
-		mtsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
+		mtsm, err := sharetags.ListTags(ctx, &store.SharetagOpts{
 			ShareID: m.ID,
-			Kind:    model.ShareTagKindMust,
+			Kind:    model.SharetagKindMust,
 		})
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
-		atsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
+		atsm, err := sharetags.ListTags(ctx, &store.SharetagOpts{
 			ShareID: m.ID,
-			Kind:    model.ShareTagKindAny,
+			Kind:    model.SharetagKindAny,
 		})
 		if err != nil {
 			response.InternalError(w, err)
@@ -173,22 +175,22 @@ func HandleFindPinl(
 			return
 		}
 
-		pps, err := pkgs.List(ctx, &store.PkgOpts{MonlURL: p.URL})
-		if err != nil {
-			response.InternalError(w, err)
-			return
-		}
+		// pps, err := pkgs.List(ctx, &store.PkgOpts{MonlURL: p.URL})
+		// if err != nil {
+		// 	response.InternalError(w, err)
+		// 	return
+		// }
 
-		pss, err := stats.List(ctx, &store.StatOpts{
-			PkgIDs:     (model.PkgList)(pps).Keys(),
-			WithLatest: true,
-		})
-		if err != nil {
-			response.InternalError(w, err)
-			return
-		}
+		// pss, err := stats.List(ctx, &store.StatOpts{
+		// 	PkgIDs:     (model.PkgList)(pps).Keys(),
+		// 	WithLatest: true,
+		// })
+		// if err != nil {
+		// 	response.InternalError(w, err)
+		// 	return
+		// }
 
-		response.JSON(w, PinlDetailResp(p, ts[p.ID], pps, pss))
+		response.JSON(w, pinl.NewBody(p).WithTags(ts[p.ID]))
 	}
 }
 

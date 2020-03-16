@@ -44,7 +44,7 @@ func (s *Server) Handler() http.Handler {
 
 	r.Route("/pinl", func(r chi.Router) {
 		r.Use(user.Authorize())
-		r.Get("/", pinl.HandleList(s.pinls, s.tags))
+		r.Get("/", pinl.HandleList(s.pinls, s.taggables))
 		r.Get("/page-info", pinl.HandlePageInfo(s.pinls))
 		r.Post("/", pinl.HandleCreate(s.pinls, s.tags, s.taggables, s.qm, s.images, s.pkgs, s.stats))
 		r.Route("/{pinl}", func(r chi.Router) {

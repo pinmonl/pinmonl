@@ -11,11 +11,8 @@ import (
 
 // Input defines the accepted data from client.
 type Input struct {
-	URL         string   `json:"url"`
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Readme      string   `json:"readme"`
-	Tags        []string `json:"tags"`
+	model.Pinl
+	Tags []string `json:"tags"`
 }
 
 // ReadInput parses string as JSON.

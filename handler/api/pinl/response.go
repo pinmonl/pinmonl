@@ -1,36 +1,25 @@
 package pinl
 
 import (
-	"github.com/pinmonl/pinmonl/handler/api/monl"
 	"github.com/pinmonl/pinmonl/model"
 )
 
-// Resp returns basic data of pinl.
-func Resp(m model.Pinl, tags []model.Tag) map[string]interface{} {
-	resp := map[string]interface{}{
-		"id":          m.ID,
-		"url":         m.URL,
-		"title":       m.Title,
-		"description": m.Description,
-		"imageId":     m.ImageID,
-		"createdAt":   m.CreatedAt,
-		"updatedAt":   m.UpdatedAt,
-		"tags":        (model.TagList)(tags).PluckName(),
-	}
-	return resp
+// Body defines the response body of Pinl.
+type Body struct {
+	model.Pinl
+	Tags []string `json:"tags"`
 }
 
-// DetailResp shows more information on top of Resp.
-func DetailResp(m model.Pinl, tags []model.Tag, pkgs []model.Pkg, stats []model.Stat) map[string]interface{} {
-	resp := Resp(m, tags)
-	resp["readme"] = m.Readme
-
-	rps := make([]interface{}, len(pkgs))
-	for i, p := range pkgs {
-		pss := (model.StatList)(stats).FindPkg(p)
-		rps[i] = monl.PkgResp(p, pss)
+// NewBody creates the response body.
+func NewBody(p model.Pinl) Body {
+	return Body{
+		Pinl: p,
+		Tags: make([]string, 0),
 	}
-	resp["pkgs"] = rps
+}
 
-	return resp
+// WithTags sets value of Body.Tags.
+func (b Body) WithTags(ts []model.Tag) Body {
+	b.Tags = append(b.Tags, (model.TagList)(ts).PluckName()...)
+	return b
 }

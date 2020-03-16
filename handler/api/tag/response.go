@@ -2,14 +2,12 @@ package tag
 
 import "github.com/pinmonl/pinmonl/model"
 
-// Resp returns basic data of tag.
-func Resp(m model.Tag) map[string]interface{} {
-	resp := map[string]interface{}{
-		"id":       m.ID,
-		"name":     m.Name,
-		"parentId": m.ParentID,
-		"sort":     m.Sort,
-		"level":    m.Level,
-	}
-	return resp
+// Body defines the response body of Tag.
+type Body struct {
+	model.Tag
+}
+
+// NewBody creates response body.
+func NewBody(t model.Tag) Body {
+	return Body{Tag: t}
 }

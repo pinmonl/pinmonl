@@ -11,9 +11,7 @@ import (
 
 // Input defines the accepted data from client.
 type Input struct {
-	Name     string `json:"name"`
-	ParentID string `json:"parentId"`
-	Sort     int64  `json:"sort"`
+	model.Tag
 }
 
 // ReadInput parses string as JSON.

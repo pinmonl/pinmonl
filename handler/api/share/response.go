@@ -2,21 +2,31 @@ package share
 
 import "github.com/pinmonl/pinmonl/model"
 
-// Resp returns basic data of share.
-func Resp(m model.Share, mustTags []model.Tag) map[string]interface{} {
-	resp := map[string]interface{}{
-		"id":          m.ID,
-		"name":        m.Name,
-		"description": m.Description,
-		"readme":      m.Readme,
-		"mustTags":    (model.TagList)(mustTags).PluckName(),
-	}
-	return resp
+// Body defines the response body of Share.
+type Body struct {
+	model.Share
+	MustTags []string  `json:"mustTags"`
+	AnyTags  *[]string `json:"anyTags,omitempty"`
 }
 
-// DetailResp returns tags relations on top of the basic response.
-func DetailResp(m model.Share, mustTags []model.Tag, anyTags []model.Tag) map[string]interface{} {
-	resp := Resp(m, mustTags)
-	resp["anyTags"] = (model.TagList)(anyTags).PluckName()
-	return resp
+// NewBody creates the response body.
+func NewBody(s model.Share) Body {
+	return Body{
+		Share:    s,
+		MustTags: make([]string, 0),
+	}
+}
+
+// WithMustTags sets value of Body.MustTags.
+func (b Body) WithMustTags(mts []model.Tag) Body {
+	b.MustTags = append(b.MustTags, (model.TagList)(mts).PluckName()...)
+	return b
+}
+
+// WithAnyTags sets value of Body.AnyTags.
+func (b Body) WithAnyTags(ats []model.Tag) Body {
+	tns := make([]string, 0)
+	tns = append(tns, (model.TagList)(ats).PluckName()...)
+	b.AnyTags = &tns
+	return b
 }

@@ -11,11 +11,9 @@ import (
 
 // Input defines the accepted data from client.
 type Input struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Readme      string   `json:"readme"`
-	MustTags    []string `json:"mustTags"`
-	AnyTags     []string `json:"anyTags"`
+	model.Share
+	MustTags []string `json:"mustTags"`
+	AnyTags  []string `json:"anyTags"`
 }
 
 // ReadInput parses string as JSON.

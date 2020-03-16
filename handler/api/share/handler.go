@@ -11,7 +11,7 @@ import (
 )
 
 // HandleList returns shares.
-func HandleList(shares store.ShareStore, sharetags store.ShareTagStore) http.HandlerFunc {
+func HandleList(shares store.ShareStore, sharetags store.SharetagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		u, _ := request.UserFrom(ctx)
@@ -21,45 +21,45 @@ func HandleList(shares store.ShareStore, sharetags store.ShareTagStore) http.Han
 			return
 		}
 
-		mts, err := sharetags.ListTags(ctx, &store.ShareTagOpts{
-			Kind:     model.ShareTagKindMust,
+		mts, err := sharetags.ListTags(ctx, &store.SharetagOpts{
+			Kind:     model.SharetagKindMust,
 			ShareIDs: (model.ShareList)(ms).Keys(),
 		})
 
 		resp := make([]interface{}, len(ms))
 		for i, m := range ms {
-			resp[i] = Resp(m, mts[m.ID])
+			resp[i] = NewBody(m).WithMustTags(mts[m.ID])
 		}
 		response.JSON(w, resp)
 	}
 }
 
 // HandleFind returns share and its relations.
-func HandleFind(shares store.ShareStore, sharetags store.ShareTagStore) http.HandlerFunc {
+func HandleFind(shares store.ShareStore, sharetags store.SharetagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		m, _ := request.ShareFrom(ctx)
 
-		mtsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{ShareID: m.ID, Kind: model.ShareTagKindMust})
+		mtsm, err := sharetags.ListTags(ctx, &store.SharetagOpts{ShareID: m.ID, Kind: model.SharetagKindMust})
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 		mts := mtsm[m.ID]
 
-		atsm, err := sharetags.ListTags(ctx, &store.ShareTagOpts{ShareID: m.ID, Kind: model.ShareTagKindAny})
+		atsm, err := sharetags.ListTags(ctx, &store.SharetagOpts{ShareID: m.ID, Kind: model.SharetagKindAny})
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 		ats := atsm[m.ID]
 
-		response.JSON(w, DetailResp(m, mts, ats))
+		response.JSON(w, NewBody(m).WithMustTags(mts).WithAnyTags(ats))
 	}
 }
 
 // HandleCreate validates and create share from user input.
-func HandleCreate(shares store.ShareStore, sharetags store.ShareTagStore, tags store.TagStore) http.HandlerFunc {
+func HandleCreate(shares store.ShareStore, sharetags store.SharetagStore, tags store.TagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		in, err := ReadInput(r.Body)
 		if err != nil {
@@ -92,7 +92,7 @@ func HandleCreate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 			response.InternalError(w, err)
 			return
 		}
-		err = sharetags.ReAssocTags(ctx, m, model.ShareTagKindMust, rebuildMustTags(mts))
+		err = sharetags.ReAssocTags(ctx, m, model.SharetagKindMust, rebuildMustTags(mts))
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -103,18 +103,18 @@ func HandleCreate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 			response.InternalError(w, err)
 			return
 		}
-		err = sharetags.ReAssocTags(ctx, m, model.ShareTagKindAny, ats)
+		err = sharetags.ReAssocTags(ctx, m, model.SharetagKindAny, ats)
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		response.JSON(w, DetailResp(m, mts, ats))
+		response.JSON(w, NewBody(m).WithMustTags(mts).WithAnyTags(ats))
 	}
 }
 
 // HandleUpdate validates and updates share from user input.
-func HandleUpdate(shares store.ShareStore, sharetags store.ShareTagStore, tags store.TagStore) http.HandlerFunc {
+func HandleUpdate(shares store.ShareStore, sharetags store.SharetagStore, tags store.TagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		in, err := ReadInput(r.Body)
 		if err != nil {
@@ -147,7 +147,7 @@ func HandleUpdate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 			response.InternalError(w, err)
 			return
 		}
-		err = sharetags.ReAssocTags(ctx, m, model.ShareTagKindMust, rebuildMustTags(mts))
+		err = sharetags.ReAssocTags(ctx, m, model.SharetagKindMust, rebuildMustTags(mts))
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -158,18 +158,18 @@ func HandleUpdate(shares store.ShareStore, sharetags store.ShareTagStore, tags s
 			response.InternalError(w, err)
 			return
 		}
-		err = sharetags.ReAssocTags(ctx, m, model.ShareTagKindAny, rebuildAnyTags(ats))
+		err = sharetags.ReAssocTags(ctx, m, model.SharetagKindAny, rebuildAnyTags(ats))
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		response.JSON(w, DetailResp(m, mts, ats))
+		response.JSON(w, NewBody(m).WithMustTags(mts).WithAnyTags(ats))
 	}
 }
 
 // HandleDelete removes share and its relations.
-func HandleDelete(shares store.ShareStore, sharetags store.ShareTagStore) http.HandlerFunc {
+func HandleDelete(shares store.ShareStore, sharetags store.SharetagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		m, _ := request.ShareFrom(ctx)
@@ -180,13 +180,13 @@ func HandleDelete(shares store.ShareStore, sharetags store.ShareTagStore) http.H
 			return
 		}
 
-		err = sharetags.ClearByKind(ctx, m, model.ShareTagKindMust)
+		err = sharetags.ClearByKind(ctx, m, model.SharetagKindMust)
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		err = sharetags.ClearByKind(ctx, m, model.ShareTagKindAny)
+		err = sharetags.ClearByKind(ctx, m, model.SharetagKindAny)
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -207,10 +207,7 @@ func HandlePageInfo(shares store.ShareStore) http.HandlerFunc {
 			return
 		}
 
-		pi := response.PageInfo{
-			Count: count,
-		}
-		response.JSON(w, pi)
+		response.JSON(w, response.NewPageInfo(count))
 	}
 }
 

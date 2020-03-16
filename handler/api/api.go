@@ -17,7 +17,7 @@ type ServerOpts struct {
 	Tags      store.TagStore
 	Taggables store.TaggableStore
 	Shares    store.ShareStore
-	Sharetags store.ShareTagStore
+	Sharetags store.SharetagStore
 	Images    store.ImageStore
 	Monls     store.MonlStore
 	Pkgs      store.PkgStore
@@ -35,7 +35,7 @@ type Server struct {
 	tags      store.TagStore
 	taggables store.TaggableStore
 	shares    store.ShareStore
-	sharetags store.ShareTagStore
+	sharetags store.SharetagStore
 	images    store.ImageStore
 	monls     store.MonlStore
 	pkgs      store.PkgStore
