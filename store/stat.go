@@ -42,7 +42,7 @@ type dbStatStore struct {
 func (s *dbStatStore) List(ctx context.Context, opts *StatOpts) ([]model.Stat, error) {
 	e := s.Queryer(ctx)
 	br, args := bindStatOpts(opts)
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return nil, err
 	}
@@ -65,19 +65,19 @@ func (s *dbStatStore) Create(ctx context.Context, m *model.Stat) error {
 	m2 := *m
 	m2.ID = newUID()
 	e := s.Execer(ctx)
-	stmt := database.InsertBuilder{
+	br := database.InsertBuilder{
 		Into: statTB,
 		Fields: map[string]interface{}{
-			"id":          nil,
-			"pkg_id":      nil,
-			"recorded_at": nil,
-			"kind":        nil,
-			"value":       nil,
-			"is_latest":   nil,
-			"labels":      nil,
+			"id":          ":stat_id",
+			"pkg_id":      ":stat_pkg_id",
+			"recorded_at": ":stat_recorded_at",
+			"kind":        ":stat_kind",
+			"value":       ":stat_value",
+			"is_latest":   ":stat_is_latest",
+			"labels":      ":stat_labels",
 		},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -88,27 +88,35 @@ func (s *dbStatStore) Create(ctx context.Context, m *model.Stat) error {
 // Update updates the fields of stat by id.
 func (s *dbStatStore) Update(ctx context.Context, m *model.Stat) error {
 	e := s.Execer(ctx)
-	stmt := database.UpdateBuilder{
+	br := database.UpdateBuilder{
 		From: statTB,
 		Fields: map[string]interface{}{
-			"pkg_id":      nil,
-			"recorded_at": nil,
-			"kind":        nil,
-			"value":       nil,
-			"is_latest":   nil,
-			"labels":      nil,
+			"pkg_id":      ":stat_pkg_id",
+			"recorded_at": ":stat_recorded_at",
+			"kind":        ":stat_kind",
+			"value":       ":stat_value",
+			"is_latest":   ":stat_is_latest",
+			"labels":      ":stat_labels",
 		},
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m)
+		Where: []string{"id = :stat_id"},
+	}
+	_, err := e.NamedExec(br.String(), m)
 	return err
 }
 
-func bindStatOpts(opts *StatOpts) (database.SelectBuilder, map[string]interface{}) {
+func bindStatOpts(opts *StatOpts) (database.SelectBuilder, database.QueryVars) {
 	br := database.SelectBuilder{
 		From: statTB,
 		Columns: database.NamespacedColumn(
-			[]string{"id", "pkg_id", "recorded_at", "kind", "value", "is_latest", "labels"},
+			[]string{
+				"id AS stat_id",
+				"pkg_id AS stat_pkg_id",
+				"recorded_at AS stat_recorded_at",
+				"kind AS stat_kind",
+				"value AS stat_value",
+				"is_latest AS stat_is_latest",
+				"labels AS stat_labels",
+			},
 			statTB,
 		),
 	}
@@ -117,7 +125,7 @@ func bindStatOpts(opts *StatOpts) (database.SelectBuilder, map[string]interface{
 	}
 
 	br = appendListOpts(br, opts.ListOpts)
-	args := make(map[string]interface{})
+	args := database.QueryVars{}
 
 	if opts.Kind != "" {
 		br.Where = append(br.Where, "kind = :kind")
@@ -129,9 +137,7 @@ func bindStatOpts(opts *StatOpts) (database.SelectBuilder, map[string]interface{
 	}
 	if opts.PkgIDs != nil {
 		ks, ids := bindQueryIDs("pkg_ids", opts.PkgIDs)
-		for k, id := range ids {
-			args[k] = id
-		}
+		args.AppendStringMap(ids)
 		br.Where = append(br.Where, fmt.Sprintf("pkg_id IN (%s)", strings.Join(ks, ",")))
 	}
 

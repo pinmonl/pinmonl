@@ -37,7 +37,7 @@ type dbUserStore struct {
 func (s *dbUserStore) List(ctx context.Context, opts *UserOpts) ([]model.User, error) {
 	e := s.Queryer(ctx)
 	br, args := bindUserOpts(opts)
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (s *dbUserStore) List(ctx context.Context, opts *UserOpts) ([]model.User, e
 func (s *dbUserStore) Find(ctx context.Context, m *model.User) error {
 	e := s.Queryer(ctx)
 	br, _ := bindUserOpts(nil)
-	br.Where = []string{"id = :id"}
+	br.Where = []string{"id = :user_id"}
 	br.Limit = 1
 	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
@@ -83,7 +83,7 @@ func (s *dbUserStore) Find(ctx context.Context, m *model.User) error {
 func (s *dbUserStore) FindLogin(ctx context.Context, m *model.User) error {
 	e := s.Queryer(ctx)
 	br, _ := bindUserOpts(nil)
-	br.Where = []string{"login = :login"}
+	br.Where = []string{"login = :user_login"}
 	br.Limit = 1
 	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
@@ -109,21 +109,21 @@ func (s *dbUserStore) Create(ctx context.Context, m *model.User) error {
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.InsertBuilder{
+	br := database.InsertBuilder{
 		Into: userTB,
 		Fields: map[string]interface{}{
-			"id":         nil,
-			"login":      nil,
-			"password":   nil,
-			"name":       nil,
-			"image_id":   nil,
-			"role":       nil,
-			"hash":       nil,
-			"created_at": nil,
-			"last_log":   nil,
+			"id":         ":user_id",
+			"login":      ":user_login",
+			"password":   ":user_password",
+			"name":       ":user_name",
+			"image_id":   ":user_image_id",
+			"role":       ":user_role",
+			"hash":       ":user_hash",
+			"created_at": ":user_created_at",
+			"last_log":   ":user_last_log",
 		},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -136,21 +136,21 @@ func (s *dbUserStore) Update(ctx context.Context, m *model.User) error {
 	m2 := *m
 	m2.UpdatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.UpdateBuilder{
+	br := database.UpdateBuilder{
 		From: userTB,
 		Fields: map[string]interface{}{
-			"login":      nil,
-			"password":   nil,
-			"name":       nil,
-			"image_id":   nil,
-			"role":       nil,
-			"hash":       nil,
-			"updated_at": nil,
-			"last_log":   nil,
+			"login":      ":user_login",
+			"password":   ":user_password",
+			"name":       ":user_name",
+			"image_id":   ":user_image_id",
+			"role":       ":user_role",
+			"hash":       ":user_hash",
+			"updated_at": ":user_updated_at",
+			"last_log":   ":user_last_log",
 		},
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+		Where: []string{"id = :user_id"},
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -161,19 +161,30 @@ func (s *dbUserStore) Update(ctx context.Context, m *model.User) error {
 // Delete removes user by id.
 func (s *dbUserStore) Delete(ctx context.Context, m *model.User) error {
 	e := s.Execer(ctx)
-	stmt := database.DeleteBuilder{
+	br := database.DeleteBuilder{
 		From:  userTB,
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m)
+		Where: []string{"id = :user_id"},
+	}
+	_, err := e.NamedExec(br.String(), m)
 	return err
 }
 
-func bindUserOpts(opts *UserOpts) (database.SelectBuilder, map[string]interface{}) {
+func bindUserOpts(opts *UserOpts) (database.SelectBuilder, database.QueryVars) {
 	br := database.SelectBuilder{
 		From: userTB,
 		Columns: database.NamespacedColumn(
-			[]string{"id", "login", "password", "name", "image_id", "role", "hash", "created_at", "updated_at", "last_log"},
+			[]string{
+				"id AS user_id",
+				"login AS user_login",
+				"password AS user_password",
+				"name AS user_name",
+				"image_id AS user_image_id",
+				"role AS user_role",
+				"hash AS user_hash",
+				"created_at AS user_created_at",
+				"updated_at AS user_updated_at",
+				"last_log AS user_last_log",
+			},
 			userTB,
 		),
 	}
@@ -182,7 +193,7 @@ func bindUserOpts(opts *UserOpts) (database.SelectBuilder, map[string]interface{
 	}
 
 	br = appendListOpts(br, opts.ListOpts)
-	args := make(map[string]interface{})
+	args := database.QueryVars{}
 
 	if opts.Login != "" {
 		br.Where = append(br.Where, "login = :login")

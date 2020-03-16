@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS substats (
   id      VARCHAR(50) PRIMARY KEY,
   stat_id VARCHAR(50),
-  kind    VARCHAR(50),
+  kind    VARCHAR(100),
   labels  TEXT
 );
 

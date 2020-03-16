@@ -6,14 +6,14 @@ import (
 
 // Monl stores the package information.
 type Monl struct {
-	ID          string     `json:"id"          db:"id"`
-	URL         string     `json:"url"         db:"url"`
-	Title       string     `json:"title"       db:"title"`
-	Description string     `json:"description" db:"description"`
-	Readme      string     `json:"readme"      db:"readme"`
-	ImageID     string     `json:"imageId"     db:"image_id"`
-	CreatedAt   field.Time `json:"createdAt"   db:"created_at"`
-	UpdatedAt   field.Time `json:"updatedAt"   db:"updated_at"`
+	ID          string     `json:"id"          db:"monl_id"`
+	URL         string     `json:"url"         db:"monl_url"`
+	Title       string     `json:"title"       db:"monl_title"`
+	Description string     `json:"description" db:"monl_description"`
+	Readme      string     `json:"readme"      db:"monl_readme"`
+	ImageID     string     `json:"imageId"     db:"monl_image_id"`
+	CreatedAt   field.Time `json:"createdAt"   db:"monl_created_at"`
+	UpdatedAt   field.Time `json:"updatedAt"   db:"monl_updated_at"`
 }
 
 // MorphKey returns the key of Monl.

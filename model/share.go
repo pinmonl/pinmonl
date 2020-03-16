@@ -8,14 +8,14 @@ import (
 
 // Share contains information of a sharing list.
 type Share struct {
-	ID          string     `json:"id"          db:"id"`
-	UserID      string     `json:"userId"      db:"user_id"`
-	Name        string     `json:"name"        db:"name"`
-	Description string     `json:"description" db:"description"`
-	Readme      string     `json:"readme"      db:"readme"`
-	ImageID     string     `json:"imageId"     db:"image_id"`
-	CreatedAt   field.Time `json:"createdAt"   db:"created_at"`
-	UpdatedAt   field.Time `json:"updatedAt"   db:"updated_at"`
+	ID          string     `json:"id"          db:"share_id"`
+	UserID      string     `json:"userId"      db:"share_user_id"`
+	Name        string     `json:"name"        db:"share_name"`
+	Description string     `json:"description" db:"share_description"`
+	Readme      string     `json:"readme"      db:"share_readme"`
+	ImageID     string     `json:"imageId"     db:"share_image_id"`
+	CreatedAt   field.Time `json:"createdAt"   db:"share_created_at"`
+	UpdatedAt   field.Time `json:"updatedAt"   db:"share_updated_at"`
 }
 
 // ShareNamePattern is the pattern of share name.
@@ -32,25 +32,3 @@ func (sl ShareList) Keys() []string {
 	}
 	return out
 }
-
-// ShareTag defines the connection between share and tag.
-type ShareTag struct {
-	ShareID  string       `json:"shareId"  db:"share_id"`
-	TagID    string       `json:"tagId"    db:"tag_id"`
-	Kind     ShareTagKind `json:"kind"     db:"kind"`
-	ParentID string       `json:"parentId" db:"parent_id"`
-	Sort     int64        `json:"sort"     db:"sort"`
-	Level    int64        `json:"level"    db:"level"`
-}
-
-// ShareTagKind categories the group of ShareTag.
-type ShareTagKind int
-
-const (
-	// ShareTagKindEmpty indicates the zero value of ShareTagKind.
-	ShareTagKindEmpty ShareTagKind = iota
-	// ShareTagKindMust defines the key of must-exist kind.
-	ShareTagKindMust
-	// ShareTagKindAny defines the key of any kind.
-	ShareTagKindAny
-)

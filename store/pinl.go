@@ -42,7 +42,7 @@ type dbPinlStore struct {
 func (s *dbPinlStore) List(ctx context.Context, opts *PinlOpts) ([]model.Pinl, error) {
 	e := s.Queryer(ctx)
 	br, args := bindPinlOpts(opts)
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (s *dbPinlStore) Count(ctx context.Context, opts *PinlOpts) (int64, error) 
 	e := s.Queryer(ctx)
 	br, args := bindPinlOpts(opts)
 	br.Columns = []string{"COUNT(*) as count"}
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return 0, err
 	}
@@ -86,7 +86,7 @@ func (s *dbPinlStore) Count(ctx context.Context, opts *PinlOpts) (int64, error) 
 func (s *dbPinlStore) Find(ctx context.Context, m *model.Pinl) error {
 	e := s.Queryer(ctx)
 	br, _ := bindPinlOpts(nil)
-	br.Where = []string{"id = :id"}
+	br.Where = []string{"id = :pinl_id"}
 	br.Limit = 1
 	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
@@ -112,20 +112,20 @@ func (s *dbPinlStore) Create(ctx context.Context, m *model.Pinl) error {
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.InsertBuilder{
+	br := database.InsertBuilder{
 		Into: pinlTB,
 		Fields: map[string]interface{}{
-			"id":          nil,
-			"user_id":     nil,
-			"url":         nil,
-			"title":       nil,
-			"description": nil,
-			"readme":      nil,
-			"image_id":    nil,
-			"created_at":  nil,
+			"id":          ":pinl_id",
+			"user_id":     ":pinl_user_id",
+			"url":         ":pinl_url",
+			"title":       ":pinl_title",
+			"description": ":pinl_description",
+			"readme":      ":pinl_readme",
+			"image_id":    ":pinl_image_id",
+			"created_at":  ":pinl_created_at",
 		},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -138,20 +138,20 @@ func (s *dbPinlStore) Update(ctx context.Context, m *model.Pinl) error {
 	m2 := *m
 	m2.UpdatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.UpdateBuilder{
+	br := database.UpdateBuilder{
 		From: pinlTB,
 		Fields: map[string]interface{}{
-			"user_id":     nil,
-			"url":         nil,
-			"title":       nil,
-			"description": nil,
-			"readme":      nil,
-			"image_id":    nil,
-			"updated_at":  nil,
+			"user_id":     ":pinl_user_id",
+			"url":         ":pinl_url",
+			"title":       ":pinl_title",
+			"description": ":pinl_description",
+			"readme":      ":pinl_readme",
+			"image_id":    ":pinl_image_id",
+			"updated_at":  ":pinl_updated_at",
 		},
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+		Where: []string{"id = :pinl_id"},
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -162,19 +162,29 @@ func (s *dbPinlStore) Update(ctx context.Context, m *model.Pinl) error {
 // Delete removes pinl by id.
 func (s *dbPinlStore) Delete(ctx context.Context, m *model.Pinl) error {
 	e := s.Execer(ctx)
-	stmt := database.DeleteBuilder{
+	br := database.DeleteBuilder{
 		From:  pinlTB,
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m)
+		Where: []string{"id = :pinl_id"},
+	}
+	_, err := e.NamedExec(br.String(), m)
 	return err
 }
 
-func bindPinlOpts(opts *PinlOpts) (database.SelectBuilder, map[string]interface{}) {
+func bindPinlOpts(opts *PinlOpts) (database.SelectBuilder, database.QueryVars) {
 	br := database.SelectBuilder{
 		From: pinlTB,
 		Columns: database.NamespacedColumn(
-			[]string{"id", "user_id", "url", "title", "description", "readme", "image_id", "created_at", "updated_at"},
+			[]string{
+				"id AS pinl_id",
+				"user_id AS pinl_user_id",
+				"url AS pinl_url",
+				"title AS pinl_title",
+				"description AS pinl_description",
+				"readme AS pinl_readme",
+				"image_id AS pinl_image_id",
+				"created_at AS pinl_created_at",
+				"updated_at AS pinl_updated_at",
+			},
 			pinlTB,
 		),
 	}
@@ -183,18 +193,16 @@ func bindPinlOpts(opts *PinlOpts) (database.SelectBuilder, map[string]interface{
 	}
 
 	br = appendListOpts(br, opts.ListOpts)
-	args := make(map[string]interface{})
+	args := database.QueryVars{}
 
 	if opts.UserID != "" {
 		br.Where = append(br.Where, "user_id = :user_id")
 		args["user_id"] = opts.UserID
 	}
-
 	if opts.ID != "" {
 		br.Where = append(br.Where, "id = :id")
 		args["id"] = opts.ID
 	}
-
 	if opts.MustTagIDs != nil {
 		sq := database.SelectBuilder{
 			Columns: []string{"1"},
@@ -209,16 +217,11 @@ func bindPinlOpts(opts *PinlOpts) (database.SelectBuilder, map[string]interface{
 		args["must_tag_target_name"] = model.Pinl{}.MorphName()
 		args["must_tag_count"] = len(opts.MustTagIDs)
 
-		ks := make([]string, len(opts.MustTagIDs))
-		for i, t := range opts.MustTagIDs {
-			k := fmt.Sprintf("must_tag_id%d", i)
-			args[k] = t
-			ks[i] = ":" + k
-		}
-		sq.Where = append(sq.Where, fmt.Sprintf("tag_id IN (%s)", strings.Join(ks, ", ")))
+		ks, ids := bindQueryIDs("must_tag_ids", opts.MustTagIDs)
+		args.AppendStringMap(ids)
+		sq.Where = append(sq.Where, fmt.Sprintf("tag_id IN (%s)", strings.Join(ks, ",")))
 		br.Where = append(br.Where, fmt.Sprintf("EXISTS (%s)", sq.String()))
 	}
-
 	if opts.AnyTagIDs != nil {
 		sq := database.SelectBuilder{
 			Columns: []string{"1"},
@@ -231,13 +234,9 @@ func bindPinlOpts(opts *PinlOpts) (database.SelectBuilder, map[string]interface{
 		}
 		args["any_tag_target_name"] = model.Pinl{}.MorphName()
 
-		ks := make([]string, len(opts.AnyTagIDs))
-		for i, t := range opts.AnyTagIDs {
-			k := fmt.Sprintf("any_tag_id%d", i)
-			args[k] = t
-			ks[i] = ":" + k
-		}
-		sq.Where = append(sq.Where, fmt.Sprintf("tag_id IN (%s)", strings.Join(ks, ", ")))
+		ks, ids := bindQueryIDs("any_tag_ids", opts.AnyTagIDs)
+		args.AppendStringMap(ids)
+		sq.Where = append(sq.Where, fmt.Sprintf("tag_id IN (%s)", strings.Join(ks, ",")))
 		br.Where = append(br.Where, fmt.Sprintf("EXISTS (%s)", sq.String()))
 	}
 

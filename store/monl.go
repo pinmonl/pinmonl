@@ -36,7 +36,7 @@ type dbMonlStore struct {
 func (s *dbMonlStore) List(ctx context.Context, opts *MonlOpts) ([]model.Monl, error) {
 	e := s.Queryer(ctx)
 	br, args := bindMonlOpts(opts)
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (s *dbMonlStore) List(ctx context.Context, opts *MonlOpts) ([]model.Monl, e
 func (s *dbMonlStore) Find(ctx context.Context, m *model.Monl) error {
 	e := s.Queryer(ctx)
 	br, _ := bindMonlOpts(nil)
-	br.Where = []string{"id = :id"}
+	br.Where = []string{"id = :monl_id"}
 	br.Limit = 1
 	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
@@ -84,19 +84,19 @@ func (s *dbMonlStore) Create(ctx context.Context, m *model.Monl) error {
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.InsertBuilder{
+	br := database.InsertBuilder{
 		Into: monlTB,
 		Fields: map[string]interface{}{
-			"id":          nil,
-			"url":         nil,
-			"title":       nil,
-			"description": nil,
-			"readme":      nil,
-			"image_id":    nil,
-			"created_at":  nil,
+			"id":          ":monl_id",
+			"url":         ":monl_url",
+			"title":       ":monl_title",
+			"description": ":monl_description",
+			"readme":      ":monl_readme",
+			"image_id":    ":monl_image_id",
+			"created_at":  ":monl_created_at",
 		},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -109,19 +109,19 @@ func (s *dbMonlStore) Update(ctx context.Context, m *model.Monl) error {
 	m2 := *m
 	m2.UpdatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.UpdateBuilder{
+	br := database.UpdateBuilder{
 		From: monlTB,
 		Fields: map[string]interface{}{
-			"url":         nil,
-			"title":       nil,
-			"description": nil,
-			"readme":      nil,
-			"image_id":    nil,
-			"updated_at":  nil,
+			"url":         ":monl_url",
+			"title":       ":monl_title",
+			"description": ":monl_description",
+			"readme":      ":monl_readme",
+			"image_id":    ":monl_image_id",
+			"updated_at":  ":monl_updated_at",
 		},
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+		Where: []string{"id = :monl_id"},
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -132,19 +132,28 @@ func (s *dbMonlStore) Update(ctx context.Context, m *model.Monl) error {
 // Delete removes monl by id.
 func (s *dbMonlStore) Delete(ctx context.Context, m *model.Monl) error {
 	e := s.Execer(ctx)
-	stmt := database.DeleteBuilder{
+	br := database.DeleteBuilder{
 		From:  monlTB,
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m)
+		Where: []string{"id = :monl_id"},
+	}
+	_, err := e.NamedExec(br.String(), m)
 	return err
 }
 
-func bindMonlOpts(opts *MonlOpts) (database.SelectBuilder, map[string]interface{}) {
+func bindMonlOpts(opts *MonlOpts) (database.SelectBuilder, database.QueryVars) {
 	br := database.SelectBuilder{
 		From: monlTB,
 		Columns: database.NamespacedColumn(
-			[]string{"id", "url", "title", "description", "readme", "image_id", "created_at", "updated_at"},
+			[]string{
+				"id AS monl_id",
+				"url AS monl_url",
+				"title AS monl_title",
+				"description AS monl_description",
+				"readme AS monl_readme",
+				"image_id AS monl_image_id",
+				"created_at AS monl_created_at",
+				"updated_at AS monl_updated_at",
+			},
 			monlTB,
 		),
 	}
@@ -153,7 +162,7 @@ func bindMonlOpts(opts *MonlOpts) (database.SelectBuilder, map[string]interface{
 	}
 
 	br = appendListOpts(br, opts.ListOpts)
-	args := make(map[string]interface{})
+	args := database.QueryVars{}
 
 	if opts.URL != "" {
 		br.Where = append(br.Where, "url = :url")

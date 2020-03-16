@@ -203,3 +203,23 @@ func NamespacedColumn(columnNames []string, tableName string) []string {
 	}
 	return nsCols
 }
+
+// QueryVars stores the variables for sql bindings.
+type QueryVars map[string]interface{}
+
+// Set sets the value with key.
+func (qv *QueryVars) Set(key string, value interface{}) {
+	(*qv)[key] = value
+}
+
+// AppendStringMap appends map of strings to QueryVars.
+func (qv *QueryVars) AppendStringMap(values map[string]string) {
+	for k, v := range values {
+		qv.Set(k, v)
+	}
+}
+
+// Map returns map from QueryVars.
+func (qv QueryVars) Map() map[string]interface{} {
+	return (map[string]interface{})(qv)
+}

@@ -6,13 +6,13 @@ import (
 
 // Stat stores the value at the given date and time.
 type Stat struct {
-	ID         string       `json:"id"         db:"id"`
-	PkgID      string       `json:"pkgId"      db:"pkg_id"`
-	RecordedAt field.Time   `json:"recordedAt" db:"recorded_at"`
-	Kind       string       `json:"kind"       db:"kind"`
-	Value      string       `json:"value"      db:"value"`
-	IsLatest   bool         `json:"isLatest"   db:"is_latest"`
-	Labels     field.Labels `json:"labels"     db:"labels"`
+	ID         string       `json:"id"         db:"stat_id"`
+	PkgID      string       `json:"pkgId"      db:"stat_pkg_id"`
+	RecordedAt field.Time   `json:"recordedAt" db:"stat_recorded_at"`
+	Kind       string       `json:"kind"       db:"stat_kind"`
+	Value      string       `json:"value"      db:"stat_value"`
+	IsLatest   bool         `json:"isLatest"   db:"stat_is_latest"`
+	Labels     field.Labels `json:"labels"     db:"stat_labels"`
 }
 
 // StatList is slice of Stat.

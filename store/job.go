@@ -40,7 +40,7 @@ func NewJobStore(s Store) JobStore {
 func (s *dbJobStore) List(ctx context.Context, opts *JobOpts) ([]model.Job, error) {
 	e := s.Queryer(ctx)
 	br, args := bindJobOpts(opts)
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (s *dbJobStore) List(ctx context.Context, opts *JobOpts) ([]model.Job, erro
 func (s *dbJobStore) Find(ctx context.Context, m *model.Job) error {
 	e := s.Queryer(ctx)
 	br, _ := bindJobOpts(nil)
-	br.Where = []string{"id = :id"}
+	br.Where = []string{"id = :job_id"}
 	br.Limit = 1
 	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
@@ -88,20 +88,20 @@ func (s *dbJobStore) Create(ctx context.Context, m *model.Job) error {
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.InsertBuilder{
+	br := database.InsertBuilder{
 		Into: jobTB,
 		Fields: map[string]interface{}{
-			"id":           nil,
-			"name":         nil,
-			"target_id":    nil,
-			"status":       nil,
-			"error":        nil,
-			"scheduled_at": nil,
-			"started_at":   nil,
-			"created_at":   nil,
+			"id":           ":job_id",
+			"name":         ":job_name",
+			"target_id":    ":job_target_id",
+			"status":       ":job_status",
+			"error":        ":job_error",
+			"scheduled_at": ":job_scheduled_at",
+			"started_at":   ":job_started_at",
+			"created_at":   ":job_created_at",
 		},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -113,19 +113,19 @@ func (s *dbJobStore) Create(ctx context.Context, m *model.Job) error {
 func (s *dbJobStore) Update(ctx context.Context, m *model.Job) error {
 	m2 := *m
 	e := s.Execer(ctx)
-	stmt := database.UpdateBuilder{
+	br := database.UpdateBuilder{
 		From: jobTB,
 		Fields: map[string]interface{}{
-			"name":         nil,
-			"target_id":    nil,
-			"status":       nil,
-			"error":        nil,
-			"scheduled_at": nil,
-			"started_at":   nil,
+			"name":         ":job_name",
+			"target_id":    ":job_target_id",
+			"status":       ":job_status",
+			"error":        ":job_error",
+			"scheduled_at": ":job_scheduled_at",
+			"started_at":   ":job_started_at",
 		},
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+		Where: []string{"id = :job_id"},
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -136,19 +136,28 @@ func (s *dbJobStore) Update(ctx context.Context, m *model.Job) error {
 // Delete removes job by id.
 func (s *dbJobStore) Delete(ctx context.Context, m *model.Job) error {
 	e := s.Execer(ctx)
-	stmt := database.DeleteBuilder{
+	br := database.DeleteBuilder{
 		From:  jobTB,
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m)
+		Where: []string{"id = :job_id"},
+	}
+	_, err := e.NamedExec(br.String(), m)
 	return err
 }
 
-func bindJobOpts(opts *JobOpts) (database.SelectBuilder, map[string]interface{}) {
+func bindJobOpts(opts *JobOpts) (database.SelectBuilder, database.QueryVars) {
 	br := database.SelectBuilder{
 		From: jobTB,
 		Columns: database.NamespacedColumn(
-			[]string{"id", "name", "target_id", "status", "error", "scheduled_at", "started_at", "created_at"},
+			[]string{
+				"id AS job_id",
+				"name AS job_name",
+				"target_id AS job_target_id",
+				"status AS job_status",
+				"error AS job_error",
+				"scheduled_at AS job_scheduled_at",
+				"started_at AS job_started_at",
+				"created_at AS job_created_at",
+			},
 			jobTB,
 		),
 	}
@@ -157,7 +166,7 @@ func bindJobOpts(opts *JobOpts) (database.SelectBuilder, map[string]interface{})
 	}
 
 	br = appendListOpts(br, opts.ListOpts)
-	args := make(map[string]interface{})
+	args := database.QueryVars{}
 
 	if opts.Status != model.JobStatusEmpty {
 		br.Where = append(br.Where, "status = :status")

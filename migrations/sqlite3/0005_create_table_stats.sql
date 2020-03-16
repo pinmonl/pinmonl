@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS stats (
 	id          VARCHAR(50) PRIMARY KEY,
 	pkg_id      VARCHAR(50),
 	recorded_at TIMESTAMP,
-	kind        VARCHAR(50),
+	kind        VARCHAR(100),
 	value       VARCHAR(250),
 	is_latest   BOOLEAN,
 	labels      TEXT

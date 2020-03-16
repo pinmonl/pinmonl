@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/model"
@@ -12,8 +11,6 @@ import (
 // PkgOpts defines the filter parameters on Pkg.
 type PkgOpts struct {
 	ListOpts
-	MonlURL   string
-	MonlID    string
 	Vendor    string
 	VendorURI string
 }
@@ -40,7 +37,7 @@ type dbPkgStore struct {
 func (s *dbPkgStore) List(ctx context.Context, opts *PkgOpts) ([]model.Pkg, error) {
 	e := s.Queryer(ctx)
 	br, args := bindPkgOpts(opts)
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +59,7 @@ func (s *dbPkgStore) List(ctx context.Context, opts *PkgOpts) ([]model.Pkg, erro
 func (s *dbPkgStore) Find(ctx context.Context, m *model.Pkg) error {
 	e := s.Queryer(ctx)
 	br, _ := bindPkgOpts(nil)
-	br.Where = []string{"id = :id"}
+	br.Where = []string{"id = :pkg_id"}
 	br.Limit = 1
 	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
@@ -88,23 +85,22 @@ func (s *dbPkgStore) Create(ctx context.Context, m *model.Pkg) error {
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.InsertBuilder{
+	br := database.InsertBuilder{
 		Into: pkgTB,
 		Fields: map[string]interface{}{
-			"id":          nil,
-			"monl_id":     nil,
-			"url":         nil,
-			"vendor":      nil,
-			"vendor_uri":  nil,
-			"title":       nil,
-			"description": nil,
-			"readme":      nil,
-			"labels":      nil,
-			"image_id":    nil,
-			"created_at":  nil,
+			"id":          ":pkg_id",
+			"url":         ":pkg_url",
+			"vendor":      ":pkg_vendor",
+			"vendor_uri":  ":pkg_vendor_uri",
+			"title":       ":pkg_title",
+			"description": ":pkg_description",
+			"readme":      ":pkg_readme",
+			"labels":      ":pkg_labels",
+			"image_id":    ":pkg_image_id",
+			"created_at":  ":pkg_created_at",
 		},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -117,23 +113,22 @@ func (s *dbPkgStore) Update(ctx context.Context, m *model.Pkg) error {
 	m2 := *m
 	m2.UpdatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.UpdateBuilder{
+	br := database.UpdateBuilder{
 		From: pkgTB,
 		Fields: map[string]interface{}{
-			"monl_id":     nil,
-			"url":         nil,
-			"vendor":      nil,
-			"vendor_uri":  nil,
-			"title":       nil,
-			"description": nil,
-			"readme":      nil,
-			"labels":      nil,
-			"image_id":    nil,
-			"updated_at":  nil,
+			"url":         ":pkg_url",
+			"vendor":      ":pkg_vendor",
+			"vendor_uri":  ":pkg_vendor_uri",
+			"title":       ":pkg_title",
+			"description": ":pkg_description",
+			"readme":      ":pkg_readme",
+			"labels":      ":pkg_labels",
+			"image_id":    ":pkg_image_id",
+			"updated_at":  ":pkg_updated_at",
 		},
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+		Where: []string{"id = :pkg_id"},
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -144,19 +139,31 @@ func (s *dbPkgStore) Update(ctx context.Context, m *model.Pkg) error {
 // Delete removes Pkg by ID.
 func (s *dbPkgStore) Delete(ctx context.Context, m *model.Pkg) error {
 	e := s.Execer(ctx)
-	stmt := database.DeleteBuilder{
+	br := database.DeleteBuilder{
 		From:  pkgTB,
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m)
+		Where: []string{"id = :pkg_id"},
+	}
+	_, err := e.NamedExec(br.String(), m)
 	return err
 }
 
-func bindPkgOpts(opts *PkgOpts) (database.SelectBuilder, map[string]interface{}) {
+func bindPkgOpts(opts *PkgOpts) (database.SelectBuilder, database.QueryVars) {
 	br := database.SelectBuilder{
 		From: pkgTB,
 		Columns: database.NamespacedColumn(
-			[]string{"id", "url", "monl_id", "vendor", "vendor_uri", "title", "description", "readme", "image_id", "labels", "created_at", "updated_at"},
+			[]string{
+				"id AS pkg_id",
+				"url AS pkg_url",
+				"vendor AS pkg_vendor",
+				"vendor_uri AS pkg_vendor_uri",
+				"title AS pkg_title",
+				"description AS pkg_description",
+				"readme AS pkg_readme",
+				"image_id AS pkg_image_id",
+				"labels AS pkg_labels",
+				"created_at AS pkg_created_at",
+				"updated_at AS pkg_updated_at",
+			},
 			pkgTB,
 		),
 	}
@@ -165,25 +172,7 @@ func bindPkgOpts(opts *PkgOpts) (database.SelectBuilder, map[string]interface{})
 	}
 
 	br = appendListOpts(br, opts.ListOpts)
-	args := make(map[string]interface{})
-
-	if opts.MonlID != "" {
-		br.Where = append(br.Where, "monl_id = :monl_id")
-		args["monl_id"] = opts.MonlID
-	}
-
-	if opts.MonlURL != "" {
-		sq := database.SelectBuilder{
-			Columns: []string{"1"},
-			From:    monlTB,
-			Where: []string{
-				fmt.Sprintf("%s.monl_id = id", pkgTB),
-				"url = :monl_url",
-			},
-		}
-		args["monl_url"] = opts.MonlURL
-		br.Where = append(br.Where, fmt.Sprintf("EXISTS (%s)", sq.String()))
-	}
+	args := database.QueryVars{}
 
 	if opts.Vendor != "" {
 		br.Where = append(br.Where, "vendor = :vendor")

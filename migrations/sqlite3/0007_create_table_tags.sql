@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS tags (
 	parent_id  VARCHAR(50),
 	sort       INTEGER,
 	level      INTEGER,
+	color      VARCHAR(50),
+	bgcolor    VARCHAR(50),
 	created_at TIMESTAMP,
 	updated_at TIMESTAMP
 );

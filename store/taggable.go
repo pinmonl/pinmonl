@@ -16,6 +16,8 @@ type TaggableOpts struct {
 	Targets []model.Morphable
 	Tags    []model.Tag
 	TagIDs  []string
+
+	joinTag bool
 }
 
 // TaggableStore defines the services of taggable.
@@ -45,7 +47,7 @@ type dbTaggableStore struct {
 func (s *dbTaggableStore) List(ctx context.Context, opts *TaggableOpts) ([]model.Taggable, error) {
 	e := s.Queryer(ctx)
 	br, args := bindTaggableOpts(opts)
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return nil, err
 	}
@@ -65,27 +67,28 @@ func (s *dbTaggableStore) List(ctx context.Context, opts *TaggableOpts) ([]model
 
 // ListTags retrieves tags by taggable relationship.
 func (s *dbTaggableStore) ListTags(ctx context.Context, opts *TaggableOpts) (map[string][]model.Tag, error) {
+	if opts == nil {
+		opts = &TaggableOpts{}
+	}
+	opts.joinTag = true
+
 	e := s.Queryer(ctx)
 	br, args := bindTaggableOpts(opts)
-	br.Join = []string{fmt.Sprintf("INNER JOIN %s ON %s.tag_id = %s.id", tagTB, taggableTB, tagTB)}
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	list := make(map[string][]model.Tag)
-	var r struct {
-		model.Tag
-		model.Taggable
-	}
 	for rows.Next() {
-		err = rows.StructScan(&r)
+		var m model.Taggable
+		err = rows.StructScan(&m)
 		if err != nil {
 			return nil, err
 		}
-		k := r.Taggable.TargetID
-		list[k] = append(list[k], r.Tag)
+		k := m.TargetID
+		list[k] = append(list[k], *m.Tag)
 	}
 	return list, nil
 }
@@ -93,31 +96,31 @@ func (s *dbTaggableStore) ListTags(ctx context.Context, opts *TaggableOpts) (map
 // Create inserts the fields of taggable.
 func (s *dbTaggableStore) Create(ctx context.Context, m *model.Taggable) error {
 	e := s.Execer(ctx)
-	stmt := database.InsertBuilder{
+	br := database.InsertBuilder{
 		Into: taggableTB,
 		Fields: map[string]interface{}{
-			"tag_id":      nil,
-			"target_id":   nil,
-			"target_name": nil,
-			"sort":        nil,
+			"tag_id":      ":taggable_tag_id",
+			"target_id":   ":taggable_target_id",
+			"target_name": ":taggable_target_name",
+			"sort":        ":taggable_sort",
 		},
-	}.String()
-	_, err := e.NamedExec(stmt, m)
+	}
+	_, err := e.NamedExec(br.String(), m)
 	return err
 }
 
 // Delete removes taggable by the relationship.
 func (s *dbTaggableStore) Delete(ctx context.Context, m *model.Taggable) error {
 	e := s.Execer(ctx)
-	stmt := database.DeleteBuilder{
+	br := database.DeleteBuilder{
 		From: taggableTB,
 		Where: []string{
-			"target_id = :target_id",
-			"target_name = :target_name",
-			"tag_id = :tag_id",
+			"target_id = :taggable_target_id",
+			"target_name = :taggable_target_name",
+			"tag_id = :taggable_tag_id",
 		},
-	}.String()
-	_, err := e.NamedExec(stmt, m)
+	}
+	_, err := e.NamedExec(br.String(), m)
 	return err
 }
 
@@ -173,15 +176,15 @@ func (s *dbTaggableStore) DissocTags(ctx context.Context, target model.Morphable
 // ClearTags removes all tag relations from the target.
 func (s *dbTaggableStore) ClearTags(ctx context.Context, target model.Morphable) error {
 	e := s.Execer(ctx)
-	stmt := database.DeleteBuilder{
+	br := database.DeleteBuilder{
 		From:  taggableTB,
 		Where: []string{"target_id = :target_id", "target_name = :target_name"},
-	}.String()
+	}
 	args := map[string]interface{}{
 		"target_id":   target.MorphKey(),
 		"target_name": target.MorphName(),
 	}
-	_, err := e.NamedExec(stmt, args)
+	_, err := e.NamedExec(br.String(), args)
 	return err
 }
 
@@ -194,11 +197,16 @@ func (s *dbTaggableStore) ReAssocTags(ctx context.Context, target model.Morphabl
 	return s.AssocTags(ctx, target, tags)
 }
 
-func bindTaggableOpts(opts *TaggableOpts) (database.SelectBuilder, map[string]interface{}) {
+func bindTaggableOpts(opts *TaggableOpts) (database.SelectBuilder, database.QueryVars) {
 	br := database.SelectBuilder{
 		From: taggableTB,
 		Columns: database.NamespacedColumn(
-			[]string{"tag_id", "target_id", "target_name", "sort"},
+			[]string{
+				"tag_id AS taggable_tag_id",
+				"target_id AS taggable_target_id",
+				"target_name AS taggable_target_name",
+				"sort AS taggable_sort",
+			},
 			taggableTB,
 		),
 	}
@@ -207,13 +215,21 @@ func bindTaggableOpts(opts *TaggableOpts) (database.SelectBuilder, map[string]in
 	}
 
 	br = appendListOpts(br, opts.ListOpts)
-	args := make(map[string]interface{})
+	args := database.QueryVars{}
 
 	if opts.Target != nil {
-		br.Where = append(br.Where, "target_id = :target_id")
-		br.Where = append(br.Where, "target_name = :target_name")
-		args["target_id"] = opts.Target.MorphKey()
-		args["target_name"] = opts.Target.MorphName()
+		opts.Targets = append(opts.Targets, opts.Target)
+	}
+	if opts.Targets != nil {
+		tns := (model.MorphableList)(opts.Targets).Names()
+		tks := (model.MorphableList)(opts.Targets).Keys()
+		ks, ids := bindQueryIDs("target_ids", tks)
+		args.Set("target_name", tns[0])
+		args.AppendStringMap(ids)
+		br.Where = append(br.Where,
+			fmt.Sprintf("target_name = :target_name"),
+			fmt.Sprintf("target_id IN (%s)", strings.Join(ks, ",")),
+		)
 	}
 
 	if opts.Tags != nil {
@@ -221,13 +237,31 @@ func bindTaggableOpts(opts *TaggableOpts) (database.SelectBuilder, map[string]in
 		for i, t := range opts.Tags {
 			ids[i] = t.ID
 		}
+		opts.TagIDs = ids
 	}
 	if opts.TagIDs != nil {
 		ks, ids := bindQueryIDs("tag_ids", opts.TagIDs)
-		for k, id := range ids {
-			args[k] = id
-		}
+		args.AppendStringMap(ids)
 		br.Where = append(br.Where, fmt.Sprintf("tag_id IN (%s)", strings.Join(ks, ",")))
+	}
+
+	if opts.joinTag {
+		br.Columns = append(br.Columns, database.NamespacedColumn(
+			[]string{
+				"id AS tag_id",
+				"name AS tag_name",
+				"user_id AS tag_user_id",
+				"parent_id AS tag_parent_id",
+				"sort AS tag_sort",
+				"level AS tag_level",
+				"color AS tag_color",
+				"bgcolor AS tag_bgcolor",
+				"created_at AS tag_created_at",
+				"updated_at AS tag_updated_at",
+			},
+			tagTB,
+		)...)
+		br.Join = append(br.Join, fmt.Sprintf("INNER JOIN %s ON %[1]s.id = %s.tag_id", tagTB, taggableTB))
 	}
 
 	return br, args

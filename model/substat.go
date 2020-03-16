@@ -4,10 +4,10 @@ import "github.com/pinmonl/pinmonl/model/field"
 
 // Substat stores extra information for Stat.
 type Substat struct {
-	ID     string       `json:"id"     db:"id"`
-	StatID string       `json:"statId" db:"stat_id"`
-	Kind   string       `json:"kind"   db:"kind"`
-	Labels field.Labels `json:"labels" db:"labels"`
+	ID     string       `json:"id"     db:"substat_id"`
+	StatID string       `json:"statId" db:"substat_stat_id"`
+	Kind   string       `json:"kind"   db:"substat_kind"`
+	Labels field.Labels `json:"labels" db:"substat_labels"`
 }
 
 // SubstatList is slice of Substat.

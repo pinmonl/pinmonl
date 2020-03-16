@@ -6,14 +6,14 @@ import (
 
 // Job defines the queue task.
 type Job struct {
-	ID          string     `json:"id"          db:"id"`
-	Name        JobName    `json:"name"        db:"name"`
-	TargetID    string     `json:"targetId"    db:"target_id"`
-	Status      JobStatus  `json:"status"      db:"status"`
-	Error       string     `json:"error"       db:"error"`
-	ScheduledAt field.Time `json:"scheduledAt" db:"scheduled_at"`
-	StartedAt   field.Time `json:"startedAt"   db:"started_at"`
-	CreatedAt   field.Time `json:"createdAt"   db:"created_at"`
+	ID          string     `json:"id"          db:"job_id"`
+	Name        JobName    `json:"name"        db:"job_name"`
+	TargetID    string     `json:"targetId"    db:"job_target_id"`
+	Status      JobStatus  `json:"status"      db:"job_status"`
+	Error       string     `json:"error"       db:"job_error"`
+	ScheduledAt field.Time `json:"scheduledAt" db:"job_scheduled_at"`
+	StartedAt   field.Time `json:"startedAt"   db:"job_started_at"`
+	CreatedAt   field.Time `json:"createdAt"   db:"job_created_at"`
 }
 
 // JobStatus is type of job status.

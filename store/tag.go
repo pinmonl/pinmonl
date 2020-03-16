@@ -46,7 +46,7 @@ type dbTagStore struct {
 func (s *dbTagStore) List(ctx context.Context, opts *TagOpts) ([]model.Tag, error) {
 	e := s.Queryer(ctx)
 	br, args := bindTagOpts(opts)
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (s *dbTagStore) Count(ctx context.Context, opts *TagOpts) (int64, error) {
 	e := s.Queryer(ctx)
 	br, args := bindTagOpts(opts)
 	br.Columns = []string{"COUNT(*) as count"}
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return 0, err
 	}
@@ -90,7 +90,7 @@ func (s *dbTagStore) Count(ctx context.Context, opts *TagOpts) (int64, error) {
 func (s *dbTagStore) Find(ctx context.Context, m *model.Tag) error {
 	e := s.Queryer(ctx)
 	br, _ := bindTagOpts(nil)
-	br.Where = []string{"id = :id"}
+	br.Where = []string{"id = :tag_id"}
 	br.Limit = 1
 	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
@@ -112,7 +112,7 @@ func (s *dbTagStore) Find(ctx context.Context, m *model.Tag) error {
 func (s *dbTagStore) FindByName(ctx context.Context, m *model.Tag) error {
 	e := s.Queryer(ctx)
 	br, _ := bindTagOpts(nil)
-	br.Where = []string{"user_id = :user_id", "name = :name"}
+	br.Where = []string{"user_id = :tag_user_id", "name = :tag_name"}
 	br.Limit = 1
 	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
@@ -136,19 +136,21 @@ func (s *dbTagStore) Create(ctx context.Context, m *model.Tag) error {
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.InsertBuilder{
+	br := database.InsertBuilder{
 		Into: tagTB,
 		Fields: map[string]interface{}{
-			"id":         nil,
-			"name":       nil,
-			"user_id":    nil,
-			"parent_id":  nil,
-			"sort":       nil,
-			"level":      nil,
-			"created_at": nil,
+			"id":         ":tag_id",
+			"name":       ":tag_name",
+			"user_id":    ":tag_user_id",
+			"parent_id":  ":tag_parent_id",
+			"sort":       ":tag_sort",
+			"level":      ":tag_level",
+			"color":      ":tag_color",
+			"bgcolor":    ":tag_bgcolor",
+			"created_at": ":tag_created_at",
 		},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -161,19 +163,21 @@ func (s *dbTagStore) Update(ctx context.Context, m *model.Tag) error {
 	m2 := *m
 	m2.UpdatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.UpdateBuilder{
+	br := database.UpdateBuilder{
 		From: tagTB,
 		Fields: map[string]interface{}{
-			"name":       nil,
-			"user_id":    nil,
-			"parent_id":  nil,
-			"sort":       nil,
-			"level":      nil,
-			"updated_at": nil,
+			"name":       ":tag_name",
+			"user_id":    ":tag_user_id",
+			"parent_id":  ":tag_parent_id",
+			"sort":       ":tag_sort",
+			"level":      ":tag_level",
+			"color":      ":tag_color",
+			"bgcolor":    ":tag_bgcolor",
+			"updated_at": ":tag_updated_at",
 		},
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+		Where: []string{"id = :tag_id"},
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -184,19 +188,30 @@ func (s *dbTagStore) Update(ctx context.Context, m *model.Tag) error {
 // Delete removes tag by id.
 func (s *dbTagStore) Delete(ctx context.Context, m *model.Tag) error {
 	e := s.Execer(ctx)
-	stmt := database.DeleteBuilder{
+	br := database.DeleteBuilder{
 		From:  tagTB,
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m)
+		Where: []string{"id = :tag_id"},
+	}
+	_, err := e.NamedExec(br.String(), m)
 	return err
 }
 
-func bindTagOpts(opts *TagOpts) (database.SelectBuilder, map[string]interface{}) {
+func bindTagOpts(opts *TagOpts) (database.SelectBuilder, database.QueryVars) {
 	br := database.SelectBuilder{
 		From: tagTB,
 		Columns: database.NamespacedColumn(
-			[]string{"id", "name", "user_id", "parent_id", "sort", "level", "created_at", "updated_at"},
+			[]string{
+				"id AS tag_id",
+				"name AS tag_name",
+				"user_id AS tag_user_id",
+				"parent_id AS tag_parent_id",
+				"sort AS tag_sort",
+				"level AS tag_level",
+				"color AS tag_color",
+				"bgcolor AS tag_bgcolor",
+				"created_at AS tag_created_at",
+				"updated_at AS tag_updated_at",
+			},
 			tagTB,
 		),
 	}
@@ -205,36 +220,26 @@ func bindTagOpts(opts *TagOpts) (database.SelectBuilder, map[string]interface{})
 	}
 
 	br = appendListOpts(br, opts.ListOpts)
-	args := make(map[string]interface{})
+	args := database.QueryVars{}
 
 	if opts.IDs != nil {
-		ks := make([]string, len(opts.IDs))
-		for i, id := range opts.IDs {
-			k := fmt.Sprintf("id%d", i)
-			args[k] = id
-			ks[i] = ":" + k
-		}
+		ks, ids := bindQueryIDs("ids", opts.IDs)
+		args.AppendStringMap(ids)
 		br.Where = append(br.Where, fmt.Sprintf("id IN (%s)", strings.Join(ks, ", ")))
 	}
-
 	if opts.Target != nil {
 		opts.Targets = append(opts.Targets, opts.Target)
 	}
-	if opts.Targets != nil && len(opts.Targets) > 0 {
+	if opts.Targets != nil {
 		br.Columns = append(br.Columns, "b.target_id")
 		br.Columns = append(br.Columns, "b.target_name")
 		br.Join = append(br.Join, fmt.Sprintf(`INNER JOIN %s AS b ON %s.id = b.tag_id`, taggableTB, tagTB))
 		br.Where = append(br.Where, "b.target_name = :target_name")
 		args["target_name"] = opts.Targets[0].MorphName()
 
-		tids := make([]string, len(opts.Targets))
-		for i, t := range opts.Targets {
-			tids[i] = t.MorphKey()
-		}
+		tids := (model.MorphableList)(opts.Targets).Keys()
 		ks, ids := bindQueryIDs("target_ids", tids)
-		for k, id := range ids {
-			args[k] = id
-		}
+		args.AppendStringMap(ids)
 		br.Where = append(br.Where, fmt.Sprintf("b.target_id IN (%s)", strings.Join(ks, ",")))
 	}
 
@@ -242,13 +247,9 @@ func bindTagOpts(opts *TagOpts) (database.SelectBuilder, map[string]interface{})
 		opts.Names = append(opts.Names, opts.Name)
 	}
 	if opts.Names != nil {
-		ks := make([]string, len(opts.Names))
-		for i, id := range opts.Names {
-			k := fmt.Sprintf("name%d", i)
-			args[k] = id
-			ks[i] = ":" + k
-		}
-		br.Where = append(br.Where, fmt.Sprintf("name IN (%s)", strings.Join(ks, ", ")))
+		ks, names := bindQueryIDs("names", opts.Names)
+		args.AppendStringMap(names)
+		br.Where = append(br.Where, fmt.Sprintf("name IN (%s)", strings.Join(ks, ",")))
 	}
 
 	if opts.UserID != "" {

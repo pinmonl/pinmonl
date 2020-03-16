@@ -27,3 +27,29 @@ func MustBeMorphables(list interface{}) []Morphable {
 	}
 	return out
 }
+
+// MorphableList is slice of Morphable.
+type MorphableList []Morphable
+
+// Keys extracts key from each Morphable.
+func (ml MorphableList) Keys() []string {
+	out := make([]string, len(ml))
+	for i, m := range ml {
+		out[i] = m.MorphKey()
+	}
+	return out
+}
+
+// Names extracts name from each Morphable.
+func (ml MorphableList) Names() []string {
+	checks := map[string]bool{}
+	out := []string{}
+	for _, m := range ml {
+		k := m.MorphName()
+		if has, ok := checks[k]; !ok || !has {
+			checks[k] = true
+			out = append(out, k)
+		}
+	}
+	return out
+}

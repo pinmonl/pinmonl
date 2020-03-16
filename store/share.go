@@ -39,7 +39,7 @@ type dbShareStore struct {
 func (s *dbShareStore) List(ctx context.Context, opts *ShareOpts) ([]model.Share, error) {
 	e := s.Queryer(ctx)
 	br, args := bindShareOpts(opts)
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (s *dbShareStore) Count(ctx context.Context, opts *ShareOpts) (int64, error
 	e := s.Queryer(ctx)
 	br, args := bindShareOpts(opts)
 	br.Columns = []string{"COUNT(*) as count"}
-	rows, err := e.NamedQuery(br.String(), args)
+	rows, err := e.NamedQuery(br.String(), args.Map())
 	if err != nil {
 		return 0, err
 	}
@@ -83,7 +83,7 @@ func (s *dbShareStore) Count(ctx context.Context, opts *ShareOpts) (int64, error
 func (s *dbShareStore) Find(ctx context.Context, m *model.Share) error {
 	e := s.Queryer(ctx)
 	br, _ := bindShareOpts(nil)
-	br.Where = []string{"id = :id"}
+	br.Where = []string{"id = :share_id"}
 	br.Limit = 1
 	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
@@ -107,7 +107,7 @@ func (s *dbShareStore) Find(ctx context.Context, m *model.Share) error {
 func (s *dbShareStore) FindByName(ctx context.Context, m *model.Share) error {
 	e := s.Queryer(ctx)
 	br, _ := bindShareOpts(nil)
-	br.Where = []string{"user_id = :user_id", "name = :name"}
+	br.Where = []string{"user_id = :share_user_id", "name = :share_name"}
 	br.Limit = 1
 	rows, err := e.NamedQuery(br.String(), m)
 	if err != nil {
@@ -133,19 +133,19 @@ func (s *dbShareStore) Create(ctx context.Context, m *model.Share) error {
 	m2.ID = newUID()
 	m2.CreatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.InsertBuilder{
+	br := database.InsertBuilder{
 		Into: shareTB,
 		Fields: map[string]interface{}{
-			"id":          nil,
-			"user_id":     nil,
-			"name":        nil,
-			"description": nil,
-			"readme":      nil,
-			"image_id":    nil,
-			"created_at":  nil,
+			"id":          ":share_id",
+			"user_id":     ":share_user_id",
+			"name":        ":share_name",
+			"description": ":share_description",
+			"readme":      ":share_readme",
+			"image_id":    ":share_image_id",
+			"created_at":  ":share_created_at",
 		},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -158,19 +158,19 @@ func (s *dbShareStore) Update(ctx context.Context, m *model.Share) error {
 	m2 := *m
 	m2.UpdatedAt = timestamp()
 	e := s.Execer(ctx)
-	stmt := database.UpdateBuilder{
+	br := database.UpdateBuilder{
 		From: shareTB,
 		Fields: map[string]interface{}{
-			"user_id":     nil,
-			"name":        nil,
-			"description": nil,
-			"readme":      nil,
-			"image_id":    nil,
-			"updated_at":  nil,
+			"user_id":     ":share_user_id",
+			"name":        ":share_name",
+			"description": ":share_description",
+			"readme":      ":share_readme",
+			"image_id":    ":share_image_id",
+			"updated_at":  ":share_updated_at",
 		},
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m2)
+		Where: []string{"id = :share_id"},
+	}
+	_, err := e.NamedExec(br.String(), m2)
 	if err != nil {
 		return err
 	}
@@ -181,19 +181,28 @@ func (s *dbShareStore) Update(ctx context.Context, m *model.Share) error {
 // Delete removes share by id.
 func (s *dbShareStore) Delete(ctx context.Context, m *model.Share) error {
 	e := s.Execer(ctx)
-	stmt := database.DeleteBuilder{
+	br := database.DeleteBuilder{
 		From:  shareTB,
-		Where: []string{"id = :id"},
-	}.String()
-	_, err := e.NamedExec(stmt, m)
+		Where: []string{"id = :share_id"},
+	}
+	_, err := e.NamedExec(br.String(), m)
 	return err
 }
 
-func bindShareOpts(opts *ShareOpts) (database.SelectBuilder, map[string]interface{}) {
+func bindShareOpts(opts *ShareOpts) (database.SelectBuilder, database.QueryVars) {
 	br := database.SelectBuilder{
 		From: shareTB,
 		Columns: database.NamespacedColumn(
-			[]string{"id", "user_id", "name", "description", "readme", "image_id", "created_at", "updated_at"},
+			[]string{
+				"id AS share_id",
+				"user_id AS share_user_id",
+				"name AS share_name",
+				"description AS share_description",
+				"readme AS share_readme",
+				"image_id AS share_image_id",
+				"created_at AS share_created_at",
+				"updated_at AS share_updated_at",
+			},
 			shareTB,
 		),
 	}
@@ -202,7 +211,7 @@ func bindShareOpts(opts *ShareOpts) (database.SelectBuilder, map[string]interfac
 	}
 
 	br = appendListOpts(br, opts.ListOpts)
-	args := make(map[string]interface{})
+	args := database.QueryVars{}
 
 	if opts.Name != "" {
 		br.Where = append(br.Where, "name = :name")

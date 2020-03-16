@@ -2,16 +2,17 @@ package store
 
 var (
 	imageTB    = "images"
+	jobTB      = "jobs"
 	monlTB     = "monls"
-	pkgTB      = "pkgs"
+	monpkgTB   = "monpkgs"
 	pinlTB     = "pinls"
-	pinmonTB   = "pinmons"
-	shareTagTB = "share_tags"
+	pinpkgTB   = "pinpkgs"
+	pkgTB      = "pkgs"
+	sharetagTB = "sharetags"
 	shareTB    = "shares"
 	statTB     = "stats"
+	substatTB  = "substats"
 	taggableTB = "taggables"
 	tagTB      = "tags"
 	userTB     = "users"
-	jobTB      = "jobs"
-	substatTB  = "substats"
 )
