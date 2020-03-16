@@ -14,6 +14,10 @@ func (l *Labels) Scan(value interface{}) error {
 	switch value.(type) {
 	case string:
 		vs := value.(string)
+		if vs == "" {
+			*l = nil
+			return nil
+		}
 		q, err := url.ParseQuery(vs)
 		if err != nil {
 			return err
