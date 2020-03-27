@@ -79,7 +79,7 @@ func NewReader() *Reader {
 	v.SetDefault("cookie.secure", false)
 	v.SetDefault("cookie.hashkey", generate.RandomString(32))
 	v.SetDefault("cookie.blockkey", generate.RandomString(32))
-	v.SetDefault("client.host", "https://localhost:3399")
+	v.SetDefault("client.host", "http://localhost:3399")
 	v.SetDefault("oauth.privatekey", "")
 	v.SetDefault("oauth.privatekeyfile", "oauth.key")
 
