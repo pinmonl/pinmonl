@@ -91,10 +91,10 @@ func testHandleGetMe(users store.UserStore) func(*testing.T) {
 		)
 
 		HandleGetMe()(w, r)
-		resp := make(map[string]string)
+		var resp Body
 		assert.Nil(t, json.Unmarshal(w.Body.Bytes(), &resp))
 		assert.Equal(t, 200, w.Code)
-		assert.Equal(t, user.ID, resp["id"], w.Body)
+		assert.Equal(t, user.ID, resp.ID, w.Body)
 	}
 }
 
@@ -104,7 +104,7 @@ func testHandleUpdateMe(users store.UserStore) func(*testing.T) {
 		users.FindLogin(context.TODO(), &user)
 
 		body := &bytes.Buffer{}
-		body.WriteString(`{"login":"user1b","email":"user1b@email.com","password":"87654321pw","name":"user name 1b"}`)
+		body.WriteString(`{"login":"user1b","password":"87654321pw","name":"user name 1b"}`)
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest("PUT", "/", body)
 		r = r.WithContext(
@@ -112,11 +112,10 @@ func testHandleUpdateMe(users store.UserStore) func(*testing.T) {
 		)
 
 		HandleUpdateMe(users)(w, r)
-		resp := make(map[string]string)
+		var resp Body
 		assert.Nil(t, json.Unmarshal(w.Body.Bytes(), &resp))
 		assert.Equal(t, 200, w.Code, w.Body)
-		assert.Equal(t, "user1b", resp["login"])
-		assert.Equal(t, "user1b@email.com", resp["email"])
-		assert.Equal(t, "user name 1b", resp["name"])
+		assert.Equal(t, "user1b", resp.Login)
+		assert.Equal(t, "user name 1b", resp.Name)
 	}
 }

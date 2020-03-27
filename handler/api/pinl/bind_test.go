@@ -1,4 +1,4 @@
-package tag
+package pinl
 
 import (
 	"context"
@@ -21,13 +21,13 @@ func TestBindByID(t *testing.T) {
 		dbtest.Close(db)
 	}()
 
-	paramName := "tag"
-	mockTag := model.Tag{Name: "tag-test-id"}
-	tags := store.NewTagStore(store.NewStore(db))
-	tags.Create(context.TODO(), &mockTag)
+	paramName := "pinl"
+	mockPinl := model.Pinl{}
+	pinls := store.NewPinlStore(store.NewStore(db))
+	pinls.Create(context.TODO(), &mockPinl)
 
 	c := &chi.Context{}
-	c.URLParams.Add(paramName, mockTag.ID)
+	c.URLParams.Add(paramName, mockPinl.ID)
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/", nil)
@@ -35,7 +35,7 @@ func TestBindByID(t *testing.T) {
 		context.WithValue(r.Context(), chi.RouteCtxKey, c),
 	)
 
-	BindByID(paramName, tags)(
+	BindByID(paramName, pinls)(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}),
