@@ -29,7 +29,7 @@ func initCmd(
 
 	return &cli.App{
 		Name:     "pinmonl",
-		Version:  "0.1.0",
+		Version:  "0.2.0",
 		Commands: cmds.Commands(),
 	}
 }
