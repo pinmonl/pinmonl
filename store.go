@@ -11,15 +11,14 @@ type stores struct {
 	jobs      store.JobStore
 	monls     store.MonlStore
 	pinls     store.PinlStore
-	pinmons   store.PinmonStore
 	pkgs      store.PkgStore
 	shares    store.ShareStore
-	sharetags store.ShareTagStore
+	sharetags store.SharetagStore
 	stats     store.StatStore
+	substats  store.SubstatStore
 	taggables store.TaggableStore
 	tags      store.TagStore
 	users     store.UserStore
-	substats  store.SubstatStore
 }
 
 func initStores(db *database.DB) stores {
@@ -30,14 +29,13 @@ func initStores(db *database.DB) stores {
 		jobs:      store.NewJobStore(s),
 		monls:     store.NewMonlStore(s),
 		pinls:     store.NewPinlStore(s),
-		pinmons:   store.NewPinmonStore(s),
 		pkgs:      store.NewPkgStore(s),
 		shares:    store.NewShareStore(s),
-		sharetags: store.NewShareTagStore(s),
+		sharetags: store.NewSharetagStore(s),
 		stats:     store.NewStatStore(s),
+		substats:  store.NewSubstatStore(s),
 		taggables: store.NewTaggableStore(s),
 		tags:      store.NewTagStore(s),
 		users:     store.NewUserStore(s),
-		substats:  store.NewSubstatStore(s),
 	}
 }

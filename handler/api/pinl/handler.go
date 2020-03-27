@@ -9,6 +9,7 @@ import (
 	"github.com/pinmonl/pinmonl/handler/api/image"
 	"github.com/pinmonl/pinmonl/handler/api/request"
 	"github.com/pinmonl/pinmonl/handler/api/response"
+	"github.com/pinmonl/pinmonl/handler/middleware"
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/pkg/scrape"
 	"github.com/pinmonl/pinmonl/queue"
@@ -19,18 +20,22 @@ import (
 func HandleList(pinls store.PinlStore, taggables store.TaggableStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		p := middleware.PaginationFrom(ctx)
 		u, _ := request.UserFrom(ctx)
-		ms, err := pinls.List(ctx, &store.PinlOpts{UserID: u.ID})
+		ms, err := pinls.List(ctx, &store.PinlOpts{UserID: u.ID, ListOpts: *p})
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		mps := model.MustBeMorphables(ms)
-		tsm, err := taggables.ListTags(ctx, &store.TaggableOpts{Targets: mps})
-		if err != nil {
-			response.InternalError(w, err)
-			return
+		tsm := map[string][]model.Tag{}
+		if len(ms) > 0 {
+			mps := model.MustBeMorphables(ms)
+			tsm, err = taggables.ListTags(ctx, &store.TaggableOpts{Targets: mps})
+			if err != nil {
+				response.InternalError(w, err)
+				return
+			}
 		}
 
 		resp := make([]interface{}, len(ms))
@@ -42,7 +47,7 @@ func HandleList(pinls store.PinlStore, taggables store.TaggableStore) http.Handl
 }
 
 // HandleFind returns pinl and its relations.
-func HandleFind(tags store.TagStore, pkgs store.PkgStore, stats store.StatStore) http.HandlerFunc {
+func HandleFind(taggables store.TaggableStore, pkgs store.PkgStore, stats store.StatStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		m, has := request.PinlFrom(ctx)
@@ -51,13 +56,13 @@ func HandleFind(tags store.TagStore, pkgs store.PkgStore, stats store.StatStore)
 			return
 		}
 
-		ts, err := tags.List(ctx, &store.TagOpts{Target: m})
+		ts, err := taggables.ListTags(ctx, &store.TaggableOpts{Target: m})
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		response.JSON(w, NewBody(m).WithTags(ts))
+		response.JSON(w, NewBody(m).WithTags(ts[m.ID]))
 	}
 }
 
@@ -113,14 +118,14 @@ func HandleCreate(
 			return
 		}
 
-		err = qm.Enqueue(ctx, &model.Job{
-			Name:     model.JobPinlCreated,
-			TargetID: m.ID,
-		})
-		if err != nil {
-			response.InternalError(w, err)
-			return
-		}
+		// err = qm.Enqueue(ctx, &model.Job{
+		// 	Name:     model.JobPinlCreated,
+		// 	TargetID: m.ID,
+		// })
+		// if err != nil {
+		// 	response.InternalError(w, err)
+		// 	return
+		// }
 
 		response.JSON(w, NewBody(m).WithTags(ts))
 	}
@@ -178,14 +183,14 @@ func HandleUpdate(
 			return
 		}
 
-		err = qm.Enqueue(ctx, &model.Job{
-			Name:     model.JobPinlUpdated,
-			TargetID: m.ID,
-		})
-		if err != nil {
-			response.InternalError(w, err)
-			return
-		}
+		// err = qm.Enqueue(ctx, &model.Job{
+		// 	Name:     model.JobPinlUpdated,
+		// 	TargetID: m.ID,
+		// })
+		// if err != nil {
+		// 	response.InternalError(w, err)
+		// 	return
+		// }
 
 		response.JSON(w, NewBody(m).WithTags(ts))
 	}

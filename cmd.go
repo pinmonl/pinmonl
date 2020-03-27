@@ -18,24 +18,18 @@ func initCmd(
 	h http.Handler,
 	ml *monl.Monl,
 	qm *queue.Manager,
+	ss stores,
 ) *cli.App {
-	server := cmd.Server{
-		Endpoint:     cfg.HTTP.Endpoint,
-		Handler:      h,
-		QueueManager: qm,
+	cmds := cmd.Cmds{
+		cmd.NewClient(cfg.Client.Host),
+		cmd.NewGenerate(),
+		cmd.NewMigration(mp),
+		cmd.NewServer(cfg.HTTP.Endpoint, cfg.SingleUser, h, qm, ss.users, mp),
 	}
-	migration := cmd.Migration{
-		MigrationPlan: mp,
-	}
-	generate := cmd.Generate{}
 
 	return &cli.App{
-		Name:    "pinmonl",
-		Version: "0.1.0",
-		Commands: []cli.Command{
-			server.Command(),
-			migration.Command(),
-			generate.Command(),
-		},
+		Name:     "pinmonl",
+		Version:  "0.1.0",
+		Commands: cmds.Commands(),
 	}
 }

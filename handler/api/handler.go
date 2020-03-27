@@ -6,12 +6,20 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/pinmonl/pinmonl/handler/api/image"
 	"github.com/pinmonl/pinmonl/handler/api/pinl"
+	"github.com/pinmonl/pinmonl/handler/api/request"
 	"github.com/pinmonl/pinmonl/handler/api/session"
 	"github.com/pinmonl/pinmonl/handler/api/share"
 	"github.com/pinmonl/pinmonl/handler/api/sharing"
 	"github.com/pinmonl/pinmonl/handler/api/tag"
 	"github.com/pinmonl/pinmonl/handler/api/user"
 	"github.com/pinmonl/pinmonl/handler/middleware"
+	"github.com/pinmonl/pinmonl/logx"
+	"github.com/pinmonl/pinmonl/store"
+)
+
+var (
+	// DefaultPageSize defines the default size of pagination.
+	DefaultPageSize int64 = 50
 )
 
 // Handler returns the handlers of api.
@@ -19,7 +27,11 @@ func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.EnableTransaction(s.store))
-	r.Use(user.Authenticate(s.cookie, s.users))
+	if s.singleUser {
+		r.Use(s.authAsFirstUser(s.users))
+	} else {
+		r.Use(user.Authenticate(s.cookie, s.users))
+	}
 
 	r.Route("/user", func(r chi.Router) {
 		r.Post("/", user.HandleCreate(s.users))
@@ -44,13 +56,14 @@ func (s *Server) Handler() http.Handler {
 
 	r.Route("/pinl", func(r chi.Router) {
 		r.Use(user.Authorize())
-		r.Get("/", pinl.HandleList(s.pinls, s.taggables))
+		r.With(pagination).
+			Get("/", pinl.HandleList(s.pinls, s.taggables))
 		r.Get("/page-info", pinl.HandlePageInfo(s.pinls))
 		r.Post("/", pinl.HandleCreate(s.pinls, s.tags, s.taggables, s.qm, s.images, s.pkgs, s.stats))
 		r.Route("/{pinl}", func(r chi.Router) {
 			r.Use(pinl.BindByID("pinl", s.pinls))
 			r.Use(pinl.RequireOwner())
-			r.Get("/", pinl.HandleFind(s.tags, s.pkgs, s.stats))
+			r.Get("/", pinl.HandleFind(s.taggables, s.pkgs, s.stats))
 			r.Put("/", pinl.HandleUpdate(s.pinls, s.tags, s.taggables, s.qm, s.images, s.pkgs, s.stats))
 			r.Delete("/", pinl.HandleDelete(s.pinls, s.taggables))
 		})
@@ -58,20 +71,28 @@ func (s *Server) Handler() http.Handler {
 
 	r.Route("/tag", func(r chi.Router) {
 		r.Use(user.Authorize())
-		r.Get("/", tag.HandleList(s.tags))
+		r.With(pagination).
+			Get("/", tag.HandleList(s.tags))
 		r.Get("/page-info", tag.HandlePageInfo(s.tags))
 		r.Post("/", tag.HandleCreate(s.tags))
 		r.Route("/{tag}", func(r chi.Router) {
-			r.Use(tag.BindByID("tag", s.tags))
-			r.Use(tag.RequireOwner())
-			r.Put("/", tag.HandleUpdate(s.tags))
-			r.Delete("/", tag.HandleDelete(s.tags))
+			r.With(
+				tag.BindByName("tag", s.tags),
+				tag.RequireOwner(),
+			).Get("/", tag.HandleFind())
+			r.Route("/", func(r chi.Router) {
+				r.Use(tag.BindByID("tag", s.tags))
+				r.Use(tag.RequireOwner())
+				r.Put("/", tag.HandleUpdate(s.tags))
+				r.Delete("/", tag.HandleDelete(s.tags))
+			})
 		})
 	})
 
 	r.Route("/share", func(r chi.Router) {
 		r.Use(user.Authorize())
-		r.Get("/", share.HandleList(s.shares, s.sharetags))
+		r.With(pagination).
+			Get("/", share.HandleList(s.shares, s.sharetags))
 		r.Get("/page-info", share.HandlePageInfo(s.shares))
 		r.Post("/", share.HandleCreate(s.shares, s.sharetags, s.tags))
 		r.Route("/{share}", func(r chi.Router) {
@@ -102,4 +123,31 @@ func (s *Server) Handler() http.Handler {
 	})
 
 	return r
+}
+
+func (s *Server) authAsFirstUser(users store.UserStore) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			users, err := users.List(ctx, &store.UserOpts{ListOpts: store.ListOpts{Limit: 1}})
+			if err != nil {
+				logx.Debugln(err)
+				return
+			}
+			if len(users) == 0 {
+				logx.Debugln("no user is found in single user mode")
+				return
+			}
+			user := users[0]
+			r = r.WithContext(
+				request.WithUser(ctx, user),
+			)
+			next.ServeHTTP(w, r)
+		}
+		return http.HandlerFunc(fn)
+	}
+}
+
+func pagination(next http.Handler) http.Handler {
+	return middleware.Pagination(DefaultPageSize)(next)
 }

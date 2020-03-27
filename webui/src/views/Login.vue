@@ -23,9 +23,6 @@
             </Errors>
           </template>
         </InputGroup>
-        <InputGroup v-if="isSignup">
-          <Input placeholder="Email" v-model="model.email" />
-        </InputGroup>
         <InputGroup>
           <Input type="password" placeholder="Password" v-model="model.password" />
           <template #errors v-if="$v.model.password.$error">
@@ -62,7 +59,7 @@
 import formMixin from '@/mixins/form'
 import { mapActions } from 'vuex'
 import { validationMixin } from 'vuelidate'
-import { required, email, alphaNum, minLength } from 'vuelidate/lib/validators'
+import { required, alphaNum, minLength } from 'vuelidate/lib/validators'
 import Brand from '@/components/app/Brand.vue'
 
 export default {
@@ -101,7 +98,6 @@ export default {
           await this.signup({
             login: this.model.login,
             password: this.model.password,
-            email: this.model.email,
             name: this.model.name,
           })
         } else {
@@ -121,7 +117,6 @@ export default {
     getDefaultValue () {
       return {
         login: '',
-        email: '',
         name: '',
         password: '',
       }
@@ -140,7 +135,6 @@ export default {
     if (this.isSignup) {
       v.login.format = alphaNum
       v.name = { required }
-      v.email = { required, format: email }
     }
     return { model: v }
   },

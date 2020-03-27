@@ -8,6 +8,8 @@ import (
 
 // ServerOpts defines the options of server initiation.
 type ServerOpts struct {
+	SingleUser bool
+
 	QueueManager  *queue.Manager
 	CookieSession *session.CookieStore
 
@@ -26,6 +28,8 @@ type ServerOpts struct {
 
 // Server defines the api server.
 type Server struct {
+	singleUser bool
+
 	qm     *queue.Manager
 	cookie *session.CookieStore
 
@@ -45,6 +49,8 @@ type Server struct {
 // NewServer creates api server.
 func NewServer(opts ServerOpts) *Server {
 	return &Server{
+		singleUser: opts.SingleUser,
+
 		qm:     opts.QueueManager,
 		cookie: opts.CookieSession,
 

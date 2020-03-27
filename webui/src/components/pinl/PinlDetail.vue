@@ -124,11 +124,14 @@ export default {
 .image {
   width: 80px;
   height: 80px;
+  @apply rounded-lg;
+  @apply overflow-hidden;
 }
 
 .title {
   @apply font-bold;
   @apply mt-1;
+  @apply text-base;
 }
 
 .image,

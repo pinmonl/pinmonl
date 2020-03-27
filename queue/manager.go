@@ -82,7 +82,6 @@ func (m *Manager) Start(ctx context.Context) error {
 			return ctx.Err()
 		case <-time.After(m.interval):
 			if len(m.jobQueue) == 0 {
-				logx.Debug("queue manager: updating")
 				m.updateQueue(ctx)
 			}
 		}

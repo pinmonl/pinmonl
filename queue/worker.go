@@ -44,7 +44,7 @@ func (w *worker) process(ctx context.Context, job *Job) error {
 
 	ctx, err = w.store.BeginTx(ctx)
 	if err != nil {
-		logx.Fatal("queue worker: fails to start tx, err: %s", err)
+		logx.Fatalf("queue worker: fails to start tx, err: %s", err)
 		return err
 	}
 

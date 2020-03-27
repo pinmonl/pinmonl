@@ -7,6 +7,13 @@ import (
 	"github.com/urfave/cli"
 )
 
+// NewMigration creates Migration cmd.
+func NewMigration(mp *database.MigrationPlan) Cmd {
+	return Migration{
+		MigrationPlan: mp,
+	}
+}
+
 // Migration defines the dependencies of migration command.
 type Migration struct {
 	MigrationPlan *database.MigrationPlan
@@ -35,24 +42,32 @@ func (m Migration) Command() cli.Command {
 				Name:  "up",
 				Usage: "run migration",
 				Action: func(c *cli.Context) error {
-					err := mp.Up()
+					limit := c.Int("limit")
+					err := mp.UpTo(limit)
 					if err != nil {
 						return err
 					}
 					fmt.Println("migration is up.")
 					return nil
 				},
+				Flags: []cli.Flag{
+					cli.IntFlag{Name: "limit", Value: -1},
+				},
 			},
 			{
 				Name:  "down",
 				Usage: "rollback migration",
 				Action: func(c *cli.Context) error {
-					err := mp.Down()
+					limit := c.Int("limit")
+					err := mp.DownTo(limit)
 					if err != nil {
 						return err
 					}
 					fmt.Println("migration is down.")
 					return nil
+				},
+				Flags: []cli.Flag{
+					cli.IntFlag{Name: "limit", Value: -1},
 				},
 			},
 			{

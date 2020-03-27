@@ -32,6 +32,7 @@ export default {
   @apply px-2;
   @apply rounded;
   @apply bg-tag-bg;
+  @apply font-bold;
   @apply whitespace-no-wrap;
 }
 </style>

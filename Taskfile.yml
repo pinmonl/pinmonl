@@ -6,6 +6,7 @@ silent: true
 vars:
   APP_NAME: pinmonl
   BUILD_DIR: release/
+  BUILD_FLAGS: -ldflags '-w -extldflags "-static"'
 
 tasks:
   lint:
@@ -19,6 +20,13 @@ tasks:
   fmt:
     cmds:
       - goimports -w .
+
+  test:
+    cmds:
+      - go test ./...
+    env:
+      GITHUB_TOKEN:
+        sh: cat ./.github_token
 
   build:
     cmds:
@@ -34,21 +42,21 @@ tasks:
   build-linux:
     cmds:
       - task: gobuild
-        vars: {GOOS: linux, FILE: "{{.APP_NAME}}-linux"}
+        vars: {GOOS: linux, FILE: "{{.APP_NAME}}_linux"}
 
   build-darwin:
     cmds:
       - task: gobuild
-        vars: {GOOS: darwin, FILE: "{{.APP_NAME}}-darwin"}
+        vars: {GOOS: darwin, FILE: "{{.APP_NAME}}_darwin"}
 
   build-win:
     cmds:
       - task: gobuild
-        vars: {GOOS: windows, FILE: "{{.APP_NAME}}-win.exe"}
+        vars: {GOOS: windows, FILE: "{{.APP_NAME}}_win.exe"}
 
   gobuild:
     cmds:
-      - GOOS={{.GOOS}} go build -o {{.BUILD_DIR}}{{.FILE}}
+      - CGO_ENABLD=0 GOOS={{.GOOS}} go build {{.BUILD_FLAGS}} -o {{.BUILD_DIR}}{{.FILE}}
 
   webui:build:
     dir: webui

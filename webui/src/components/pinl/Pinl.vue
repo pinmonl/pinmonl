@@ -8,7 +8,7 @@
           {{ pinl.title }}
         </Anchor>
       </div>
-      <div :class="$style.description">{{ pinl.description }}</div>
+      <!-- <div :class="$style.description">{{ pinl.description }}</div> -->
       <div :class="$style.tags">
         <Tag v-for="tag in tags" :key="tag" :tag="tag" :class="$style.tag" />
       </div>
@@ -39,12 +39,11 @@ export default {
 </script>
 
 <style lang="scss" module>
-$image-size: 30px;
+$image-size: 50px;
 
 .container {
   @apply p-4;
   @apply relative;
-  @apply text-sm;
   @apply relative;
 
   &:hover {
@@ -57,6 +56,7 @@ $image-size: 30px;
   width: $image-size;
   height: $image-size;
   padding: 2px;
+  @apply rounded-lg;
 }
 
 .content {
@@ -68,7 +68,6 @@ $image-size: 30px;
 .title {
   @apply inline-block;
   @apply font-bold;
-  @apply mb-2;
   @apply relative;
   @apply z-10;
 }
@@ -79,7 +78,6 @@ $image-size: 30px;
 }
 
 .tags {
-  @apply w-full;
   @apply -mx-1;
 }
 

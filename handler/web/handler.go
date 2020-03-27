@@ -15,6 +15,8 @@ import (
 func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
 
+	r.HandleFunc("/ping", ping())
+
 	if s.devSvr != "" {
 		r.HandleFunc("/*", handleWebuiDevServer(s.devSvr))
 	} else {
@@ -49,5 +51,11 @@ func handleWebuiDevServer(devSvr string) http.HandlerFunc {
 	devRP := httputil.NewSingleHostReverseProxy(url)
 	return func(w http.ResponseWriter, r *http.Request) {
 		devRP.ServeHTTP(w, r)
+	}
+}
+
+func ping() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("pong"))
 	}
 }

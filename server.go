@@ -11,7 +11,7 @@ import (
 )
 
 func initHTTPHandler(cfg *config.Config, ss stores, qm *queue.Manager, sess sessions) http.Handler {
-	api := newAPIServer(ss, qm, sess)
+	api := newAPIServer(cfg, ss, qm, sess)
 	web := newWebServer(cfg, ss, sess)
 
 	r := chi.NewRouter()
@@ -20,8 +20,10 @@ func initHTTPHandler(cfg *config.Config, ss stores, qm *queue.Manager, sess sess
 	return r
 }
 
-func newAPIServer(ss stores, qm *queue.Manager, sess sessions) *api.Server {
+func newAPIServer(cfg *config.Config, ss stores, qm *queue.Manager, sess sessions) *api.Server {
 	return api.NewServer(api.ServerOpts{
+		SingleUser: cfg.SingleUser,
+
 		QueueManager:  qm,
 		CookieSession: sess.cookie,
 

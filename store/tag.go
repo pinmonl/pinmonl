@@ -13,8 +13,6 @@ import (
 // TagOpts defines the parameters for tag filtering.
 type TagOpts struct {
 	ListOpts
-	Target   model.Morphable
-	Targets  []model.Morphable
 	IDs      []string
 	ParentID string
 	UserID   string
@@ -226,21 +224,6 @@ func bindTagOpts(opts *TagOpts) (database.SelectBuilder, database.QueryVars) {
 		ks, ids := bindQueryIDs("ids", opts.IDs)
 		args.AppendStringMap(ids)
 		br.Where = append(br.Where, fmt.Sprintf("id IN (%s)", strings.Join(ks, ", ")))
-	}
-	if opts.Target != nil {
-		opts.Targets = append(opts.Targets, opts.Target)
-	}
-	if opts.Targets != nil {
-		br.Columns = append(br.Columns, "b.target_id")
-		br.Columns = append(br.Columns, "b.target_name")
-		br.Join = append(br.Join, fmt.Sprintf(`INNER JOIN %s AS b ON %s.id = b.tag_id`, taggableTB, tagTB))
-		br.Where = append(br.Where, "b.target_name = :target_name")
-		args["target_name"] = opts.Targets[0].MorphName()
-
-		tids := (model.MorphableList)(opts.Targets).Keys()
-		ks, ids := bindQueryIDs("target_ids", tids)
-		args.AppendStringMap(ids)
-		br.Where = append(br.Where, fmt.Sprintf("b.target_id IN (%s)", strings.Join(ks, ",")))
 	}
 
 	if opts.Name != "" {

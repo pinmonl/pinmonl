@@ -10,10 +10,6 @@
           <Input v-model="model.login" />
         </InputGroup>
         <InputGroup>
-          <Label>Email</Label>
-          <Input v-model="model.email" />
-        </InputGroup>
-        <InputGroup>
           <Label>Name</Label>
           <Input v-model="model.name" />
         </InputGroup>
@@ -37,7 +33,7 @@
 <script>
 import formMixin from '@/mixins/form'
 import { validationMixin } from 'vuelidate'
-import { required, email, alphaNum, minLength } from 'vuelidate/lib/validators'
+import { required, alphaNum, minLength } from 'vuelidate/lib/validators'
 import Header from '@/components/app/Header.vue'
 
 export default {
@@ -65,8 +61,6 @@ export default {
         $data: this.user,
         get name () { return gt('name') },
         set name (v) { return st('name', v) },
-        get email () { return gt('email') },
-        set email (v) { return st('email', v) },
         get login () { return gt('login') },
         set login (v) { return st('login', v) },
       }
@@ -96,7 +90,6 @@ export default {
     const v = {
       login: { required, format: alphaNum },
       name: { required },
-      email: { required, format: email },
       password: { required, minLength: minLength(6) },
     }
     return { inputs: v }

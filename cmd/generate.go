@@ -7,6 +7,11 @@ import (
 	"github.com/urfave/cli"
 )
 
+// NewGenerate create Generate cmd.
+func NewGenerate() Cmd {
+	return Generate{}
+}
+
 // Generate defines the dependencies of generate command.
 type Generate struct {
 	//

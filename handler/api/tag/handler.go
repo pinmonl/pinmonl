@@ -1,10 +1,12 @@
 package tag
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/pinmonl/pinmonl/handler/api/request"
 	"github.com/pinmonl/pinmonl/handler/api/response"
+	"github.com/pinmonl/pinmonl/handler/middleware"
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/store"
 )
@@ -13,8 +15,9 @@ import (
 func HandleList(tags store.TagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		p := middleware.PaginationFrom(ctx)
 		u, _ := request.UserFrom(ctx)
-		ms, err := tags.List(ctx, &store.TagOpts{UserID: u.ID})
+		ms, err := tags.List(ctx, &store.TagOpts{UserID: u.ID, ListOpts: *p})
 		if err != nil {
 			response.InternalError(w, err)
 			return
@@ -25,6 +28,15 @@ func HandleList(tags store.TagStore) http.HandlerFunc {
 			resp[i] = NewBody(m)
 		}
 		response.JSON(w, resp)
+	}
+}
+
+// HandleFind returns tag.
+func HandleFind() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		m, _ := request.TagFrom(ctx)
+		response.JSON(w, NewBody(m))
 	}
 }
 
@@ -43,6 +55,16 @@ func HandleCreate(tags store.TagStore) http.HandlerFunc {
 		}
 
 		ctx := r.Context()
+		found, err := tags.List(ctx, &store.TagOpts{Name: in.Name})
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
+		if len(found) > 0 {
+			response.BadRequest(w, fmt.Errorf("duplicate tag name"))
+			return
+		}
+
 		u, _ := request.UserFrom(ctx)
 		m := model.Tag{UserID: u.ID}
 		in.Fill(&m)
