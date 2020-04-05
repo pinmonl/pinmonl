@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -9,6 +10,7 @@ import (
 // DB stores sql.DB and the driver name.
 type DB struct {
 	*sqlx.DB
+	Locker
 }
 
 // Open creates db.
@@ -19,7 +21,59 @@ func Open(driverName, dataSourceName string) (*DB, error) {
 	}
 
 	dbx := sqlx.NewDb(db, driverName)
-	return &DB{dbx}, nil
+
+	var locker Locker
+	switch driverName {
+	case "sqlite3":
+		locker = &sync.RWMutex{}
+	default:
+		locker = &nopLocker{}
+	}
+
+	return &DB{dbx, locker}, nil
+}
+
+// Begins creates database transaction.
+func (db *DB) Beginx() (*Tx, error) {
+	db.Lock()
+	tx, err := db.DB.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	return &Tx{tx, db.Locker}, nil
+}
+
+// Locker represents an object that can be locked and unlocked.
+type Locker interface {
+	Lock()
+	RLock()
+	RUnlock()
+	Unlock()
+}
+
+type nopLocker struct{}
+
+func (nopLocker) Lock()    {}
+func (nopLocker) RLock()   {}
+func (nopLocker) RUnlock() {}
+func (nopLocker) Unlock()  {}
+
+// Tx handles database transaction.
+type Tx struct {
+	*sqlx.Tx
+	Locker
+}
+
+// Commit commits database transaction.
+func (tx *Tx) Commit() error {
+	tx.Unlock()
+	return tx.Tx.Commit()
+}
+
+// Rollback rollbacks database transaction.
+func (tx *Tx) Rollback() error {
+	tx.Unlock()
+	return tx.Tx.Rollback()
 }
 
 // Binder provides database bind var functions.

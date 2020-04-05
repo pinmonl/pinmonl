@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/pinmonl/pinmonl/database"
 )
 
 type ctxKey int
@@ -13,12 +13,12 @@ const (
 )
 
 // WithTx passes transaction into context.
-func WithTx(ctx context.Context, tx *sqlx.Tx) context.Context {
+func WithTx(ctx context.Context, tx *database.Tx) context.Context {
 	return context.WithValue(ctx, txCtxKey, tx)
 }
 
 // TxFrom gets transaction from context.
-func TxFrom(ctx context.Context) *sqlx.Tx {
-	tx, _ := ctx.Value(txCtxKey).(*sqlx.Tx)
+func TxFrom(ctx context.Context) *database.Tx {
+	tx, _ := ctx.Value(txCtxKey).(*database.Tx)
 	return tx
 }
