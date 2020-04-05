@@ -1,5 +1,7 @@
 # Pinmonl
 
+> Releases are deleted as it is still not stable enough.
+
 ## What is Pinmonl
 A bookmark manager for developers:
 - Shows package status and statistics, e.g. GitHub star, list of versions/tags.
