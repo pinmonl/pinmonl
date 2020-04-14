@@ -1,0 +1,13 @@
+---
+kind: pipeline
+type: docker
+name: test
+
+steps:
+- name: gotest
+  image: golang:1.14
+  commands:
+  - go test ./...
+  environment:
+    GITHUB_TOKEN:
+      from_secret: github_token
