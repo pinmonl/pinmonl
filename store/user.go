@@ -12,6 +12,7 @@ import (
 type UserOpts struct {
 	ListOpts
 	Login string
+	Hash  string
 }
 
 // UserStore defines the services of user.
@@ -198,6 +199,10 @@ func bindUserOpts(opts *UserOpts) (database.SelectBuilder, database.QueryVars) {
 	if opts.Login != "" {
 		br.Where = append(br.Where, "login = :login")
 		args["login"] = opts.Login
+	}
+	if opts.Hash != "" {
+		br.Where = append(br.Where, "hash = :hash")
+		args["hash"] = opts.Hash
 	}
 
 	return br, args

@@ -23,11 +23,13 @@ func main() {
 
 	ss := initStores(db)
 	sess := initSessionStore(cfg)
-	ml := initMonl(cfg, ss)
-	qm := initQueueManager(cfg, ss, ml)
-	h := initHTTPHandler(cfg, ss, qm, sess)
+	ml := initMonler(cfg, ss)
+	ws := initWebSocketServer(sess)
+	qm := initQueueManager(cfg)
+	sched := initQueueScheduler(qm, ws, ml, ss)
+	h := initHTTPHandler(cfg, ss, qm, sess, ws)
 
-	app := initCmd(cfg, db, mp, h, ml, qm, ss)
+	app := initCmd(cfg, db, mp, h, ml, qm, ss, sched)
 	err = app.Run(os.Args)
 	if err != nil {
 		logx.Fatal(err)

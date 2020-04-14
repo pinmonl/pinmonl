@@ -1,237 +1,91 @@
 package queue
 
 import (
-	"context"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/pinmonl/pinmonl/logx"
-	"github.com/pinmonl/pinmonl/model"
-	"github.com/pinmonl/pinmonl/model/field"
-	"github.com/pinmonl/pinmonl/monl"
-	"github.com/pinmonl/pinmonl/store"
 )
 
-// ManagerOpts defines the dependencies of manager.
+// ManagerOpts defines the parameters for creating Manager.
 type ManagerOpts struct {
-	Parallel int
-	Interval time.Duration
-	Monl     *monl.Monl
-
-	Store    store.Store
-	Jobs     store.JobStore
-	Pinls    store.PinlStore
-	Monls    store.MonlStore
-	Pkgs     store.PkgStore
-	Stats    store.StatStore
-	Substats store.SubstatStore
+	MaxJob    int
+	MaxWorker int
 }
 
 // Manager operates the job queue and workers.
 type Manager struct {
-	sync.Mutex
-
-	interval time.Duration
-	parallel int
-	jobQueue chan *Job
-	workers  []*worker
-
-	store store.Store
-	jobs  store.JobStore
+	workers []*worker
+	pool    chan chan Job
+	queue   chan Job
 }
 
-// NewManager creates manager and workers.
-func NewManager(opts ManagerOpts) *Manager {
+// NewManager creates Manager.
+func NewManager(o *ManagerOpts) (*Manager, error) {
 	m := &Manager{
-		interval: opts.Interval,
-		parallel: opts.Parallel,
-		jobQueue: make(chan *Job, opts.Parallel),
-		workers:  make([]*worker, opts.Parallel),
-
-		store: opts.Store,
-		jobs:  opts.Jobs,
+		queue:   make(chan Job, o.MaxJob),
+		pool:    make(chan chan Job, o.MaxWorker),
+		workers: make([]*worker, o.MaxWorker),
 	}
-
 	for i := range m.workers {
-		m.workers[i] = &worker{
-			monl:    opts.Monl,
-			manager: m,
-
-			store:    opts.Store,
-			pinls:    opts.Pinls,
-			monls:    opts.Monls,
-			pkgs:     opts.Pkgs,
-			stats:    opts.Stats,
-			substats: opts.Substats,
-		}
+		w := newWorker(m.pool)
+		m.workers[i] = w
 	}
-
-	return m
+	return m, nil
 }
 
-// Start initiates the goroutines of manager and workers.
-func (m *Manager) Start(ctx context.Context) error {
+// Start starts queue running service.
+func (m *Manager) Start() error {
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		m.start()
+		wg.Done()
+	}()
 	for _, w := range m.workers {
-		go w.run(ctx)
+		wg.Add(1)
+		go func() {
+			w.start()
+			wg.Done()
+		}()
 	}
+	logx.Debugf("queue: started and %d workers are running", len(m.workers))
+	wg.Wait()
+	return nil
+}
 
+func (m *Manager) start() error {
 	for {
 		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(m.interval):
-			if len(m.jobQueue) == 0 {
-				m.updateQueue(ctx)
-			}
+		case job := <-m.queue:
+			w := <-m.pool
+			w <- job
 		}
 	}
-	return ctx.Err()
-}
-
-// Enqueue pushes job into queue.
-func (m *Manager) Enqueue(ctx context.Context, j *model.Job) error {
-	m.Lock()
-	defer m.Unlock()
-
-	j2 := *j
-	j2.Status = model.JobStatusPending
-	err := m.jobs.Create(ctx, &j2)
-	if err != nil {
-		return err
-	}
-	*j = j2
 	return nil
 }
 
-// updateQueue updates the job queue by interval.
-//
-// When there is any pending jobs, its status will change
-// from "pending" to "queue" and added to the queue.
-func (m *Manager) updateQueue(ctx context.Context) error {
-	m.Lock()
-	defer m.Unlock()
-
-	jl, err := m.jobs.List(ctx, &store.JobOpts{
-		Status:          model.JobStatusPending,
-		ScheduledBefore: time.Now(),
-		ListOpts:        store.ListOpts{Limit: int64(m.parallel)},
-	})
-	if err != nil {
-		return err
-	}
-	if len(jl) > 0 {
-		ctx, err = m.store.BeginTx(ctx)
-		if err != nil {
-			logx.Fatalf("queue manager: fails to start tx, err: %s", err)
-			return err
-		}
-		tmpQ := make([]*Job, len(jl))
-		for i, j := range jl {
-			job, err := m.parseJobAndQueued(ctx, &j)
-			if err != nil {
-				m.store.Rollback(ctx)
-				return err
-			}
-			tmpQ[i] = job
-		}
-		m.store.Commit(ctx)
-		for _, j := range tmpQ {
-			m.jobQueue <- j
-		}
-		logx.Debugf("queue manager: %d job(s) added to queue", len(jl))
-		return nil
-	}
-
-	return nil
+// Dispatch adds job to queue.
+func (m *Manager) Dispatch(job Job) error {
+	return m.dispatch(job, 0)
 }
 
-// parseJobAndQueued is shorthand func for wrapping model.Job into Job
-// and update status to "queue".
-func (m *Manager) parseJobAndQueued(ctx context.Context, job *model.Job) (*Job, error) {
-	j := *job
-	j.Status = model.JobStatusQueue
-	err := m.jobs.Update(ctx, &j)
-	if err != nil {
-		return nil, err
-	}
-	*job = j
-	return &Job{Detail: j}, nil
+// DispatchAfter adds job to queue after the given duration.
+func (m *Manager) DispatchAfter(job Job, after time.Duration) error {
+	return m.dispatch(job, after)
 }
 
-func (m *Manager) jobStarted(ctx context.Context, job *Job) error {
-	m.Lock()
-	defer m.Unlock()
-
-	if job.Detail.Status != model.JobStatusQueue {
-		return fmt.Errorf("job status does not match")
-	}
-
-	jd := job.Detail
-	jd.Status = model.JobStatusRunning
-	jd.StartedAt = (field.Time)(time.Now())
-
-	err := m.jobs.Update(ctx, &jd)
-	if err != nil {
-		return err
-	}
-	job.Detail = jd
-	return nil
+// DispatchAt adds job to queue at the given time.
+func (m *Manager) DispatchAt(job Job, at time.Time) error {
+	return m.dispatch(job, time.Until(at))
 }
 
-func (m *Manager) jobCompleted(ctx context.Context, job *Job) error {
-	m.Lock()
-	defer m.Unlock()
-
-	jd := job.Detail
-	jd.Status = model.JobStatusEmpty
-
-	err := m.jobs.Update(ctx, &jd)
-	if err != nil {
-		return err
-	}
-	job.Detail = jd
-	return nil
-}
-
-func (m *Manager) jobStopped(ctx context.Context, job *Job) error {
-	m.Lock()
-	defer m.Unlock()
-
-	jd := job.Detail
-	jd.Status = model.JobStatusStopped
-	jd.Error = job.Error.Error()
-
-	err := m.jobs.Update(ctx, &jd)
-	if err != nil {
-		return err
-	}
-	job.Detail = jd
-	return nil
-}
-
-func (m *Manager) scheduleJob(ctx context.Context, job *Job) error {
-	m.Lock()
-	defer m.Unlock()
-
-	jd := job.Detail
-	err := m.jobs.Create(ctx, &jd)
-	if err != nil {
-		return err
-	}
-	job.Detail = jd
-	return nil
-}
-
-func (m *Manager) rescheduleJob(ctx context.Context, job *Job) error {
-	m.Lock()
-	defer m.Unlock()
-
-	jd := job.Detail
-	err := m.jobs.Update(ctx, &jd)
-	if err != nil {
-		return err
-	}
-	job.Detail = jd
+func (m *Manager) dispatch(job Job, after time.Duration) error {
+	go func() {
+		logx.Debugf("queue: one job is going to enqueue after %q", after)
+		time.Sleep(after)
+		m.queue <- job
+		logx.Debugf("queue: one job is added to queue")
+	}()
 	return nil
 }

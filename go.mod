@@ -3,6 +3,7 @@ module github.com/pinmonl/pinmonl
 go 1.13
 
 require (
+	github.com/Masterminds/semver v1.5.0
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/atotto/clipboard v0.1.2
@@ -10,6 +11,7 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/gobuffalo/packr/v2 v2.7.1
 	github.com/gorilla/securecookie v1.1.1
+	github.com/gorilla/websocket v1.4.0
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/jroimartin/gocui v0.4.0
 	github.com/lib/pq v1.0.0
@@ -28,8 +30,9 @@ require (
 	github.com/urfave/cli v1.22.2
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
+	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
 	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6
-	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/appengine v1.5.0 // indirect
-	gopkg.in/yaml.v2 v2.2.5 // indirect
+	gopkg.in/src-d/go-git.v4 v4.13.1
+	gopkg.in/yaml.v2 v2.2.5
 )

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/pinmonl/pinmonl/pubsub"
 	"github.com/pinmonl/pinmonl/queue"
 	"github.com/pinmonl/pinmonl/session"
 	"github.com/pinmonl/pinmonl/store"
@@ -12,6 +13,7 @@ type ServerOpts struct {
 
 	QueueManager  *queue.Manager
 	CookieSession *session.CookieStore
+	Pubsub        *pubsub.Server
 
 	Store     store.Store
 	Users     store.UserStore
@@ -32,6 +34,7 @@ type Server struct {
 
 	qm     *queue.Manager
 	cookie *session.CookieStore
+	pubsub *pubsub.Server
 
 	store     store.Store
 	users     store.UserStore
@@ -53,6 +56,7 @@ func NewServer(opts ServerOpts) *Server {
 
 		qm:     opts.QueueManager,
 		cookie: opts.CookieSession,
+		pubsub: opts.Pubsub,
 
 		store:     opts.Store,
 		users:     opts.Users,

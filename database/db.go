@@ -38,6 +38,7 @@ func (db *DB) Beginx() (*Tx, error) {
 	db.Lock()
 	tx, err := db.DB.Beginx()
 	if err != nil {
+		db.Unlock()
 		return nil, err
 	}
 	return &Tx{tx, db.Locker}, nil

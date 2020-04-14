@@ -15,7 +15,6 @@ type stores struct {
 	shares    store.ShareStore
 	sharetags store.SharetagStore
 	stats     store.StatStore
-	substats  store.SubstatStore
 	taggables store.TaggableStore
 	tags      store.TagStore
 	users     store.UserStore
@@ -33,7 +32,6 @@ func initStores(db *database.DB) stores {
 		shares:    store.NewShareStore(s),
 		sharetags: store.NewSharetagStore(s),
 		stats:     store.NewStatStore(s),
-		substats:  store.NewSubstatStore(s),
 		taggables: store.NewTaggableStore(s),
 		tags:      store.NewTagStore(s),
 		users:     store.NewUserStore(s),

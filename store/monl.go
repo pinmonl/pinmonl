@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/model"
@@ -11,12 +12,14 @@ import (
 // MonlOpts defines the parameters for monl filtering.
 type MonlOpts struct {
 	ListOpts
-	URL string
+	URL           string
+	UpdatedBefore time.Time
 }
 
 // MonlStore defines the services of monl.
 type MonlStore interface {
 	List(context.Context, *MonlOpts) ([]model.Monl, error)
+	Count(context.Context, *MonlOpts) (int64, error)
 	Find(context.Context, *model.Monl) error
 	Create(context.Context, *model.Monl) error
 	Update(context.Context, *model.Monl) error
@@ -52,6 +55,28 @@ func (s *dbMonlStore) List(ctx context.Context, opts *MonlOpts) ([]model.Monl, e
 		list = append(list, m)
 	}
 	return list, nil
+}
+
+// Count counts the number of monls with the filter parameters.
+func (s *dbMonlStore) Count(ctx context.Context, opts *MonlOpts) (int64, error) {
+	e := s.Queryer(ctx)
+	br, args := bindMonlOpts(opts)
+	br.Columns = []string{"COUNT(*) AS count"}
+	rows, err := e.NamedQuery(br.String(), args.Map())
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return 0, sql.ErrNoRows
+	}
+	var count int64
+	err = rows.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 // Find retrieves monl by id.
@@ -167,6 +192,11 @@ func bindMonlOpts(opts *MonlOpts) (database.SelectBuilder, database.QueryVars) {
 	if opts.URL != "" {
 		br.Where = append(br.Where, "url = :url")
 		args["url"] = opts.URL
+	}
+
+	if !opts.UpdatedBefore.IsZero() {
+		br.Where = append(br.Where, "(updated_at <= :updated_before OR updated_at IS NULL)")
+		args["updated_before"] = opts.UpdatedBefore
 	}
 
 	return br, args

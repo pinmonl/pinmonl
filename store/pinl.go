@@ -13,10 +13,11 @@ import (
 // PinlOpts defines the paramters for pinl filtering.
 type PinlOpts struct {
 	ListOpts
-	ID         string
-	UserID     string
-	MustTagIDs []string
-	AnyTagIDs  []string
+	ID            string
+	UserID        string
+	EmptyMonlOnly bool
+	MustTagIDs    []string
+	AnyTagIDs     []string
 }
 
 // PinlStore defines the services of pinl.
@@ -117,6 +118,7 @@ func (s *dbPinlStore) Create(ctx context.Context, m *model.Pinl) error {
 		Fields: map[string]interface{}{
 			"id":          ":pinl_id",
 			"user_id":     ":pinl_user_id",
+			"monl_id":     ":pinl_monl_id",
 			"url":         ":pinl_url",
 			"title":       ":pinl_title",
 			"description": ":pinl_description",
@@ -142,6 +144,7 @@ func (s *dbPinlStore) Update(ctx context.Context, m *model.Pinl) error {
 		From: pinlTB,
 		Fields: map[string]interface{}{
 			"user_id":     ":pinl_user_id",
+			"monl_id":     ":pinl_monl_id",
 			"url":         ":pinl_url",
 			"title":       ":pinl_title",
 			"description": ":pinl_description",
@@ -177,6 +180,7 @@ func bindPinlOpts(opts *PinlOpts) (database.SelectBuilder, database.QueryVars) {
 			[]string{
 				"id AS pinl_id",
 				"user_id AS pinl_user_id",
+				"monl_id AS pinl_monl_id",
 				"url AS pinl_url",
 				"title AS pinl_title",
 				"description AS pinl_description",
@@ -203,6 +207,11 @@ func bindPinlOpts(opts *PinlOpts) (database.SelectBuilder, database.QueryVars) {
 		br.Where = append(br.Where, "id = :id")
 		args["id"] = opts.ID
 	}
+
+	if opts.EmptyMonlOnly {
+		br.Where = append(br.Where, "monl_id = ''")
+	}
+
 	if opts.MustTagIDs != nil {
 		sq := database.SelectBuilder{
 			Columns: []string{"1"},

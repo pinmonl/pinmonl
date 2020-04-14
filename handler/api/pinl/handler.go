@@ -12,6 +12,7 @@ import (
 	"github.com/pinmonl/pinmonl/handler/middleware"
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/pkg/scrape"
+	"github.com/pinmonl/pinmonl/pubsub"
 	"github.com/pinmonl/pinmonl/queue"
 	"github.com/pinmonl/pinmonl/store"
 )
@@ -75,6 +76,7 @@ func HandleCreate(
 	images store.ImageStore,
 	pkgs store.PkgStore,
 	stats store.StatStore,
+	pubsub *pubsub.Server,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		in, err := ReadInput(r.Body)
@@ -118,16 +120,9 @@ func HandleCreate(
 			return
 		}
 
-		// err = qm.Enqueue(ctx, &model.Job{
-		// 	Name:     model.JobPinlCreated,
-		// 	TargetID: m.ID,
-		// })
-		// if err != nil {
-		// 	response.InternalError(w, err)
-		// 	return
-		// }
-
-		response.JSON(w, NewBody(m).WithTags(ts))
+		b := NewBody(m).WithTags(ts)
+		pubsub.Publish(NewCreateMessage(b))
+		response.JSON(w, b)
 	}
 }
 
@@ -140,6 +135,7 @@ func HandleUpdate(
 	images store.ImageStore,
 	pkgs store.PkgStore,
 	stats store.StatStore,
+	pubsub *pubsub.Server,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		in, err := ReadInput(r.Body)
@@ -183,16 +179,9 @@ func HandleUpdate(
 			return
 		}
 
-		// err = qm.Enqueue(ctx, &model.Job{
-		// 	Name:     model.JobPinlUpdated,
-		// 	TargetID: m.ID,
-		// })
-		// if err != nil {
-		// 	response.InternalError(w, err)
-		// 	return
-		// }
-
-		response.JSON(w, NewBody(m).WithTags(ts))
+		b := NewBody(m).WithTags(ts)
+		pubsub.Publish(NewUpdateMessage(b))
+		response.JSON(w, b)
 	}
 }
 
@@ -200,6 +189,7 @@ func HandleUpdate(
 func HandleDelete(
 	pinls store.PinlStore,
 	taggables store.TaggableStore,
+	pubsub *pubsub.Server,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -217,6 +207,7 @@ func HandleDelete(
 			return
 		}
 
+		pubsub.Publish(NewDeleteMessage(NewBody(m)))
 		response.NoContent(w)
 	}
 }

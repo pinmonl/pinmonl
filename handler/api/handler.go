@@ -59,13 +59,13 @@ func (s *Server) Handler() http.Handler {
 		r.With(pagination).
 			Get("/", pinl.HandleList(s.pinls, s.taggables))
 		r.Get("/page-info", pinl.HandlePageInfo(s.pinls))
-		r.Post("/", pinl.HandleCreate(s.pinls, s.tags, s.taggables, s.qm, s.images, s.pkgs, s.stats))
+		r.Post("/", pinl.HandleCreate(s.pinls, s.tags, s.taggables, s.qm, s.images, s.pkgs, s.stats, s.pubsub))
 		r.Route("/{pinl}", func(r chi.Router) {
 			r.Use(pinl.BindByID("pinl", s.pinls))
 			r.Use(pinl.RequireOwner())
 			r.Get("/", pinl.HandleFind(s.taggables, s.pkgs, s.stats))
-			r.Put("/", pinl.HandleUpdate(s.pinls, s.tags, s.taggables, s.qm, s.images, s.pkgs, s.stats))
-			r.Delete("/", pinl.HandleDelete(s.pinls, s.taggables))
+			r.Put("/", pinl.HandleUpdate(s.pinls, s.tags, s.taggables, s.qm, s.images, s.pkgs, s.stats, s.pubsub))
+			r.Delete("/", pinl.HandleDelete(s.pinls, s.taggables, s.pubsub))
 		})
 	})
 

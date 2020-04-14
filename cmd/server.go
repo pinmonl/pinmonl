@@ -14,7 +14,15 @@ import (
 )
 
 // NewServer creates Server cmd.
-func NewServer(endpoint string, singleUser bool, h http.Handler, qm *queue.Manager, users store.UserStore, mp *database.MigrationPlan) Cmd {
+func NewServer(
+	endpoint string,
+	singleUser bool,
+	h http.Handler,
+	qm *queue.Manager,
+	users store.UserStore,
+	mp *database.MigrationPlan,
+	sched *queue.Scheduler,
+) Cmd {
 	return Server{
 		Endpoint:      endpoint,
 		Handler:       h,
@@ -22,6 +30,7 @@ func NewServer(endpoint string, singleUser bool, h http.Handler, qm *queue.Manag
 		SingleUser:    singleUser,
 		Users:         users,
 		MigrationPlan: mp,
+		Scheduler:     sched,
 	}
 }
 
@@ -30,6 +39,7 @@ type Server struct {
 	Endpoint      string
 	Handler       http.Handler
 	QueueManager  *queue.Manager
+	Scheduler     *queue.Scheduler
 	MigrationPlan *database.MigrationPlan
 
 	SingleUser bool
@@ -60,16 +70,21 @@ func (s Server) Command() cli.Command {
 
 			wg.Add(1)
 			go func() {
-				defer wg.Done()
 				err := http.ListenAndServe(s.Endpoint, s.Handler)
 				fmt.Printf("HTTP server error: %s\n", err.Error())
+				wg.Done()
 			}()
 
 			wg.Add(1)
-			ctx := context.Background()
 			go func() {
-				defer wg.Done()
-				s.QueueManager.Start(ctx)
+				s.QueueManager.Start()
+				wg.Done()
+			}()
+
+			wg.Add(1)
+			go func() {
+				s.Scheduler.Run()
+				wg.Done()
 			}()
 
 			fmt.Printf("HTTP server is running at %s\n", s.Endpoint)

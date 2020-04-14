@@ -8,6 +8,7 @@ import (
 type Pinl struct {
 	ID          string     `json:"id"          db:"pinl_id"`
 	UserID      string     `json:"userId"      db:"pinl_user_id"`
+	MonlID      string     `json:"monlId"      db:"pinl_monl_id"`
 	URL         string     `json:"url"         db:"pinl_url"`
 	Title       string     `json:"title"       db:"pinl_title"`
 	Description string     `json:"description" db:"pinl_description"`

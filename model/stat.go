@@ -8,9 +8,11 @@ import (
 type Stat struct {
 	ID         string       `json:"id"         db:"stat_id"`
 	PkgID      string       `json:"pkgId"      db:"stat_pkg_id"`
+	ParentID   string       `json:"parentId"   db:"stat_parent_id"`
 	RecordedAt field.Time   `json:"recordedAt" db:"stat_recorded_at"`
 	Kind       string       `json:"kind"       db:"stat_kind"`
 	Value      string       `json:"value"      db:"stat_value"`
+	Digest     string       `json:"digest"     db:"stat_digest"`
 	IsLatest   bool         `json:"isLatest"   db:"stat_is_latest"`
 	Labels     field.Labels `json:"labels"     db:"stat_labels"`
 }

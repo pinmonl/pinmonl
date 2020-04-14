@@ -18,6 +18,8 @@ type StatOpts struct {
 	WithoutLatest bool
 	PkgID         string
 	PkgIDs        []string
+	ParentID      string
+	ParentIDs     []string
 	After         time.Time
 	Before        time.Time
 }
@@ -70,9 +72,11 @@ func (s *dbStatStore) Create(ctx context.Context, m *model.Stat) error {
 		Fields: map[string]interface{}{
 			"id":          ":stat_id",
 			"pkg_id":      ":stat_pkg_id",
+			"parent_id":   ":stat_parent_id",
 			"recorded_at": ":stat_recorded_at",
 			"kind":        ":stat_kind",
 			"value":       ":stat_value",
+			"digest":      ":stat_digest",
 			"is_latest":   ":stat_is_latest",
 			"labels":      ":stat_labels",
 		},
@@ -92,9 +96,11 @@ func (s *dbStatStore) Update(ctx context.Context, m *model.Stat) error {
 		From: statTB,
 		Fields: map[string]interface{}{
 			"pkg_id":      ":stat_pkg_id",
+			"parent_id":   ":stat_parent_id",
 			"recorded_at": ":stat_recorded_at",
 			"kind":        ":stat_kind",
 			"value":       ":stat_value",
+			"digest":      ":stat_digest",
 			"is_latest":   ":stat_is_latest",
 			"labels":      ":stat_labels",
 		},
@@ -111,9 +117,11 @@ func bindStatOpts(opts *StatOpts) (database.SelectBuilder, database.QueryVars) {
 			[]string{
 				"id AS stat_id",
 				"pkg_id AS stat_pkg_id",
+				"parent_id AS stat_parent_id",
 				"recorded_at AS stat_recorded_at",
 				"kind AS stat_kind",
 				"value AS stat_value",
+				"digest AS stat_digest",
 				"is_latest AS stat_is_latest",
 				"labels AS stat_labels",
 			},
@@ -139,6 +147,15 @@ func bindStatOpts(opts *StatOpts) (database.SelectBuilder, database.QueryVars) {
 		ks, ids := bindQueryIDs("pkg_ids", opts.PkgIDs)
 		args.AppendStringMap(ids)
 		br.Where = append(br.Where, fmt.Sprintf("pkg_id IN (%s)", strings.Join(ks, ",")))
+	}
+
+	if opts.ParentID != "" {
+		opts.ParentIDs = append(opts.ParentIDs, opts.ParentID)
+	}
+	if opts.ParentIDs != nil {
+		ks, ids := bindQueryIDs("parent_ids", opts.ParentIDs)
+		args.AppendStringMap(ids)
+		br.Where = append(br.Where, fmt.Sprintf("parent_id IN (%s)", strings.Join(ks, ",")))
 	}
 
 	if opts.WithLatest {

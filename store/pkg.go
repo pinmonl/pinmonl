@@ -11,8 +11,8 @@ import (
 // PkgOpts defines the filter parameters on Pkg.
 type PkgOpts struct {
 	ListOpts
-	Vendor    string
-	VendorURI string
+	Provider    string
+	ProviderURI string
 }
 
 // PkgStore defines the services of Pkg store.
@@ -88,16 +88,17 @@ func (s *dbPkgStore) Create(ctx context.Context, m *model.Pkg) error {
 	br := database.InsertBuilder{
 		Into: pkgTB,
 		Fields: map[string]interface{}{
-			"id":          ":pkg_id",
-			"url":         ":pkg_url",
-			"vendor":      ":pkg_vendor",
-			"vendor_uri":  ":pkg_vendor_uri",
-			"title":       ":pkg_title",
-			"description": ":pkg_description",
-			"readme":      ":pkg_readme",
-			"labels":      ":pkg_labels",
-			"image_id":    ":pkg_image_id",
-			"created_at":  ":pkg_created_at",
+			"id":            ":pkg_id",
+			"url":           ":pkg_url",
+			"provider":      ":pkg_provider",
+			"provider_host": ":pkg_provider_host",
+			"provider_uri":  ":pkg_provider_uri",
+			"title":         ":pkg_title",
+			"description":   ":pkg_description",
+			"readme":        ":pkg_readme",
+			"labels":        ":pkg_labels",
+			"image_id":      ":pkg_image_id",
+			"created_at":    ":pkg_created_at",
 		},
 	}
 	_, err := e.NamedExec(br.String(), m2)
@@ -116,15 +117,16 @@ func (s *dbPkgStore) Update(ctx context.Context, m *model.Pkg) error {
 	br := database.UpdateBuilder{
 		From: pkgTB,
 		Fields: map[string]interface{}{
-			"url":         ":pkg_url",
-			"vendor":      ":pkg_vendor",
-			"vendor_uri":  ":pkg_vendor_uri",
-			"title":       ":pkg_title",
-			"description": ":pkg_description",
-			"readme":      ":pkg_readme",
-			"labels":      ":pkg_labels",
-			"image_id":    ":pkg_image_id",
-			"updated_at":  ":pkg_updated_at",
+			"url":           ":pkg_url",
+			"provider":      ":pkg_provider",
+			"provider_host": ":pkg_provider_host",
+			"provider_uri":  ":pkg_provider_uri",
+			"title":         ":pkg_title",
+			"description":   ":pkg_description",
+			"readme":        ":pkg_readme",
+			"labels":        ":pkg_labels",
+			"image_id":      ":pkg_image_id",
+			"updated_at":    ":pkg_updated_at",
 		},
 		Where: []string{"id = :pkg_id"},
 	}
@@ -154,8 +156,9 @@ func bindPkgOpts(opts *PkgOpts) (database.SelectBuilder, database.QueryVars) {
 			[]string{
 				"id AS pkg_id",
 				"url AS pkg_url",
-				"vendor AS pkg_vendor",
-				"vendor_uri AS pkg_vendor_uri",
+				"provider AS pkg_provider",
+				"provider_host AS pkg_provider_host",
+				"provider_uri AS pkg_provider_uri",
 				"title AS pkg_title",
 				"description AS pkg_description",
 				"readme AS pkg_readme",
@@ -174,13 +177,13 @@ func bindPkgOpts(opts *PkgOpts) (database.SelectBuilder, database.QueryVars) {
 	br = appendListOpts(br, opts.ListOpts)
 	args := database.QueryVars{}
 
-	if opts.Vendor != "" {
-		br.Where = append(br.Where, "vendor = :vendor")
-		args["vendor"] = opts.Vendor
+	if opts.Provider != "" {
+		br.Where = append(br.Where, "provider = :provider")
+		args["provider"] = opts.Provider
 	}
-	if opts.VendorURI != "" {
-		br.Where = append(br.Where, "vendor_uri = :vendor_uri")
-		args["vendor_uri"] = opts.VendorURI
+	if opts.ProviderURI != "" {
+		br.Where = append(br.Where, "provider_uri = :provider_uri")
+		args["provider_uri"] = opts.ProviderURI
 	}
 
 	return br, args

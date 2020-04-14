@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS pinls (
 	id          VARCHAR(50) PRIMARY KEY,
 	user_id     VARCHAR(50),
+	monl_id     VARCHAR(50),
 	url         VARCHAR(2000),
 	title       VARCHAR(250),
 	description TEXT,
@@ -12,6 +13,7 @@ CREATE TABLE IF NOT EXISTS pinls (
 );
 
 CREATE INDEX ix_pinl_user ON pinls (user_id);
+CREATE INDEX ix_pinl_monl ON pinls (monl_id);
 
 -- +migration Down
 DROP TABLE IF EXISTS pinls;

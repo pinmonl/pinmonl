@@ -38,10 +38,6 @@ type Config struct {
 		Host  string
 		Token string
 	}
-	Oauth struct {
-		PrivateKey     string
-		PrivateKeyFile string
-	}
 }
 
 // Read returns configuration from config file and env.
@@ -80,8 +76,6 @@ func NewReader() *Reader {
 	v.SetDefault("cookie.hashkey", generate.RandomString(32))
 	v.SetDefault("cookie.blockkey", generate.RandomString(32))
 	v.SetDefault("client.host", "http://localhost:3399")
-	v.SetDefault("oauth.privatekey", "")
-	v.SetDefault("oauth.privatekeyfile", "oauth.key")
 
 	return &Reader{Viper: v}
 }

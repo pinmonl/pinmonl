@@ -20,9 +20,9 @@ func TestPkgStore(t *testing.T) {
 	}()
 
 	mockData := []*model.Pkg{
-		{Vendor: "test", VendorURI: "uri1", URL: "http://url.one", Title: "one", Description: "test pinl one"},
-		{Vendor: "test", VendorURI: "uri2", URL: "http://url.two", Title: "two", Description: "test pinl two"},
-		{Vendor: "test", VendorURI: "uri3", URL: "http://url.three", Title: "three", Description: "test pinl three"},
+		{Provider: "test", ProviderURI: "uri1", URL: "http://url.one", Title: "one", Description: "test pinl one"},
+		{Provider: "test", ProviderURI: "uri2", URL: "http://url.two", Title: "two", Description: "test pinl two"},
+		{Provider: "test", ProviderURI: "uri3", URL: "http://url.three", Title: "three", Description: "test pinl three"},
 	}
 
 	store := NewStore(db)
