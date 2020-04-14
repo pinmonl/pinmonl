@@ -9,7 +9,8 @@ import (
 )
 
 func TestManager(t *testing.T) {
-	m := NewManager(&ManagerOpts{MaxWorker: 1, MaxJob: 1})
+	m, err := NewManager(&ManagerOpts{MaxWorker: 1, MaxJob: 1})
+	assert.Nil(t, err)
 	go m.Start()
 	wg := &sync.WaitGroup{}
 	var a, b, c int
