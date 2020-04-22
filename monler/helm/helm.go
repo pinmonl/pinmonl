@@ -71,19 +71,7 @@ func (p *Provider) ParseURL(rawurl string) (*monler.URL, error) {
 
 // Ping reports error if the url is not supported.
 func Ping(rawurl string, cred monler.Credential) error {
-	u, err := ParseURL(rawurl)
-	if err != nil {
-		return err
-	}
-	c, err := newAPIClient(cred)
-	if err != nil {
-		return err
-	}
-	_, err = c.getChart(u.URI)
-	if err != nil {
-		return err
-	}
-	return nil
+	return monler.ErrNotSupport
 }
 
 // ParseURL extracts uri from url.

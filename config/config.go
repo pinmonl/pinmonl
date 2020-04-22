@@ -24,8 +24,8 @@ type Config struct {
 		DevServer string
 	}
 	Queue struct {
-		Parallel int
-		Interval string
+		MaxJob    int
+		MaxWorker int
 	}
 	Cookie struct {
 		Name     string
@@ -68,8 +68,8 @@ func NewReader() *Reader {
 	v.SetDefault("http.endpoint", ":3399")
 	v.SetDefault("http.devserver", "")
 	v.SetDefault("loglevel", "info")
-	v.SetDefault("queue.interval", "1s")
-	v.SetDefault("queue.parallel", 1)
+	v.SetDefault("queue.maxjob", 1)
+	v.SetDefault("queue.maxworker", 1)
 	v.SetDefault("cookie.name", "session")
 	v.SetDefault("cookie.maxage", "360h")
 	v.SetDefault("cookie.secure", false)

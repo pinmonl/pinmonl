@@ -10,6 +10,7 @@ type stores struct {
 	images    store.ImageStore
 	jobs      store.JobStore
 	monls     store.MonlStore
+	monpkgs   store.MonpkgStore
 	pinls     store.PinlStore
 	pkgs      store.PkgStore
 	shares    store.ShareStore
@@ -27,6 +28,7 @@ func initStores(db *database.DB) stores {
 		images:    store.NewImageStore(s),
 		jobs:      store.NewJobStore(s),
 		monls:     store.NewMonlStore(s),
+		monpkgs:   store.NewMonpkgStore(s),
 		pinls:     store.NewPinlStore(s),
 		pkgs:      store.NewPkgStore(s),
 		shares:    store.NewShareStore(s),

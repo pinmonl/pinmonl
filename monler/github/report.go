@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/pinmonl/pinmonl/logx"
 	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/pinmonl/pinmonl/monler"
 	"github.com/pinmonl/pinmonl/monler/git"
@@ -110,6 +111,7 @@ func (r *Report) Derived(mlrepo *monler.Repository, cred monler.Credential) ([]m
 
 	// Test whether helm provider is registered.
 	if _, err := mlrepo.Get(helm.Name); err != nil {
+		logx.Debugf("github monler: err %v", err)
 		return reports, nil
 	}
 	charts, err := helm.Search(r.URL())

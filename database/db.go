@@ -33,7 +33,7 @@ func Open(driverName, dataSourceName string) (*DB, error) {
 	return &DB{dbx, locker}, nil
 }
 
-// Begins creates database transaction.
+// Beginx creates database transaction.
 func (db *DB) Beginx() (*Tx, error) {
 	db.Lock()
 	tx, err := db.DB.Beginx()

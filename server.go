@@ -7,12 +7,13 @@ import (
 	"github.com/pinmonl/pinmonl/config"
 	"github.com/pinmonl/pinmonl/handler/api"
 	"github.com/pinmonl/pinmonl/handler/web"
+	"github.com/pinmonl/pinmonl/logx"
 	"github.com/pinmonl/pinmonl/pubsub"
 	"github.com/pinmonl/pinmonl/queue"
 )
 
-func initHTTPHandler(cfg *config.Config, ss stores, qm *queue.Manager, sess sessions, ws *pubsub.Server) http.Handler {
-	api := newAPIServer(cfg, ss, qm, sess, ws)
+func initHTTPHandler(cfg *config.Config, ss stores, qm *queue.Manager, dp *queue.Dispatcher, sess sessions, ws *pubsub.Server) http.Handler {
+	api := newAPIServer(cfg, ss, dp, sess, ws)
 	web := newWebServer(cfg, ss, sess)
 
 	r := chi.NewRouter()
@@ -22,25 +23,26 @@ func initHTTPHandler(cfg *config.Config, ss stores, qm *queue.Manager, sess sess
 	return r
 }
 
-func newAPIServer(cfg *config.Config, ss stores, qm *queue.Manager, sess sessions, pubsub *pubsub.Server) *api.Server {
+func newAPIServer(cfg *config.Config, ss stores, dp *queue.Dispatcher, sess sessions, pubsub *pubsub.Server) *api.Server {
 	return api.NewServer(api.ServerOpts{
 		SingleUser: cfg.SingleUser,
 
-		QueueManager:  qm,
+		Dispatcher:    dp,
 		CookieSession: sess.cookie,
 		Pubsub:        pubsub,
 
 		Store:     ss.store,
-		Users:     ss.users,
-		Pinls:     ss.pinls,
-		Tags:      ss.tags,
-		Taggables: ss.taggables,
-		Shares:    ss.shares,
-		Sharetags: ss.sharetags,
 		Images:    ss.images,
 		Monls:     ss.monls,
+		Monpkgs:   ss.monpkgs,
+		Pinls:     ss.pinls,
 		Pkgs:      ss.pkgs,
+		Shares:    ss.shares,
+		Sharetags: ss.sharetags,
 		Stats:     ss.stats,
+		Taggables: ss.taggables,
+		Tags:      ss.tags,
+		Users:     ss.users,
 	})
 }
 
@@ -50,8 +52,14 @@ func newWebServer(cfg *config.Config, ss stores, sess sessions) *web.Server {
 	})
 }
 
-func initWebSocketServer(sess sessions) *pubsub.Server {
-	return pubsub.NewServer(&pubsub.ServerOpts{
-		Cookie: sess.cookie,
+func initWebSocketServer(cfg *config.Config, sess sessions, ss stores) *pubsub.Server {
+	ws, err := pubsub.NewServer(&pubsub.ServerOpts{
+		SingleUser: cfg.SingleUser,
+		Cookie:     sess.cookie,
+		Users:      ss.users,
 	})
+	if err != nil {
+		logx.Panic(err)
+	}
+	return ws
 }

@@ -48,7 +48,7 @@ func HandleList(pinls store.PinlStore, taggables store.TaggableStore) http.Handl
 }
 
 // HandleFind returns pinl and its relations.
-func HandleFind(taggables store.TaggableStore, pkgs store.PkgStore, stats store.StatStore) http.HandlerFunc {
+func HandleFind(taggables store.TaggableStore, monpkgs store.MonpkgStore, pkgs store.PkgStore, stats store.StatStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		m, has := request.PinlFrom(ctx)
@@ -63,7 +63,16 @@ func HandleFind(taggables store.TaggableStore, pkgs store.PkgStore, stats store.
 			return
 		}
 
-		response.JSON(w, NewBody(m).WithTags(ts[m.ID]))
+		pkgMap, statMap, err := listPkgsAndStats(ctx, monpkgs, stats, m)
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
+
+		resp := NewBody(m).
+			WithTags(ts[m.ID]).
+			WithPkgs(pkgMap[m.MonlID], statMap)
+		response.JSON(w, resp)
 	}
 }
 
@@ -72,7 +81,7 @@ func HandleCreate(
 	pinls store.PinlStore,
 	tags store.TagStore,
 	taggables store.TaggableStore,
-	qm *queue.Manager,
+	dp *queue.Dispatcher,
 	images store.ImageStore,
 	pkgs store.PkgStore,
 	stats store.StatStore,
@@ -121,7 +130,10 @@ func HandleCreate(
 		}
 
 		b := NewBody(m).WithTags(ts)
-		pubsub.Publish(NewCreateMessage(b))
+		go func() {
+			dp.SyncPinl(m)
+			pubsub.Publish(NewCreateMessage(b))
+		}()
 		response.JSON(w, b)
 	}
 }
@@ -131,7 +143,7 @@ func HandleUpdate(
 	pinls store.PinlStore,
 	tags store.TagStore,
 	taggables store.TaggableStore,
-	qm *queue.Manager,
+	dp *queue.Dispatcher,
 	images store.ImageStore,
 	pkgs store.PkgStore,
 	stats store.StatStore,
@@ -180,7 +192,10 @@ func HandleUpdate(
 		}
 
 		b := NewBody(m).WithTags(ts)
-		pubsub.Publish(NewUpdateMessage(b))
+		go func() {
+			dp.SyncPinl(m)
+			pubsub.Publish(NewUpdateMessage(b))
+		}()
 		response.JSON(w, b)
 	}
 }
@@ -277,4 +292,36 @@ func getStats(ctx context.Context, stats store.StatStore, pkgs []model.Pkg) ([]m
 		return nil, err
 	}
 	return ss, nil
+}
+
+func listPkgsAndStats(ctx context.Context, monpkgStore store.MonpkgStore, statStore store.StatStore, pinls ...model.Pinl) (map[string][]model.Pkg, map[string][]model.Stat, error) {
+	monlIDs := make([]string, len(pinls))
+	for i, p := range pinls {
+		monlIDs[i] = p.MonlID
+	}
+	pkgMap, err := monpkgStore.ListPkgs(ctx, &store.MonpkgOpts{
+		MonlIDs: monlIDs,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	pkgIDs := make([]string, 0)
+	for _, pkgs := range pkgMap {
+		for _, pkg := range pkgs {
+			pkgIDs = append(pkgIDs, pkg.ID)
+		}
+	}
+	stats, err := statStore.List(ctx, &store.StatOpts{
+		PkgIDs:     pkgIDs,
+		WithLatest: true,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	statMap := make(map[string][]model.Stat)
+	for _, stat := range stats {
+		k := stat.PkgID
+		statMap[k] = append(statMap[k], stat)
+	}
+	return pkgMap, statMap, nil
 }

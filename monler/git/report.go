@@ -1,11 +1,13 @@
 package git
 
 import (
+	"bytes"
 	"regexp"
 	"sort"
 
 	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/pinmonl/pinmonl/monler"
+	"github.com/pinmonl/pinmonl/pkg/payload"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
@@ -97,9 +99,24 @@ func (r *Report) Close() error {
 // Derived returns related reports.
 func (r *Report) Derived(mlrepo *monler.Repository, cred monler.Credential) ([]monler.Report, error) {
 	var derived []monler.Report
+	if npmURL, err := guessNpmURI(r.repo); err == nil {
+		report, err := mlrepo.Open("npm", npmURL.String(), cred)
+		if err == nil {
+			derived = append(derived, report)
+		}
+	}
 	if readme, err := getReadme(r.repo); err == nil {
-		if reps, err := ReportFromReadme(mlrepo, readme, cred); err == nil {
-			derived = append(derived, reps...)
+		reports, err := ReportFromReadme(mlrepo, readme, cred)
+		if err == nil {
+		merge:
+			for _, report := range reports {
+				for _, dr := range derived {
+					if report.Provider() == dr.Provider() && report.ProviderURI() == dr.ProviderURI() {
+						continue merge
+					}
+				}
+				derived = append(derived, report)
+			}
 		}
 	}
 	return derived, nil
@@ -108,7 +125,7 @@ func (r *Report) Derived(mlrepo *monler.Repository, cred monler.Credential) ([]m
 // ReportFromReadme aggregates reports with provided monler.Repository.
 func ReportFromReadme(mlrepo *monler.Repository, readme string, cred monler.Credential) ([]monler.Report, error) {
 	var reps []monler.Report
-	prds := mlrepo.Providers()
+	prds := []string{"docker"}
 	for _, url := range extractURLs(readme) {
 		for _, prd := range prds {
 			if prd == Name {
@@ -207,5 +224,23 @@ func getContent(repo *git.Repository, path string) (string, error) {
 		return "", err
 	}
 	file, err := commit.File(path)
+	if err != nil {
+		return "", err
+	}
 	return file.Contents()
+}
+
+func guessNpmURI(repo *git.Repository) (*monler.URL, error) {
+	json, err := getContent(repo, "package.json")
+	if err != nil {
+		return nil, err
+	}
+	var pkg struct {
+		Name string
+	}
+	err = payload.UnmarshalJSON(bytes.NewBufferString(json), &pkg)
+	if err != nil {
+		return nil, err
+	}
+	return monler.NewURLFromRaw("https://npmjs.com/package/"+pkg.Name, pkg.Name)
 }

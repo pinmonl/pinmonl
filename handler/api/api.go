@@ -11,42 +11,44 @@ import (
 type ServerOpts struct {
 	SingleUser bool
 
-	QueueManager  *queue.Manager
+	Dispatcher    *queue.Dispatcher
 	CookieSession *session.CookieStore
 	Pubsub        *pubsub.Server
 
 	Store     store.Store
-	Users     store.UserStore
-	Pinls     store.PinlStore
-	Tags      store.TagStore
-	Taggables store.TaggableStore
-	Shares    store.ShareStore
-	Sharetags store.SharetagStore
 	Images    store.ImageStore
 	Monls     store.MonlStore
+	Monpkgs   store.MonpkgStore
+	Pinls     store.PinlStore
 	Pkgs      store.PkgStore
+	Shares    store.ShareStore
+	Sharetags store.SharetagStore
 	Stats     store.StatStore
+	Taggables store.TaggableStore
+	Tags      store.TagStore
+	Users     store.UserStore
 }
 
 // Server defines the api server.
 type Server struct {
 	singleUser bool
 
-	qm     *queue.Manager
+	dp     *queue.Dispatcher
 	cookie *session.CookieStore
 	pubsub *pubsub.Server
 
 	store     store.Store
-	users     store.UserStore
-	pinls     store.PinlStore
-	tags      store.TagStore
-	taggables store.TaggableStore
-	shares    store.ShareStore
-	sharetags store.SharetagStore
 	images    store.ImageStore
 	monls     store.MonlStore
+	monpkgs   store.MonpkgStore
+	pinls     store.PinlStore
 	pkgs      store.PkgStore
+	shares    store.ShareStore
+	sharetags store.SharetagStore
 	stats     store.StatStore
+	taggables store.TaggableStore
+	tags      store.TagStore
+	users     store.UserStore
 }
 
 // NewServer creates api server.
@@ -54,20 +56,21 @@ func NewServer(opts ServerOpts) *Server {
 	return &Server{
 		singleUser: opts.SingleUser,
 
-		qm:     opts.QueueManager,
+		dp:     opts.Dispatcher,
 		cookie: opts.CookieSession,
 		pubsub: opts.Pubsub,
 
 		store:     opts.Store,
-		users:     opts.Users,
-		pinls:     opts.Pinls,
-		tags:      opts.Tags,
-		taggables: opts.Taggables,
-		shares:    opts.Shares,
-		sharetags: opts.Sharetags,
 		images:    opts.Images,
 		monls:     opts.Monls,
+		monpkgs:   opts.Monpkgs,
+		pinls:     opts.Pinls,
 		pkgs:      opts.Pkgs,
+		shares:    opts.Shares,
+		sharetags: opts.Sharetags,
 		stats:     opts.Stats,
+		taggables: opts.Taggables,
+		tags:      opts.Tags,
+		users:     opts.Users,
 	}
 }

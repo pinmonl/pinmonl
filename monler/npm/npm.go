@@ -13,7 +13,7 @@ var Name = "npm"
 
 // NPM endpoints.
 var (
-	DefaultEndpoint         = "https://www.npmjs.org"
+	DefaultEndpoint         = "https://www.npmjs.com"
 	DefaultRegistryEndpoint = "https://registry.npmjs.org"
 	DefaultAPIEndpoint      = "https://api.npmjs.org"
 )
@@ -70,6 +70,8 @@ func Ping(rawurl string, cred monler.Credential) error {
 	return nil
 }
 
+var packageRe = regexp.MustCompile(`^https?://(www\.)?npmjs\.com/package/(.+)$`)
+
 // ParseURL extracts uri from url.
 func ParseURL(rawurl string) (*monler.URL, error) {
 	u, err := url.Parse(rawurl)
@@ -77,11 +79,14 @@ func ParseURL(rawurl string) (*monler.URL, error) {
 		return nil, err
 	}
 	switch {
-	case u.Hostname() == "www.npmjs.org":
+	case packageRe.MatchString(rawurl):
 	default:
 		return nil, monler.ErrNotSupport
 	}
-	sm := regexp.MustCompile(`/?package/(.*)`).FindStringSubmatch(u.Path)
+	sm := regexp.MustCompile(`/?package/(.+)`).FindStringSubmatch(u.Path)
+	if len(sm) < 2 {
+		return nil, monler.ErrNotSupport
+	}
 	uri := sm[len(sm)-1]
 	return &monler.URL{
 		URL: u,

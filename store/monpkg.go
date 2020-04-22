@@ -27,6 +27,13 @@ type MonpkgStore interface {
 	List(context.Context, *MonpkgOpts) ([]model.Monpkg, error)
 	ListMonls(context.Context, *MonpkgOpts) (map[string][]model.Monl, error)
 	ListPkgs(context.Context, *MonpkgOpts) (map[string][]model.Pkg, error)
+	Create(context.Context, *model.Monpkg) error
+	Delete(context.Context, *model.Monpkg) error
+	Associate(context.Context, model.Monl, model.Pkg) error
+	AssociateMany(context.Context, model.Monl, []model.Pkg) error
+	Dissociate(context.Context, model.Monl, model.Pkg) error
+	DissociateMany(context.Context, model.Monl, []model.Pkg) error
+	ReAssociateMany(context.Context, model.Monl, []model.Pkg) error
 }
 
 // NewMonpkgStore creates monpkg store.
@@ -75,7 +82,7 @@ func (s *dbMonpkgStore) ListMonls(ctx context.Context, opts *MonpkgOpts) (map[st
 	}
 	defer rows.Close()
 
-	var list map[string][]model.Monl
+	list := make(map[string][]model.Monl)
 	for rows.Next() {
 		var m model.Monpkg
 		err = rows.StructScan(&m)
@@ -103,7 +110,7 @@ func (s *dbMonpkgStore) ListPkgs(ctx context.Context, opts *MonpkgOpts) (map[str
 	}
 	defer rows.Close()
 
-	var list map[string][]model.Pkg
+	list := make(map[string][]model.Pkg)
 	for rows.Next() {
 		var m model.Monpkg
 		err = rows.StructScan(&m)
@@ -114,6 +121,90 @@ func (s *dbMonpkgStore) ListPkgs(ctx context.Context, opts *MonpkgOpts) (map[str
 		list[k] = append(list[k], *m.Pkg)
 	}
 	return list, nil
+}
+
+func (s *dbMonpkgStore) Create(ctx context.Context, m *model.Monpkg) error {
+	m2 := *m
+	e := s.Execer(ctx)
+	br := database.InsertBuilder{
+		Into: monpkgTB,
+		Fields: map[string]interface{}{
+			"monl_id": ":monpkg_monl_id",
+			"pkg_id":  ":monpkg_pkg_id",
+			"tie":     ":monpkg_tie",
+		},
+	}
+	_, err := e.NamedExec(br.String(), m2)
+	if err != nil {
+		return err
+	}
+	*m = m2
+	return nil
+}
+
+func (s *dbMonpkgStore) Delete(ctx context.Context, m *model.Monpkg) error {
+	e := s.Execer(ctx)
+	br := database.DeleteBuilder{
+		From: monpkgTB,
+		Where: []string{
+			"monl_id = :monpkg_monl_id",
+			"pkg_id = :monpkg_pkg_id",
+		},
+	}
+	_, err := e.NamedExec(br.String(), m)
+	return err
+}
+
+func (s *dbMonpkgStore) Associate(ctx context.Context, monl model.Monl, pkg model.Pkg) error {
+	return s.Create(ctx, &model.Monpkg{
+		MonlID: monl.ID,
+		PkgID:  pkg.ID,
+	})
+}
+
+func (s *dbMonpkgStore) AssociateMany(ctx context.Context, monl model.Monl, pkgs []model.Pkg) error {
+	for _, pkg := range pkgs {
+		err := s.Associate(ctx, monl, pkg)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *dbMonpkgStore) Dissociate(ctx context.Context, monl model.Monl, pkg model.Pkg) error {
+	return s.Delete(ctx, &model.Monpkg{
+		MonlID: monl.ID,
+		PkgID:  pkg.ID,
+	})
+}
+
+func (s *dbMonpkgStore) DissociateMany(ctx context.Context, monl model.Monl, pkgs []model.Pkg) error {
+	for _, pkg := range pkgs {
+		err := s.Dissociate(ctx, monl, pkg)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *dbMonpkgStore) ReAssociateMany(ctx context.Context, monl model.Monl, pkgs []model.Pkg) error {
+	err := s.clear(ctx, monl)
+	if err != nil {
+		return err
+	}
+	return s.AssociateMany(ctx, monl, pkgs)
+}
+
+func (s *dbMonpkgStore) clear(ctx context.Context, monl model.Monl) error {
+	e := s.Execer(ctx)
+	br := database.DeleteBuilder{
+		From:  monpkgTB,
+		Where: []string{"monl_id = :monpkg_monl_id"},
+	}
+	_, err := e.NamedExec(br.String(), monl)
+	return err
 }
 
 func bindMonpkgOpts(opts *MonpkgOpts) (database.SelectBuilder, database.QueryVars) {
@@ -172,15 +263,16 @@ func bindMonpkgOpts(opts *MonpkgOpts) (database.SelectBuilder, database.QueryVar
 			},
 			monlTB,
 		)...)
-		br.Join = append(br.Join, fmt.Sprintf("%s ON %[1]s.id = %s.monl_id", monlTB, monpkgTB))
+		br.Join = append(br.Join, fmt.Sprintf("INNER JOIN %s ON %[1]s.id = %s.monl_id", monlTB, monpkgTB))
 	}
 	if opts.joinPkg {
 		br.Columns = append(br.Columns, database.NamespacedColumn(
 			[]string{
 				"id AS pkg_id",
 				"url AS pkg_url",
-				"vendor AS pkg_vendor",
-				"vendor_uri AS pkg_vendor_uri",
+				"provider AS pkg_provider",
+				"provider_host AS pkg_provider_host",
+				"provider_uri AS pkg_provider_uri",
 				"title AS pkg_title",
 				"description AS pkg_description",
 				"readme AS pkg_readme",
@@ -191,7 +283,7 @@ func bindMonpkgOpts(opts *MonpkgOpts) (database.SelectBuilder, database.QueryVar
 			},
 			pkgTB,
 		)...)
-		br.Join = append(br.Join, fmt.Sprintf("%s ON %[1]s.id = %s.pkg_id", pkgTB, monpkgTB))
+		br.Join = append(br.Join, fmt.Sprintf("INNER JOIN %s ON %[1]s.id = %s.pkg_id", pkgTB, monpkgTB))
 	}
 
 	return br, args

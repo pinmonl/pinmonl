@@ -8,6 +8,7 @@ import (
 	"github.com/pinmonl/pinmonl/monler/docker"
 	"github.com/pinmonl/pinmonl/monler/github"
 	"github.com/pinmonl/pinmonl/monler/gitlab"
+	"github.com/pinmonl/pinmonl/monler/helm"
 	"github.com/pinmonl/pinmonl/monler/npm"
 )
 
@@ -31,6 +32,9 @@ func initMonler(cfg *config.Config, ss stores) *monler.Repository {
 	}
 	if dockerPrd, err := newDockerProvider(); err == nil {
 		repo.Register(dockerPrd)
+	}
+	if helmPrd, err := newHelmProvider(); err == nil {
+		repo.Register(helmPrd)
 	}
 
 	return repo
@@ -57,4 +61,8 @@ func newNpmProvider() (*npm.Provider, error) {
 
 func newDockerProvider() (*docker.Provider, error) {
 	return docker.NewProvider(&docker.ProviderOpts{})
+}
+
+func newHelmProvider() (*helm.Provider, error) {
+	return helm.NewProvider(&helm.ProviderOpts{})
 }
