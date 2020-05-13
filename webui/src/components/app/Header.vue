@@ -20,14 +20,10 @@
 </template>
 
 <script>
-import Hamburger from './Hamburger.vue'
-import IconButton from '@/components/form/IconButton.vue'
 import LogoSVG from '@/assets/logo.svg'
 
 export default {
   components: {
-    Hamburger,
-    IconButton,
     LogoSVG,
   },
   props: {

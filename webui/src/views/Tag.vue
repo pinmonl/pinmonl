@@ -47,27 +47,17 @@
 import { formatRepeatParam } from '@/pkgs/utils'
 import Box from '@/components/app/Box.vue'
 import Button from '@/components/form/Button.vue'
-import Container from '@/components/app/Container.vue'
-import Header from '@/components/app/Header.vue'
-import IconButton from '@/components/form/IconButton.vue'
 import Modal from '@/components/modal/Modal.vue'
-import Nav from '@/components/app/Nav.vue'
 import TagDetail from '@/components/tag/TagDetail.vue'
 import TagNode from '@/components/tag/TagNode.vue'
-import ThreeColumn from '@/components/app/ThreeColumn.vue'
 
 export default {
   components: {
     Box,
     Button,
-    Container,
-    Header,
-    IconButton,
     Modal,
-    Nav,
     TagDetail,
     TagNode,
-    ThreeColumn,
   },
   props: {
     id: {

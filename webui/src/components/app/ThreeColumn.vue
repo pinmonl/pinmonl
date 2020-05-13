@@ -14,16 +14,6 @@
   </div>
 </template>
 
-<script>
-import Footer from './Footer.vue'
-
-export default {
-  components: {
-    Footer,
-  },
-}
-</script>
-
 <style lang="scss" module>
 .threeColumn {
   @apply h-full;
