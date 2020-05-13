@@ -54,6 +54,6 @@ func TestReport(t *testing.T) {
 		assert.Equal(t, "v2.0.0", rep.Tag().Value)
 		assert.Equal(t, true, rep.Next())
 		assert.Equal(t, "v1.0.0", rep.Tag().Value)
-		assert.Equal(t, 4, len(rep.Stats()))
+		assert.Equal(t, 3, len(rep.Stats()))
 	}
 }

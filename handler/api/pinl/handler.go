@@ -18,7 +18,7 @@ import (
 )
 
 // HandleList returns pinls.
-func HandleList(pinls store.PinlStore, taggables store.TaggableStore) http.HandlerFunc {
+func HandleList(pinls store.PinlStore, taggables store.TaggableStore, monpkgs store.MonpkgStore, stats store.StatStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		p := middleware.PaginationFrom(ctx)
@@ -39,9 +39,17 @@ func HandleList(pinls store.PinlStore, taggables store.TaggableStore) http.Handl
 			}
 		}
 
-		resp := make([]interface{}, len(ms))
+		pkgMap, statMap, err := listPkgsAndStats(ctx, monpkgs, stats, ms...)
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
+
+		resp := make([]Body, len(ms))
 		for i, m := range ms {
-			resp[i] = NewBody(m).WithTags(tsm[m.ID])
+			resp[i] = NewBody(m).
+				WithTags(tsm[m.ID]).
+				WithPkgs(pkgMap[m.MonlID], statMap)
 		}
 		response.JSON(w, resp)
 	}
@@ -129,12 +137,12 @@ func HandleCreate(
 			return
 		}
 
-		b := NewBody(m).WithTags(ts)
+		resp := NewBody(m).WithTags(ts)
 		go func() {
 			dp.SyncPinl(m)
-			pubsub.Publish(NewCreateMessage(b))
+			pubsub.Publish(NewCreateMessage(resp))
 		}()
-		response.JSON(w, b)
+		response.JSON(w, resp)
 	}
 }
 
@@ -146,6 +154,7 @@ func HandleUpdate(
 	dp *queue.Dispatcher,
 	images store.ImageStore,
 	pkgs store.PkgStore,
+	monpkgs store.MonpkgStore,
 	stats store.StatStore,
 	pubsub *pubsub.Server,
 ) http.HandlerFunc {
@@ -191,12 +200,20 @@ func HandleUpdate(
 			return
 		}
 
-		b := NewBody(m).WithTags(ts)
+		pkgMap, statMap, err := listPkgsAndStats(ctx, monpkgs, stats, m)
+		if err != nil {
+			response.InternalError(w, err)
+			return
+		}
+
+		resp := NewBody(m).
+			WithTags(ts).
+			WithPkgs(pkgMap[m.MonlID], statMap)
 		go func() {
 			dp.SyncPinl(m)
-			pubsub.Publish(NewUpdateMessage(b))
+			pubsub.Publish(NewUpdateMessage(resp))
 		}()
-		response.JSON(w, b)
+		response.JSON(w, resp)
 	}
 }
 

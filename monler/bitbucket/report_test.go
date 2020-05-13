@@ -34,6 +34,6 @@ func TestReport(t *testing.T) {
 	assert.Nil(t, err)
 	if rep != nil {
 		assert.Nil(t, rep.Download())
-		assert.Equal(t, 0, rep.Len())
+		assert.Equal(t, 2, rep.Len())
 	}
 }

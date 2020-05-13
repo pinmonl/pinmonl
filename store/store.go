@@ -67,6 +67,10 @@ func (s *dbStore) Rollback(ctx context.Context) error {
 }
 
 func (s *dbStore) Queryer(ctx context.Context) database.Queryer {
+	tx := TxFrom(ctx)
+	if tx != nil {
+		return tx
+	}
 	return s.db
 }
 

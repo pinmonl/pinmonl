@@ -160,11 +160,11 @@ func parseStats(res *packageResponse) (monler.StatList, error) {
 			Value:      strconv.Itoa(res.OpenIssuesCount),
 			RecordedAt: now,
 		},
-		&monler.Stat{
-			Kind:       monler.KindWatcher,
-			Value:      strconv.Itoa(res.WatchersCount),
-			RecordedAt: now,
-		},
+		// &monler.Stat{
+		// 	Kind:       monler.KindWatcher,
+		// 	Value:      strconv.Itoa(res.WatchersCount),
+		// 	RecordedAt: now,
+		// },
 		&monler.Stat{
 			Kind:       monler.KindStar,
 			Value:      strconv.Itoa(res.StargazersCount),

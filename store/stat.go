@@ -29,6 +29,7 @@ type StatStore interface {
 	List(context.Context, *StatOpts) ([]model.Stat, error)
 	Create(context.Context, *model.Stat) error
 	Update(context.Context, *model.Stat) error
+	Delete(context.Context, *model.Stat) error
 }
 
 // NewStatStore creates stat store.
@@ -104,6 +105,17 @@ func (s *dbStatStore) Update(ctx context.Context, m *model.Stat) error {
 			"is_latest":   ":stat_is_latest",
 			"labels":      ":stat_labels",
 		},
+		Where: []string{"id = :stat_id"},
+	}
+	_, err := e.NamedExec(br.String(), m)
+	return err
+}
+
+// Delete removes stats by id.
+func (s *dbStatStore) Delete(ctx context.Context, m *model.Stat) error {
+	e := s.Execer(ctx)
+	br := database.DeleteBuilder{
+		From: statTB,
 		Where: []string{"id = :stat_id"},
 	}
 	_, err := e.NamedExec(br.String(), m)

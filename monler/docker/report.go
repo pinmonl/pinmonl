@@ -61,11 +61,19 @@ func (r *Report) Stats() []*monler.Stat {
 
 // Next checks whether has next tag and moves the cursor.
 func (r *Report) Next() bool {
+	if r.cursor+1 < r.Len() {
+		r.cursor++
+		return true
+	}
 	return false
 }
 
 // Prev checks whether has previous tag and moves the cursor.
 func (r *Report) Prev() bool {
+	if r.cursor-1 >= 0 {
+		r.cursor--
+		return true
+	}
 	return false
 }
 

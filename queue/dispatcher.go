@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -314,37 +315,100 @@ func saveReportStats(ctx context.Context, stats store.StatStore, report monler.R
 
 // saveReportTags saves report tags.
 func saveReportTags(ctx context.Context, stats store.StatStore, report monler.Report, pkg model.Pkg) error {
-	opts := &store.StatOpts{
-		PkgID: pkg.ID,
-		Kind:  string(monler.KindTag),
+	if report.LatestTag() == nil {
+		return fmt.Errorf("%s does not have latest tag", textMarshalReport(report))
 	}
-	if report.LatestTag() != nil {
-		opts.After = report.LatestTag().RecordedAt.Time()
-	}
-	oldTags, err := stats.List(ctx, opts)
+
+	err := clearTagStats(ctx, stats, pkg)
 	if err != nil {
 		return err
 	}
 
+	ltag := report.LatestTag()
+	// Saves tags.
 	for report.Next() {
 		tag := report.Tag()
-		found := model.StatList(oldTags).FindValue(tag.Value)
-		if len(found) > 0 {
-			break
-		}
 
+		// Saves stat and make as latest if match with report latestTag.
 		stat, err := parseStat(tag, pkg)
 		if err != nil {
 			return err
 		}
-		if ltag := report.LatestTag(); ltag != nil && tag.Value == ltag.Value{
+		if tag.Value == ltag.Value {
 			stat.IsLatest = true
 		}
 		err = stats.Create(ctx, stat)
 		if err != nil {
 			return err
 		}
+
+		// Saves substats if available.
+		_, err = saveTagSubstats(ctx, stats, tag, *stat, pkg)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
+}
+
+// saveSubstats parses substats and saves into database recursively.
+func saveTagSubstats(ctx context.Context, stats store.StatStore, rawStat *monler.Stat, parent model.Stat, pkg model.Pkg) ([]*model.Stat, error) {
+	if parent.ID == "" {
+		return nil, errors.New("parent stat is not saved yet")
+	}
+	var out []*model.Stat
+	for _, rawSubstat := range rawStat.Substats {
+		stat, err := parseStat(rawSubstat, pkg)
+		if err != nil {
+			return nil, err
+		}
+		stat.ParentID = parent.ID
+		err = stats.Create(ctx, stat)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, stat)
+
+		_, err = saveTagSubstats(ctx, stats, rawSubstat, *stat, pkg)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
+func clearTagStats(ctx context.Context, stats store.StatStore, pkg model.Pkg) error {
+	tags, err := stats.List(ctx, &store.StatOpts{
+		PkgID: pkg.ID,
+		Kind: string(monler.KindTag),
+	})
+	if err != nil {
+		return err
+	}
+	// Appends tag id to parents and deletes from DB.
+	var parents []string
+	for _, t := range tags {
+		parents = append(parents, t.ID)
+		err := stats.Delete(ctx, &t)
+		if err != nil {
+			return err
+		}
+	}
+	// Gets all substats.
+	substats, err := stats.List(ctx, &store.StatOpts{
+		PkgID: pkg.ID,
+		ParentIDs: parents,
+	})
+	if err != nil {
+		return err
+	}
+	for _, s := range substats {
+		err := stats.Delete(ctx, &s)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

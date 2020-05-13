@@ -17,6 +17,7 @@ func NewBody(p model.Pinl) Body {
 	return Body{
 		Pinl: p,
 		Tags: make([]string, 0),
+		Pkgs: make([]pkg.Body, 0),
 	}
 }
 

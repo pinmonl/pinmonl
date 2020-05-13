@@ -57,14 +57,14 @@ func (s *Server) Handler() http.Handler {
 	r.Route("/pinl", func(r chi.Router) {
 		r.Use(user.Authorize())
 		r.With(pagination).
-			Get("/", pinl.HandleList(s.pinls, s.taggables))
+			Get("/", pinl.HandleList(s.pinls, s.taggables, s.monpkgs, s.stats))
 		r.Get("/page-info", pinl.HandlePageInfo(s.pinls))
 		r.Post("/", pinl.HandleCreate(s.pinls, s.tags, s.taggables, s.dp, s.images, s.pkgs, s.stats, s.pubsub))
 		r.Route("/{pinl}", func(r chi.Router) {
 			r.Use(pinl.BindByID("pinl", s.pinls))
 			r.Use(pinl.RequireOwner())
 			r.Get("/", pinl.HandleFind(s.taggables, s.monpkgs, s.pkgs, s.stats))
-			r.Put("/", pinl.HandleUpdate(s.pinls, s.tags, s.taggables, s.dp, s.images, s.pkgs, s.stats, s.pubsub))
+			r.Put("/", pinl.HandleUpdate(s.pinls, s.tags, s.taggables, s.dp, s.images, s.pkgs, s.monpkgs, s.stats, s.pubsub))
 			r.Delete("/", pinl.HandleDelete(s.pinls, s.taggables, s.pubsub))
 		})
 	})
@@ -77,7 +77,7 @@ func (s *Server) Handler() http.Handler {
 		r.Post("/", tag.HandleCreate(s.tags))
 		r.Route("/{tag}", func(r chi.Router) {
 			r.With(
-				tag.BindByName("tag", s.tags),
+				tag.BindByID("tag", s.tags),
 				tag.RequireOwner(),
 			).Get("/", tag.HandleFind())
 			r.Route("/", func(r chi.Router) {

@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"regexp"
 	"sort"
+	"strings"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/pinmonl/pinmonl/monler"
 	"github.com/pinmonl/pinmonl/pkg/payload"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
 // ReportOpts defines the options of creating report.
@@ -159,22 +160,28 @@ func (r *Report) download() error {
 	}
 	r.tags = tags
 	r.latestTag = monler.StatList(tags).LatestStable()
+	// Sorts tags by date if tags are not using semver.
+	if r.latestTag == nil && len(tags) > 0 {
+		sort.Sort(sort.Reverse(monler.StatByDate(tags)))
+		r.tags = tags
+		r.latestTag = tags[0]
+	}
 
 	return nil
 }
 
 func parseTags(repo *git.Repository) ([]*monler.Stat, error) {
-	iter, err := repo.TagObjects()
+	iter, err := repo.Tags()
 	if err != nil {
 		return nil, err
 	}
 	var tags []*monler.Stat
-	err = iter.ForEach(func(tag *object.Tag) error {
-		pt, err := parseTag(tag)
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
+		tag, err := parseTag(repo, ref)
 		if err != nil {
 			return err
 		}
-		tags = append(tags, pt)
+		tags = append(tags, tag)
 		return nil
 	})
 	if err != nil {
@@ -184,11 +191,26 @@ func parseTags(repo *git.Repository) ([]*monler.Stat, error) {
 	return tags, nil
 }
 
-func parseTag(tag *object.Tag) (*monler.Stat, error) {
+func parseTag(repo *git.Repository, ref *plumbing.Reference) (*monler.Stat, error) {
+	// Parse for annotated tag.
+	tag, err := repo.TagObject(ref.Hash())
+	if err == nil {
+		return &monler.Stat{
+			Kind:       monler.KindTag,
+			Value:      tag.Name,
+			RecordedAt: field.Time(tag.Tagger.When),
+		}, nil
+	}
+
+	// Parse for lightweight tag.
+	commit, err := repo.CommitObject(ref.Hash())
+	if err != nil {
+		return nil, err
+	}
 	return &monler.Stat{
 		Kind:       monler.KindTag,
-		Value:      tag.Name,
-		RecordedAt: field.Time(tag.Tagger.When),
+		Value:      strings.TrimPrefix(string(ref.Name()), "refs/tags/"),
+		RecordedAt: field.Time(commit.Committer.When),
 	}, nil
 }
 

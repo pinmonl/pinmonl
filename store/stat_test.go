@@ -22,8 +22,8 @@ func TestStatStore(t *testing.T) {
 	}()
 
 	mockData := []*model.Stat{
-		{Kind: "tag", Value: "v1.0.0", RecordedAt: field.Time(time.Now().Round(time.Second).UTC()), IsLatest: false, Labels: field.Labels{"a1": "v1"}},
-		{Kind: "tag", Value: "v2.0.0", RecordedAt: field.Time(time.Now().Round(time.Second).UTC()), IsLatest: true, Labels: field.Labels{"a2": "v2"}},
+		{PkgID: "test-pkg-id1", Kind: "tag", Value: "v1.0.0", RecordedAt: field.Time(time.Now().Round(time.Second).UTC()), IsLatest: false, Labels: field.Labels{"a1": "v1"}},
+		{PkgID: "test-pkg-id2", Kind: "tag", Value: "v2.0.0", RecordedAt: field.Time(time.Now().Round(time.Second).UTC()), IsLatest: true, Labels: field.Labels{"a2": "v2"}},
 	}
 
 	store := NewStore(db)
@@ -76,6 +76,11 @@ func testStatList(ctx context.Context, stats StatStore, mockData []*model.Stat) 
 
 		want = nil
 		got, err = stats.List(ctx, &StatOpts{After: time.Now().Add(time.Minute)})
+		assert.Nil(t, err)
+		assert.Equal(t, want, got)
+
+		want = deRef(mockData)
+		got, err = stats.List(ctx, &StatOpts{PkgIDs: []string{"test-pkg-id1", "test-pkg-id2"}})
 		assert.Nil(t, err)
 		assert.Equal(t, want, got)
 	}
