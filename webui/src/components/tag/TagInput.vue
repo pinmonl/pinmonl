@@ -7,6 +7,7 @@
         :key="tag.id"
         :tag="tag"
         :class="$style.tag"
+        :lg="lg"
       />
     </div>
     <Autocomplete
@@ -70,6 +71,10 @@ export default {
     },
     placeholder: {
       type: String,
+    },
+    lg: {
+      type: Boolean,
+      default: false,
     },
   },
   data () {

@@ -4,6 +4,7 @@ export default {
   namespaced: true,
   state: {
     tags: [],
+    parents: {},
   },
   getters: {
     tags: (state) => {
@@ -44,6 +45,9 @@ export default {
     getByParent: () => (tags, parentId) => {
       return tags.filter(tag => tag.parentId == parentId)
     },
+    parents: (state) => {
+      return state.parents
+    },
   },
   mutations: {
     SET_TAGS (state, tags) {
@@ -73,6 +77,9 @@ export default {
         ...state.tags.slice(i + 1),
       ]
     },
+    SET_PARENTS (state, { tag = {}, parents = [] }) {
+      state.parents[tag.id] = parents
+    },
   },
   actions: {
     async fetchAll ({ dispatch, commit }) {
@@ -89,7 +96,7 @@ export default {
         return await resp.json()
       }
     },
-    async find ({ rootGetters }, data) {
+    async find ({ rootGetters, commit }, data) {
       const { id } = data
       const req = rootGetters.newRequest(`/api/tag/${id}`)
       const resp = await fetch(req)
@@ -97,7 +104,9 @@ export default {
         throw resp
       }
       if (resp.ok) {
-        return await resp.json()
+        const tag = await resp.json()
+        commit('UPDATE_TAG', tag)
+        return tag
       }
     },
     async create ({ rootGetters, commit }, data) {
@@ -144,6 +153,20 @@ export default {
         commit('DELETE_TAG', data)
         return
       }
+    },
+    getParents ({ getters, commit }, tag) {
+      let parents = getters.parents[tag.id]
+      if (!parents) {
+        let parentId = tag.parentId
+        parents = []
+        while (parentId) {
+          const parent = getters.find(getters.tags, parentId)
+          parents.unshift(parent)
+          parentId = parent.parentId
+        }
+        commit('SET_PARENTS', { tag, parents })
+      }
+      return parents
     },
   },
 }

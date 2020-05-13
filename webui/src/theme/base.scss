@@ -1,8 +1,11 @@
+@import url('https://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext');
+
 html,
 body {
   @apply w-full;
   @apply h-full;
   @apply m-0;
+  @apply leading-none;
 }
 
 :root {
@@ -43,4 +46,20 @@ button {
 
 [contenteditable] {
   @apply outline-none;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 20px;
+  &:hover {
+    background: #aaa;
+  }
 }

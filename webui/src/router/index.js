@@ -1,12 +1,15 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import store from '@/store'
-import { abstractView } from './utils'
 import Account from '@/views/Account.vue'
 import Bookmark from '@/views/Bookmark.vue'
+import Container from '@/views/Container.vue'
 import Login from '@/views/Login.vue'
 import Share from '@/views/Share.vue'
+import Sponsors from '@/views/Sponsors.vue'
+import SupportUs from '@/views/SupportUs.vue'
 import Tag from '@/views/Tag.vue'
+import ThreeColumn from '@/views/ThreeColumn.vue'
 import routesToSharing from './sharing'
 
 Vue.use(VueRouter)
@@ -15,45 +18,71 @@ const routes = [
   {
     path: '/',
     name: 'home',
-    redirect: { name: 'bookmark' },
+    redirect: { name: 'bookmark.list' },
     meta: { auth: true, showNav: true },
-    component: abstractView,
+    component: Container,
     children: [
       {
-        path: 'bookmark/new',
-        name: 'bookmark.new',
-        component: Bookmark,
-        props: () => ({ new: true }),
+        path: 'bookmark',
+        component: ThreeColumn,
+        meta: { navShowNewBookmark: true },
+        children: [
+          {
+            path: '',
+            name: 'bookmark.list',
+            component: Bookmark,
+          },
+          {
+            path: 'new',
+            name: 'bookmark.new',
+            component: Bookmark,
+            props: () => ({ isNew: true }),
+          },
+          {
+            path: ':id',
+            name: 'bookmark',
+            component: Bookmark,
+            props: true,
+            meta: { noSearch: true },
+          },
+        ],
       },
       {
-        path: 'bookmark/:id?',
-        name: 'bookmark',
-        component: Bookmark,
-        props: true,
-      },
-      {
-        path: 'tag/new',
-        name: 'tag.new',
-        component: Tag,
-        props: () => ({ new: true }),
-      },
-      {
-        path: 'tag/:id?',
-        name: 'tag',
-        component: Tag,
-        props: true,
-      },
-      {
-        path: 'tag/c/:parentName+',
-        name: 'tag.children',
-        component: Tag,
-        props: true,
+        path: 'tag',
+        component: ThreeColumn,
+        meta: { navShowNewTag: true },
+        children: [
+          {
+            path: '',
+            name: 'tag.list',
+            component: Tag,
+          },
+          {
+            path: 'new',
+            name: 'tag.new',
+            component: Tag,
+            props: () => ({ isNew: true }),
+          },
+          {
+            path: ':id',
+            name: 'tag',
+            component: Tag,
+            props: true,
+            meta: { noSearch: true },
+          },
+          {
+            path: 'c/:parentName+',
+            name: 'tag.children',
+            component: Tag,
+            props: true,
+          },
+        ],
       },
       {
         path: 'share/new',
         name: 'share.new',
         component: Share,
-        props: { new: true },
+        props: () => ({ isNew: true }),
       },
       {
         path: 'share/:id?',
@@ -65,6 +94,16 @@ const routes = [
         path: 'account',
         name: 'account',
         component: Account,
+      },
+      {
+        path: 'sponsors',
+        name: 'sponsors',
+        component: Sponsors,
+      },
+      {
+        path: 'support-us',
+        name: 'support-us',
+        component: SupportUs,
       },
     ],
   },
@@ -80,7 +119,7 @@ const routes = [
     name: 'signup',
     component: Login,
     meta: { auth: false },
-    props: () => ({ new: true }),
+    props: () => ({ isNew: true }),
   },
 ]
 

@@ -2,7 +2,7 @@
   <div :class="wrapperClass">
     <Backdrop
       v-if="isFocusing"
-      @click="handleBlur"
+      @click="blur"
     />
     <Autocomplete
       :options="tags"
@@ -15,9 +15,9 @@
       ref="autocomplete"
     >
       <template #input="slotProps">
-        <div :class="[$style.icon, {[$style.tagSign_active]: isTagMode}]">
-          <Icon v-if="!isTagMode" name="magnify" />
-          <Icon v-if="isTagMode" name="pound" />
+        <div :class="[$style.icon, {[$style.tagSign_active]: isTagMode}]" @click="isFocusing ? toggleTagMode() : focus()">
+          <Icon v-if="!isFocusing" name="magnify" />
+          <Icon v-if="isFocusing" name="pound" />
         </div>
         <div :class="$style.inputWrapper" @click="focus">
           <div v-for="tag in selectedTags" :key="tag.id" :class="$style.tagContainer">
@@ -58,6 +58,10 @@ export default {
     event: 'input',
   },
   props: {
+    disableKeys: {
+      type: Boolean,
+      default: false,
+    },
     search: {
       type: String,
       default: '',
@@ -77,12 +81,17 @@ export default {
   created () {
     this.initSearch()
   },
+  mounted () {
+    document.addEventListener('keyup', this.handleKeyPress)
+  },
+  beforeDestroy () {
+    document.removeEventListener('keyup', this.handleKeyPress)
+  },
   computed: {
     query: {
       get () {
-        return this.isTagMode
-          ? this.input.replace(/^.*?#/, '')
-          : this.input
+        const { search, tag } = this.inputParts
+        return this.isTagMode ? tag : search
       },
       set (newValue) {
         let query = newValue
@@ -106,8 +115,10 @@ export default {
         return []
       }
       const tags = (this.tagSrc == null) ? this.$store.getters['tag/tags'] : this.tagSrc
-      const query = this.query.replace(/^.*#/, '')
-      return this.$store.getters['tag/search'](tags, query)
+      return this.$store.getters['tag/search'](tags, this.inputParts.tag)
+    },
+    inputParts () {
+      return this.parseInput(this.input)
     },
   },
   methods: {
@@ -116,17 +127,32 @@ export default {
     },
     blur () {
       this.$refs.input.blur()
+      this.handleBlur()
+    },
+    parseInput (input) {
+      const splits = input.split('#')
+      const parts = { search: splits[0], tag: null }
+      if (splits.length == 2) {
+        parts.tag = splits[1]
+      }
+      return parts
+    },
+    toInput (parts) {
+      const { search, tag } = parts
+      if (tag === null || tag.includes('#')) {
+        return search
+      }
+      return search + '#' + tag
     },
     handleFocus () {
       this.isFocusing = true
     },
     handleBlur () {
       this.isFocusing = false
-      this.input = this.input.replace(/#.*$/, '')
     },
     resetQuery () {
       if (this.isTagMode) {
-        this.input = this.input.replace(/#.*$/, '#')
+        this.input = this.toInput({ ...this.inputParts, tag: '' })
       }
       this.focus()
     },
@@ -140,6 +166,7 @@ export default {
     handleEnter () {
       if (this.isTagMode) {
         this.$refs.autocomplete.autoToggle()
+        this.input = this.toInput({ ...this.inputParts, tag: null })
         return true
       }
 
@@ -161,6 +188,35 @@ export default {
       const { input, tags } = this.parseSearch()
       this.input = input
       this.selectedTags = tags
+    },
+    toggleTagMode () {
+      const parts = this.inputParts
+      parts.tag = this.isTagMode ? null : ''
+      this.input = this.toInput(parts)
+      this.focus()
+    },
+    handleKeyPress (e) {
+      if (this.disableKeys) {
+        return
+      }
+
+      if (!this.isFocusing) {
+        if (e.key == '/') {
+          this.focus()
+        }
+
+        if (this.search.length > 0 && e.key == 'Escape') {
+          this.input = ''
+          this.selectedTags = []
+          this.handleEnter()
+        }
+      }
+
+      if (this.isFocusing) {
+        if (e.key == 'Escape') {
+          this.blur()
+        }
+      }
     },
   },
   watch: {
@@ -186,7 +242,8 @@ export default {
   @apply border-control;
   @apply rounded;
   min-width: 300px;
-  @apply bg-clear;
+  @apply bg-container;
+  @apply leading-normal;
 
   @screen sm-down {
     @apply min-w-0;
@@ -200,12 +257,14 @@ export default {
 .icon {
   @apply absolute;
   margin-left: 0.5rem;
-  @apply text-text-secondary;
+  @apply text-disabled;
   @apply top-0;
   @apply left-0;
   @apply h-input;
   @apply flex;
   @apply items-center;
+  @apply z-10;
+  @apply cursor-pointer;
 }
 
 .tagSign_active {

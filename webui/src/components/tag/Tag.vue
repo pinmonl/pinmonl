@@ -1,5 +1,5 @@
 <template>
-  <div :class="$style.tag" v-on="$listeners">
+  <div :class="tagClasses" v-on="$listeners">
     {{ label }}
   </div>
 </template>
@@ -10,8 +10,17 @@ export default {
     tag: {
       type: [Object, String],
     },
+    lg: {
+      type: Boolean,
+      default: false,
+    },
   },
   computed: {
+    tagClasses () {
+      return [this.$style.tag, {
+        [this.$style.tag_lg]: this.lg,
+      }]
+    },
     isObject () {
       return typeof this.tag == 'object'
     },
@@ -32,7 +41,12 @@ export default {
   @apply px-2;
   @apply rounded;
   @apply bg-tag-bg;
-  @apply font-bold;
   @apply whitespace-no-wrap;
+  @apply border;
+  @apply border-tag-border;
+}
+
+.tag_lg {
+  @apply text-sm;
 }
 </style>

@@ -55,7 +55,7 @@ export default {
   @apply z-10;
   @apply flex;
   @apply h-full;
-  @apply bg-clear;
+  top: theme('height.header');
 
   @screen xl {
     width: 600px;

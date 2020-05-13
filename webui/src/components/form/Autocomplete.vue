@@ -245,7 +245,7 @@ export default {
   @apply overflow-x-hidden;
   @apply overflow-y-auto;
   max-height: 300px;
-  @apply bg-clear;
+  @apply bg-container;
   @apply z-50;
 }
 
@@ -260,7 +260,7 @@ export default {
 }
 
 .option_active {
-  @apply bg-bg;
+  @apply bg-background;
 }
 
 .option_selected {

@@ -1,8 +1,6 @@
 <template>
   <input
-    :class="[$style.input, {
-      [$style.input_border]: !noStyle,
-    }]"
+    :class="inputClass"
     v-bind="props"
     v-on="listeners"
   />
@@ -44,6 +42,12 @@ export default {
         },
       }
     },
+    inputClass () {
+      return [this.$style.input, {
+        [this.$style.input_error]: this.error,
+        [this.$style.input_border]: !this.noStyle,
+      }]
+    },
   },
   methods: {
     focus () {
@@ -73,6 +77,14 @@ export default {
   &:hover,
   &:focus {
     @apply border-primary;
+  }
+}
+
+.input_error {
+  &,
+  &:hover,
+  &:focus {
+    @apply border-error;
   }
 }
 </style>

@@ -1,9 +1,6 @@
 <template>
   <div :class="appClass">
     <IconInstall />
-    <Animation enter-active-class="slideInLeft" leave-active-class="slideOutLeft">
-      <Nav :class="$style.nav" v-if="isDesktop ? showNav : showMobileNav" />
-    </Animation>
     <div :class="$style.body">
       <router-view/>
     </div>
@@ -11,7 +8,6 @@
 </template>
 
 <script>
-import Nav from '@/components/app/Nav.vue'
 import { mapGetters, mapActions, mapMutations } from 'vuex'
 import IconInstall from '@/components/icon/IconInstall.vue'
 import { mediaQueries } from '@/theme/variables'
@@ -20,7 +16,6 @@ const mdQuery = mediaQueries.get('md')
 
 export default {
   components: {
-    Nav,
     IconInstall,
   },
   async created () {
@@ -61,7 +56,8 @@ export default {
       await Promise.all([
         this.$store.dispatch('pinl/fetchAll'),
         this.$store.dispatch('tag/fetchAll'),
-        this.$store.dispatch('share/fetchAll')
+        this.$store.dispatch('share/fetchAll'),
+        this.$store.dispatch('subscribe'),
       ])
     },
     ...mapMutations({
@@ -72,11 +68,15 @@ export default {
     ]),
   },
   watch: {
-    authed (authed) {
+    'authed' (authed) {
       if (authed) {
         this.fetchUserData()
       }
     },
+  },
+  metaInfo: {
+    title: 'Home',
+    titleTemplate: '%s | Pinmonl',
   },
 }
 </script>
@@ -90,12 +90,13 @@ export default {
   @apply w-full;
   @apply text-text-primary;
   @apply overflow-hidden;
+  @apply bg-background;
 }
 
 .app_desktopNav {
-  .body {
-    margin-left: theme('width.nav');
-  }
+  // .body {
+  //   margin-left: theme('width.nav');
+  // }
 }
 
 .nav {

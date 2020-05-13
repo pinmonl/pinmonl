@@ -1,69 +1,69 @@
 <template>
-  <div :class="$style.container">
-    <Header :class="$style.header">
-      <h2 :class="$style.title">Bookmark</h2>
-      <div :class="$style.search">
-        <Search v-model="search" />
-      </div>
-      <Anchor :class="$style.addBtn" :to="{ name: 'bookmark.new' }">
-        <IconButton name="add" block />
-      </Anchor>
-    </Header>
-    <div :class="$style.list">
+  <div :class="$style.bookmarkView">
+    <Box v-if="pinls.length > 0">
       <template v-for="pinl in pinls">
-        <div :key="pinl.id">
-          <Pinl :pinl="pinl">
-            <template #before>
-              <Anchor :to="{ name: 'bookmark', params: {id: pinl.id} }" :replace="showPanel" inset />
-            </template>
-          </Pinl>
-          <Divider />
-        </div>
+        <Pinl :pinl="pinl" :key="pinl.id" :class="$style.pinl" :active="id == pinl.id">
+          <template #before>
+            <Anchor :to="{ name: 'bookmark', params: {id: pinl.id} }" :replace="showPanel" inset />
+          </template>
+        </Pinl>
       </template>
-    </div>
-    <RightPanel
+    </Box>
+    <Box v-else :class="$style.emptyResult">Empty.</Box>
+
+    <Modal
       v-if="showPanel"
+      @backdrop="handlePanelClose"
       @close="handlePanelClose"
-      @edit="handlePanelEdit"
-      @save="handlePanelSave"
-      @cancel="handlePanelCancel"
-      :noSave="!editing"
-      :noCancel="!editing || $props.new"
-      :noEdit="editing"
+      :disable-keys="editing"
     >
+      <template #header="{ headerClass }" v-if="editing">
+        <div :class="headerClass" v-text="`${isNew ? 'New' : 'Update'} Bookmark`" />
+      </template>
       <PinlDetail
-        v-model="model"
-        :class="$style.detail"
+        :pinl="model"
         :loading="loading"
-        :editable="editing"
-      />
-    </RightPanel>
+        :editable.sync="editing"
+        @input="handlePanelSave"
+        @cancel="isNew ? handlePanelClose() : null"
+      >
+        <template #controls="slotProps">
+          <div :class="$style.panelButtons">
+            <template v-if="!editing">
+              <Button @click="handlePanelEdit">Edit</Button>
+            </template>
+            <template v-else>
+              <Button :disabled="slotProps.error" @click="slotProps.submit">Save</Button>
+              <Button @click="slotProps.cancel" light>Cancel</Button>
+            </template>
+          </div>
+        </template>
+      </PinlDetail>
+    </Modal>
   </div>
 </template>
 
 <script>
-import Header from '@/components/app/Header.vue'
-import IconButton from '@/components/form/IconButton.vue'
+import Box from '@/components/app/Box.vue'
+import Button from '@/components/form/Button.vue'
+import Modal from '@/components/modal/Modal.vue'
 import Pinl from '@/components/pinl/Pinl.vue'
 import PinlDetail from '@/components/pinl/PinlDetail.vue'
-import RightPanel from '@/components/modal/RightPanel.vue'
-import Search from '@/components/app/Search.vue'
 
 export default {
   components: {
-    Header,
-    IconButton,
+    Box,
+    Button,
+    Modal,
     Pinl,
     PinlDetail,
-    RightPanel,
-    Search,
   },
   props: {
     id: {
       type: String,
       default: null,
     },
-    new: {
+    isNew: {
       type: Boolean,
       default: false,
     },
@@ -87,7 +87,7 @@ export default {
       return !!this.id
     },
     showPanel () {
-      return this.new || this.hasId
+      return this.isNew || this.hasId
     },
     pinls () {
       const { input, tags } = this.$store.getters['pinl/parseSearch'](this.search)
@@ -112,14 +112,14 @@ export default {
   },
   methods: {
     handlePanelClose () {
-      this.$router.push({ name: 'bookmark' })
+      this.$router.push({ name: 'bookmark.list' })
     },
     async initModel () {
-      this.editing = this.new
+      this.editing = this.isNew
       this.loading = true
       if (this.hasId) {
         this.original = await this.find(this.id)
-      } else if (this.new) {
+      } else if (this.isNew) {
         this.original = this.$store.getters['pinl/new']()
       }
       this.model = this.original
@@ -129,11 +129,9 @@ export default {
       this.editing = true
     },
     handlePanelCancel () {
-      this.editing = false
-      this.model = this.original
     },
-    async handlePanelSave () {
-      const model = await this.save(this.model)
+    async handlePanelSave (newModel) {
+      const model = await this.save(newModel)
       this.model = this.original = model
       this.editing = false
     },
@@ -154,49 +152,40 @@ export default {
     id () {
       this.initModel()
     },
-    new () {
+    isNew () {
       this.initModel()
     },
+  },
+  metaInfo () {
+    let title = 'Bookmark'
+    if (this.hasId && this.model) {
+      title = `${this.model.title}`
+    }
+    if (this.isNew) {
+      title = `New ${title}`
+    }
+    return { title }
   },
 }
 </script>
 
 <style lang="scss" module>
-.container {
-  @apply relative;
-  @apply h-full;
-  @apply w-full;
-  @apply overflow-y-auto;
-  @apply scrolling-touch;
+.bookmarkView {
+  @apply leading-normal;
 }
 
-.header {
-}
-
-.title {
-  @apply flex-grow;
-}
-
-.search {
-  @apply relative;
-}
-
-.addBtn {
-}
-
-.list {
-}
-
-.pinl {
-  @apply border-b;
-  @apply border-solid;
-  border-color: theme('colors.divider');
-}
-
-.detail {
-  @apply h-full;
+.emptyResult {
   @apply p-4;
-  @apply overflow-y-auto;
-  @apply scrolling-touch;
+  @apply text-xs;
+}
+
+.panelButtons {
+  @apply flex;
+  @apply justify-end;
+  @apply text-xs;
+
+  > button {
+    @apply m-1;
+  }
 }
 </style>

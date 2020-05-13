@@ -1,21 +1,34 @@
 <template>
   <div :class="$style.header">
-    <Hamburger :class="$style.hamburger" @click="openNav" :active="showNav" />
-    <slot></slot>
-    <Anchor :to="{ name: 'account' }" :class="$style.account" v-if="!noAccount">
-      <IconButton name="accountCircle" />
-    </Anchor>
+    <!-- <Hamburger :class="$style.hamburger" @click="openNav" :active="showNav" /> -->
+    <div :class="$style.title">
+      <Anchor to="/">
+        <LogoSVG />
+      </Anchor>
+    </div>
+    <div :class="$style.centeredContent">
+      <slot></slot>
+    </div>
+    <div :class="$style.statusBar">
+      <!--
+      <Anchor :to="{ name: 'account' }" :class="$style.account" v-if="!noAccount">
+        <IconButton name="accountCircle" block />
+      </Anchor>
+      -->
+    </div>
   </div>
 </template>
 
 <script>
 import Hamburger from './Hamburger.vue'
 import IconButton from '@/components/form/IconButton.vue'
+import LogoSVG from '@/assets/logo.svg'
 
 export default {
   components: {
     Hamburger,
     IconButton,
+    LogoSVG,
   },
   props: {
     noAccount: {
@@ -39,30 +52,39 @@ export default {
 <style lang="scss" module>
 .header {
   @apply h-header;
-  @apply p-4;
-  @apply shadow-b-sm;
+  @apply px-4;
   @apply relative;
   @apply z-10;
   @apply flex;
   @apply items-center;
-
-  @screen sm-down {
-    @apply h-auto;
-  }
+  @apply justify-between;
+  @apply border-b;
 }
 
 .hamburger {
   @apply leading-0;
   @apply mr-2;
+  @apply absolute;
 
   @screen md {
     @apply hidden;
   }
 }
 
-.account {
-  @apply leading-0;
+.title {
+  @apply flex-shrink-0;
+  width: 36px;
+}
 
+.search {
+  @apply flex-shrink;
+}
+
+.statusBar {
+  @apply flex-shrink;
+}
+
+.account {
   @screen sm-down {
     @apply hidden;
   }

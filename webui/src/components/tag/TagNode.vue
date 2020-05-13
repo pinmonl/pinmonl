@@ -1,15 +1,15 @@
 <template>
-  <div :class="$style.container">
+  <div :class="containerClasses">
     <slot name="before"></slot>
     <div :class="$style.tagContainer">
-      <Tag :tag="tag" :class="$style.tag" />
+      <Tag :tag="tag" lg />
     </div>
     <Anchor :to="{ name: 'tag.children', params: {parentName} }" underline :class="$style.relContainer">
       <IconLabel name="tagMultiple">
         {{ childrenCount }}
       </IconLabel>
     </Anchor>
-    <Anchor :to="{ name: 'bookmark', query: bookmarkQuery }" underline :class="$style.relContainer">
+    <Anchor :to="{ name: 'bookmark.list', query: bookmarkQuery }" underline :class="$style.relContainer">
       <IconLabel name="bookmark">
         {{ bookmarksCount }}
       </IconLabel>
@@ -35,8 +35,17 @@ export default {
       type: Array,
       default: () => ([]),
     },
+    active: {
+      type: Boolean,
+      default: false,
+    },
   },
   computed: {
+    containerClasses () {
+      return [this.$style.container, {
+        [this.$style.container_active]: this.active,
+      }]
+    },
     children () {
       const tags = this.$store.getters['tag/tags']
       return this.$store.getters['tag/getByParent'](tags, this.tag.id)
@@ -71,17 +80,15 @@ export default {
   @apply items-center;
   @apply relative;
 
-  &:hover {
-    @apply bg-bg;
-  }
+  @include hover-highlight;
+}
+
+.container_active {
+  @include highlight;
 }
 
 .tagContainer {
   @apply flex-grow;
-}
-
-.tag {
-  @apply text-sm;
 }
 
 .relContainer {

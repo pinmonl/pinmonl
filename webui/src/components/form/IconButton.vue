@@ -1,6 +1,7 @@
 <template>
   <button v-on="$listeners" :class="buttonClass">
     <Icon :name="name" :class="$style.icon" />
+    <slot></slot>
   </button>
 </template>
 

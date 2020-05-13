@@ -1,4 +1,6 @@
 <script>
+import LogoSvg from '@/assets/logo.svg'
+
 export default {
   props: {
     tag: {
@@ -31,11 +33,7 @@ export default {
     renderLogo (h) {
       return h('div', {
         class: this.$style.logo,
-      }, [
-        h('img', {
-          attrs: { src: require('@/assets/logo.svg') },
-        }),
-      ])
+      }, [h(LogoSvg)])
     },
     renderName (h) {
       return h('div', 'Pinmonl')

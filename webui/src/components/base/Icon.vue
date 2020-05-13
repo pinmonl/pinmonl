@@ -19,7 +19,7 @@ export default {
   },
   computed: {
     containerClass () {
-      return [{
+      return [this.$style.container, {
         [this.$style.size_1x]: this.size === 1,
         [this.$style.size_fill]: this.size === 'fill',
       }]
@@ -30,6 +30,10 @@ export default {
 
 <style lang="scss" module>
 $size: 24px;
+
+.container {
+  @apply flex;
+}
 
 .size_1x {
   width: $size;

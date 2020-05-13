@@ -2,3 +2,16 @@
   $color: map-get($colors, $name);
   @return $color;
 }
+
+@mixin highlight {
+  @apply bg-hover-bg;
+  @apply border-hover-border;
+}
+
+@mixin hover-highlight {
+  @apply border;
+  @apply border-transparent;
+  &:hover {
+    @include highlight;
+  }
+}

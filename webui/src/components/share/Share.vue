@@ -62,7 +62,7 @@ export default {
   @apply items-center;
 
   &:hover {
-    @apply bg-bg;
+    @apply bg-container;
   }
 }
 

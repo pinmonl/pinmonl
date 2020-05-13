@@ -18,6 +18,7 @@ export default {
 .placeholder {
   @apply relative;
   @apply overflow-hidden;
+  @apply bg-container;
 
   &:before {
     content: '';

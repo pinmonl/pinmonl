@@ -17,7 +17,11 @@
       </InputGroup>
       <InputGroup>
         <Label>URL</Label>
-        <Input v-model="model.url" />
+        <Input v-model="model.url" :error="$v.model.url.$error" />
+        <template #errors v-if="$v.model.url.$error">
+          <p v-if="!$v.model.url.required">URL cannot be empty.</p>
+          <p v-if="!$v.model.url.url">Invalid URL.</p>
+        </template>
       </InputGroup>
       <InputGroup>
         <Label>Description</Label>
@@ -26,10 +30,6 @@
       <InputGroup>
         <Label>Tags</Label>
         <TagInput v-model="tags" :class="$style.tags" />
-      </InputGroup>
-      <InputGroup>
-        <Label>Readme</Label>
-        <Textarea ref="readme" v-model="model.readme" :class="$style.readme" />
       </InputGroup>
     </template>
 
@@ -43,11 +43,23 @@
       <div :class="$style.description" v-text="model.description" />
       <TagInput :class="$style.tags" :value="tags" disabled noStyle />
       <div :class="$style.pkgs">
-        <Pkg v-for="pkg in model.pkgs" :key="pkg.id" :pkg="pkg" />
+        <template v-for="(pkgs, provider) in groupedPkgs">
+          <div :key="provider" :class="$style.pkgProvider">
+            <PkgIcon :provider="provider" :class="$style.pkgProviderIcon" />
+            <div :class="$style.pkgs">
+              <Pkg v-for="pkg in pkgs" :key="pkg.id" :pkg="pkg" :class="$style.pkg" />
+            </div>
+          </div>
+        </template>
       </div>
-      <Divider :class="$style.divider" />
-      <div v-text="model.readme" :class="$style.readme" />
     </template>
+
+    <slot
+      name="controls"
+      :error="$v.$error"
+      :submit="handleSubmit"
+      :cancel="handleCancel"
+    />
   </div>
 </template>
 
@@ -56,14 +68,18 @@ import formMixin from '@/mixins/form'
 import modelMixin from '@/mixins/model'
 import placeholderMixin from '@/mixins/placeholder'
 import Img from '@/components/media/Img.vue'
-import Pkg from '@/components/monl/Pkg.vue'
+import Pkg from '@/components/pkg/Pkg.vue'
+import PkgIcon from '@/components/pkg/PkgIcon.vue'
 import TagInput from '@/components/tag/TagInput.vue'
+import { validationMixin } from 'vuelidate'
+import { required, url } from 'vuelidate/lib/validators'
 
 export default {
-  mixins: [formMixin, modelMixin({ prop: 'pinl' }), placeholderMixin],
+  mixins: [formMixin, modelMixin({ prop: 'pinl' }), placeholderMixin, validationMixin],
   components: {
     Img,
     Pkg,
+    PkgIcon,
     TagInput,
   },
   props: {
@@ -110,6 +126,45 @@ export default {
         this.model.tags = this.$store.getters['tag/mapName'](tags)
       },
     },
+    groupedPkgs () {
+      return this.model.pkgs.reduce((pkgs, pkg) => {
+        const { provider } = pkg
+        if (!pkgs[provider]) {
+          pkgs[provider] = []
+        }
+        pkgs[provider].push(pkg)
+        return pkgs
+      }, {})
+    },
+  },
+  methods: {
+    handleSubmit () {
+      this.$v.$touch()
+      if (this.$v.$error) {
+        return
+      }
+      this.syncModel()
+    },
+    handleCancel () {
+      this.$v.$reset()
+      this.revertModel()
+      this.$emit('update:editable', false)
+      this.$emit('cancel')
+    },
+  },
+  validations () {
+    if (!this.editable) {
+      return {}
+    }
+    return {
+      model: {
+        title: {},
+        url: { required, url },
+        description: {},
+        readme: {},
+        tags: {},
+      },
+    }
   },
 }
 </script>
@@ -159,5 +214,22 @@ export default {
 
 .phLineShort {
   width: 30%;
+}
+
+.pkgProvider {
+  @apply flex;
+}
+
+.pkgProviderIcon {
+  @apply flex-shrink-0;
+}
+
+.pkgs {
+  @apply flex-grow;
+}
+
+.pkg {
+  @apply block;
+  line-height: 24px;
 }
 </style>

@@ -6,6 +6,7 @@ Vue.use(Vuex)
 import auth from './auth'
 import http from './http'
 import modules from './modules'
+import ws from './ws'
 
 export default new Vuex.Store({
   state: {
@@ -25,6 +26,7 @@ export default new Vuex.Store({
   modules: {
     auth,
     http,
+    ws,
     ...modules,
   },
 })

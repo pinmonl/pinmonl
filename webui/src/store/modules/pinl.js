@@ -24,6 +24,9 @@ export default {
         }, true)
       })
     },
+    find: () => (pinls, id) => {
+      return pinls.find(p => p.id == id)
+    },
     searchByTitle: () => (pinls, q) => {
       return pinls.filter(pinl => pinl.title.includes(q))
     },
@@ -98,7 +101,7 @@ export default {
         return await resp.json()
       }
     },
-    async find ({ rootGetters }, data) {
+    async find ({ rootGetters, commit }, data) {
       const { id } = data
       const req = rootGetters.newRequest(`/api/pinl/${id}`)
       const resp = await fetch(req)
@@ -106,7 +109,9 @@ export default {
         throw resp
       }
       if (resp.ok) {
-        return await resp.json()
+        const pinl = await resp.json()
+        commit('UPDATE_PINL', pinl)
+        return pinl
       }
     },
     async create ({ rootGetters, commit }, data) {

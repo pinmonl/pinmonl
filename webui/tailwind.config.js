@@ -1,4 +1,5 @@
 const themeVars = require('./src/theme/variables.js')
+const boxGutter = '10px'
 
 module.exports = {
   separator: '_',
@@ -8,7 +9,7 @@ module.exports = {
         nav: '240px',
       },
       height: {
-        header: '80px',
+        header: '55px',
         input: '38px',
       },
       colors: () => {
@@ -38,7 +39,18 @@ module.exports = {
           'b': '0 0.5px 0.5px rgba(0, 0, 0, 0.05), 0 4px 4px rgba(0, 0, 0, 0.1)',
           'b-sm': '0 0.3px 0.3px rgba(0, 0, 0, 0.05), 0 2px 2px rgba(0, 0, 0, 0.1)',
           'r-sm': '0.3px 0 0.3px rgba(0, 0, 0, 0.05), 2px 0 2px rgba(0, 0, 0, 0.1)',
+          'box': '0 0 5px 0 #00000033',
+          'modal': `0 0 9px 0 ${themeVars.colors.backdrop}`,
         }
+      },
+      margin: {
+        'box': boxGutter,
+      },
+      padding: {
+        'box': boxGutter,
+      },
+      inset: {
+        'box': boxGutter,
       },
       lineHeight: {
         '0': '0px',

@@ -1,5 +1,5 @@
 <template>
-  <div :class="$style.container">
+  <div :class="containerClasses">
     <slot name="before"></slot>
     <Img :id="pinl.imageId" :class="$style.thumbnail" />
     <div :class="$style.content">
@@ -8,9 +8,15 @@
           {{ pinl.title }}
         </Anchor>
       </div>
-      <!-- <div :class="$style.description">{{ pinl.description }}</div> -->
-      <div :class="$style.tags">
-        <Tag v-for="tag in tags" :key="tag" :tag="tag" :class="$style.tag" />
+      <div :class="$style.description">{{ pinl.description }}</div>
+      <div :class="$style.pkgs">
+        <template v-for="provider in pkgProviders">
+          <PkgIcon
+            :key="provider"
+            :provider="provider"
+            :class="$style.pkg"
+          />
+        </template>
       </div>
     </div>
   </div>
@@ -18,21 +24,38 @@
 
 <script>
 import Img from '@/components/media/Img.vue'
-import Tag from '@/components/tag/Tag.vue'
+import PkgIcon from '@/components/pkg/PkgIcon.vue'
 
 export default {
   components: {
     Img,
-    Tag,
+    PkgIcon,
   },
   props: {
     pinl: {
       type: Object,
     },
+    active: {
+      type: Boolean,
+      default: false,
+    },
   },
   computed: {
+    containerClasses () {
+      return [this.$style.container, {
+        [this.$style.container_active]: this.active,
+      }]
+    },
     tags () {
       return this.pinl.tags
+    },
+    pkgProviders () {
+      return this.pinl.pkgs.reduce((providers, pkg) => {
+        if (!providers.includes(pkg.provider)) {
+          return [ ...providers, pkg.provider ]
+        }
+        return providers
+      }, [])
     },
   },
 }
@@ -44,11 +67,12 @@ $image-size: 50px;
 .container {
   @apply p-4;
   @apply relative;
-  @apply relative;
 
-  &:hover {
-    @apply bg-bg;
-  }
+  @include hover-highlight;
+}
+
+.container_active {
+  @include highlight;
 }
 
 .thumbnail {
@@ -68,20 +92,25 @@ $image-size: 50px;
 .title {
   @apply inline-block;
   @apply font-bold;
-  @apply relative;
-  @apply z-10;
+
+  > a {
+    @apply relative;
+    @apply z-10;
+  }
 }
 
 .description {
   @apply mb-1;
-  @apply truncate;
+  @apply text-xs;
 }
 
-.tags {
-  @apply -mx-1;
+.pkgs {
+  @apply flex;
+  @apply flex-wrap;
 }
 
-.tag {
-  @apply m-1;
+.pkg {
+  @apply relative;
+  @apply z-10;
 }
 </style>

@@ -1,60 +1,80 @@
 <template>
-  <div :class="$style.container">
-    <Header :class="$style.header">
-      <h2 :class="$style.title">Tag</h2>
-      <Anchor :to="{ name: 'tag.new' }" :class="$style.addBtn">
-        <IconButton name="add" block />
-      </Anchor>
-    </Header>
-    <div :class="$style.list">
+  <div :class="$style.tagView">
+    <Box v-if="tags.length > 0">
       <template v-for="tag in tags">
-        <div :key="tag.id">
-          <TagNode :tag="tag" :previsouParentName="safeParentName">
-            <template #before>
-              <Anchor :to="{ name: 'tag', params: {id: tag.id} }" :replace="showPanel" inset />
-            </template>
-          </TagNode>
-        </div>
+        <TagNode :tag="tag" :previsouParentName="safeParentName" :key="tag.id" :active="id == tag.id">
+          <template #before>
+            <Anchor :to="{ name: 'tag', params: {id: tag.id} }" :replace="showPanel" inset />
+          </template>
+        </TagNode>
       </template>
-    </div>
-    <RightPanel
+    </Box>
+    <Box v-else :class="$style.emptyResult">Empty.</Box>
+
+    <Modal
       v-if="showPanel"
+      @backdrop="handlePanelClose"
       @close="handlePanelClose"
-      @save="handlePanelSave"
-      noCancel
-      noEdit
+      :disable-keys="editing"
     >
+      <template #header="{ headerClass }" v-if="editing">
+        <div :class="headerClass" v-text="`${isNew ? 'New' : 'Update'} Tag`" />
+      </template>
       <TagDetail
-        v-model="model"
+        :tag="model"
         :loading="loading"
-        :editable="!loading"
-      />
-    </RightPanel>
+        :editable.sync="editing"
+        @input="handlePanelSave"
+        @cancel="isNew ? handlePanelClose() : null"
+      >
+        <template #controls="slotProps">
+          <div :class="$style.panelButtons">
+            <template v-if="!editing">
+              <Button @click="handlePanelEdit">Edit</Button>
+            </template>
+            <template v-else>
+              <Button :disabled="slotProps.error" @click="slotProps.submit">Save</Button>
+              <Button @click="slotProps.cancel" light>Cancel</Button>
+            </template>
+          </div>
+        </template>
+      </TagDetail>
+    </Modal>
   </div>
 </template>
 
 <script>
 import { formatRepeatParam } from '@/pkgs/utils'
+import Box from '@/components/app/Box.vue'
+import Button from '@/components/form/Button.vue'
+import Container from '@/components/app/Container.vue'
 import Header from '@/components/app/Header.vue'
 import IconButton from '@/components/form/IconButton.vue'
-import RightPanel from '@/components/modal/RightPanel.vue'
+import Modal from '@/components/modal/Modal.vue'
+import Nav from '@/components/app/Nav.vue'
 import TagDetail from '@/components/tag/TagDetail.vue'
 import TagNode from '@/components/tag/TagNode.vue'
+import ThreeColumn from '@/components/app/ThreeColumn.vue'
 
 export default {
   components: {
+    Box,
+    Button,
+    Container,
     Header,
     IconButton,
-    RightPanel,
+    Modal,
+    Nav,
     TagDetail,
     TagNode,
+    ThreeColumn,
   },
   props: {
     id: {
       type: String,
       default: null,
     },
-    new: {
+    isNew: {
       type: Boolean,
       default: false,
     },
@@ -78,7 +98,7 @@ export default {
   },
   computed: {
     showPanel () {
-      return this.new || this.hasId
+      return this.isNew || this.hasId
     },
     hasId () {
       return !!this.id
@@ -109,22 +129,21 @@ export default {
   },
   methods: {
     async initModel () {
-      this.editing = this.new
+      this.editing = this.isNew
       this.loading = true
       if (this.hasId) {
         this.original = await this.find(this.id)
-      } else if (this.new) {
+      } else if (this.isNew) {
         this.original = this.$store.getters['tag/new']()
       }
       this.model = this.original
       this.loading = false
     },
     async find(id) {
-      const tags = this.$store.getters['tag/tags']
-      return this.$store.getters['tag/find'](tags, id)
+      return await this.$store.dispatch('tag/find', { id })
     },
     handlePanelClose () {
-      let to = { name: 'tag' }
+      let to = { name: 'tag.list' }
       if (this.showPanel && this.storedParentName.length) {
         to = { name: 'tag.children', params: {parentName: this.storedParentName} }
       }
@@ -137,8 +156,8 @@ export default {
       this.editing = false
       this.model = this.original
     },
-    async handlePanelSave () {
-      const model = await this.save(this.model)
+    async handlePanelSave (newModel) {
+      const model = await this.save(newModel)
       this.model = this.original = model
       this.editing = false
     },
@@ -154,7 +173,7 @@ export default {
   },
   watch: {
     parentName (newValue, oldValue) {
-      if (this.id || this.new) {
+      if (this.id || this.isNew) {
         this.storedParentName = formatRepeatParam(oldValue)
       } else {
         this.storedParentName = []
@@ -163,30 +182,40 @@ export default {
     id () {
       this.initModel()
     },
-    new () {
+    isNew () {
       this.initModel()
     },
+  },
+  metaInfo () {
+    let title = 'Tag'
+    if (this.hasId && this.model) {
+      title = `#${this.model.name}`
+    }
+    if (this.isNew) {
+      title = `New ${title}`
+    }
+    return { title }
   },
 }
 </script>
 
 <style lang="scss" module>
-.container {
-  @apply relative;
-  @apply w-full;
-  @apply h-full;
-  @apply overflow-y-auto;
-  @apply scrolling-touch;
+.tagView {
+  @apply leading-normal;
 }
 
-.header {
+.emptyResult {
+  @apply p-4;
+  @apply text-xs;
+}
+
+.panelButtons {
   @apply flex;
-}
+  @apply justify-end;
+  @apply text-xs;
 
-.title {
-  @apply flex-grow;
-}
-
-.addBtn {
+  > button {
+    @apply m-1;
+  }
 }
 </style>

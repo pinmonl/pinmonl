@@ -109,7 +109,7 @@ export default {
 .nav {
   @apply overflow-y-auto;
   @apply shadow-r-sm;
-  @apply bg-white;
+  @apply bg-container;
 }
 
 .hamburger {
