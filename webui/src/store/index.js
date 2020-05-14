@@ -5,6 +5,7 @@ Vue.use(Vuex)
 
 import auth from './auth'
 import http from './http'
+import keybinding from './keybinding'
 import modules from './modules'
 import ws from './ws'
 
@@ -26,6 +27,7 @@ export default new Vuex.Store({
   modules: {
     auth,
     http,
+    keybinding,
     ws,
     ...modules,
   },

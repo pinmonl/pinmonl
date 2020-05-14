@@ -2,7 +2,7 @@
   <div :class="$style.tagView">
     <Box v-if="tags.length > 0">
       <template v-for="tag in tags">
-        <TagNode :tag="tag" :previsouParentName="safeParentName" :key="tag.id" :active="id == tag.id">
+        <TagNode :tag="tag" :previsouParentName="safeParentName" :key="tag.id" :active="isActive(tag)">
           <template #before>
             <Anchor :to="{ name: 'tag', params: {id: tag.id} }" :replace="showPanel" inset />
           </template>
@@ -15,7 +15,6 @@
       v-if="showPanel"
       @backdrop="handlePanelClose"
       @close="handlePanelClose"
-      :disable-keys="editing"
     >
       <template #header="{ headerClass }" v-if="editing">
         <div :class="headerClass" v-text="`${isNew ? 'New' : 'Update'} Tag`" />
@@ -79,12 +78,21 @@ export default {
       editing: false,
       storedParentName: [],
 
+      highlight: [],
+      cursor: -1,
+
       model: null,
       original: null,
     }
   },
   created () {
     this.initModel()
+  },
+  mounted () {
+    document.addEventListener('keyup', this.handleKeyPress)
+  },
+  beforeDestroy () {
+    document.removeEventListener('keyup', this.handleKeyPress)
   },
   computed: {
     showPanel () {
@@ -115,6 +123,9 @@ export default {
     parents () {
       const tags = this.$store.getters['tag/tags']
       return this.$store.getters['tag/getByName'](tags, this.safeParentName)
+    },
+    disableKeys () {
+      return this.$store.getters.globalSearch
     },
   },
   methods: {
@@ -160,6 +171,134 @@ export default {
         return tag
       }
     },
+    isActive ({ id }) {
+      if (this.hasId) {
+        return this.id == id
+      }
+      return this.highlight.includes(id)
+    },
+    highlightAt (n) {
+      if (n >= this.tags.length) {
+        return
+      }
+      this.cursor = n
+      const { id } = this.tags[n]
+      this.highlight = [id]
+    },
+    highlightDown () {
+      if (this.cursor + 1 >= this.tags.length) {
+        return
+      }
+      return this.highlightAt(this.cursor + 1)
+    },
+    highlightUp () {
+      if (this.cursor - 1 < 0) {
+        return
+      }
+      return this.highlightAt(this.cursor - 1)
+    },
+    gotoBookmark () {
+      if (typeof this.tags[this.cursor] == 'undefined') {
+        return
+      }
+      const tag = this.tags[this.cursor]
+      this.$router.push({
+        name: 'bookmark.list', 
+        query: {
+          q: this.$store.getters['pinl/composeSearch']({
+            input: '',
+            tags: [tag],
+          }),
+        },
+      })
+    },
+    gotoDetail () {
+      if (typeof this.tags[this.cursor] == 'undefined') {
+        return
+      }
+      const { id } = this.tags[this.cursor]
+      this.$router.push({
+        name: 'tag',
+        params: { id },
+        query: this.$route.query,
+      })
+    },
+    gotoChildren () {
+      if (typeof this.tags[this.cursor] == 'undefined') {
+        return
+      }
+      const { name } = this.tags[this.cursor]
+      this.$router.push({
+        name: 'tag.children',
+        params: {
+          parentName: [ ...this.safeParentName, name ],
+        },
+        query: this.$route.query,
+      })
+      this.resetHighlightAndCursor()
+    },
+    gotoParent () {
+      const len = this.safeParentName.length
+      if (len == 0) {
+        return
+      }
+      if (len == 1) {
+        this.$router.push({
+          name: 'tag.list',
+          query: this.$route.query,
+        })
+      } else {
+        this.$router.push({
+          name: 'tag.children',
+          params: {
+            parentName: [ ...this.safeParentName.slice(0, len - 1) ],
+          },
+          query: this.$route.query,
+        })
+      }
+      this.resetHighlightAndCursor()
+    },
+    resetHighlightAndCursor () {
+      this.highlight = []
+      this.cursor = -1
+    },
+    handleKeyPress (e) {
+      if (this.disableKeys) {
+        return
+      }
+      if (this.hasId || this.isNew) {
+        return
+      }
+
+      if (e.key == 'a') {
+        this.$router.push({ name: 'tag.new' })
+        return
+      }
+      if (e.key == 'j') {
+        this.highlightDown()
+        return
+      }
+      if (e.key == 'k') {
+        this.highlightUp()
+        return
+      }
+      if (e.key == 'e') {
+        this.gotoDetail()
+        return
+      }
+      if (e.key == 'o') {
+        this.gotoBookmark()
+        return
+      }
+      if (e.key == 'l') {
+        this.gotoChildren()
+        return
+      }
+      if (e.key == 'h') {
+        this.gotoParent()
+        return
+      }
+    },
   },
   watch: {
     parentName (newValue, oldValue) {
@@ -179,7 +318,7 @@ export default {
   metaInfo () {
     let title = 'Tag'
     if (this.hasId && this.model) {
-      title = `#${this.model.name}`
+      title = `Tag #${this.model.name}`
     }
     if (this.isNew) {
       title = `New ${title}`

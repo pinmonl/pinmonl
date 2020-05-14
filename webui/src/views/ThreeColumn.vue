@@ -26,8 +26,12 @@ export default {
       return h(Nav, {
         scopedSlots: {
           controls: (props) => ([
-            this.navShowNewBookmark && this.renderControl(h, props, { name: 'bookmark.new' }, '+ Bookmark'),
-            this.navShowNewTag && this.renderControl(h, props, { name: 'tag.new' }, '+ Tag'),
+            this.navShowNewBookmark && this.renderControl(
+              h, props, { name: 'bookmark.new', query: this.$route.query }, '+ Bookmark'
+            ),
+            this.navShowNewTag && this.renderControl(
+              h, props, { name: 'tag.new', query: this.$route.query }, '+ Tag'
+            ),
           ]),
         }
       })

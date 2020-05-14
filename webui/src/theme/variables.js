@@ -11,7 +11,7 @@ exports.colors = {
   'disabled': '#a1a9b3',
 
   'text-primary': '#2d3748',
-  'text-secondary': '#5b626b',
+  'text-secondary': '#4e5661',
   'text-inverted': '#ffffff',
 
   'btn-light-bg': '#edf2f7',

@@ -2,9 +2,9 @@
   <div :class="$style.bookmarkView">
     <Box v-if="pinls.length > 0">
       <template v-for="pinl in pinls">
-        <Pinl :pinl="pinl" :key="pinl.id" :class="$style.pinl" :active="id == pinl.id">
+        <Pinl :pinl="pinl" :key="pinl.id" :class="$style.pinl" :active="isActive(pinl)">
           <template #before>
-            <Anchor :to="{ name: 'bookmark', params: {id: pinl.id} }" :replace="showPanel" inset />
+            <Anchor :to="{ name: 'bookmark', params: {id: pinl.id}, query: $route.query }" :replace="showPanel" inset />
           </template>
         </Pinl>
       </template>
@@ -15,7 +15,6 @@
       v-if="showPanel"
       @backdrop="handlePanelClose"
       @close="handlePanelClose"
-      :disable-keys="editing"
     >
       <template #header="{ headerClass }" v-if="editing">
         <div :class="headerClass" v-text="`${isNew ? 'New' : 'Update'} Bookmark`" />
@@ -49,6 +48,7 @@ import Button from '@/components/form/Button.vue'
 import Modal from '@/components/modal/Modal.vue'
 import Pinl from '@/components/pinl/Pinl.vue'
 import PinlDetail from '@/components/pinl/PinlDetail.vue'
+import isEqual from 'lodash/isEqual'
 
 export default {
   components: {
@@ -74,6 +74,9 @@ export default {
       editing: false,
       storedSearch: '',
 
+      highlight: [],
+      cursor: -1,
+
       model: null,
       original: null,
     }
@@ -81,6 +84,12 @@ export default {
   created () {
     this.initModel()
     this.storedSearch = this.search
+  },
+  mounted () {
+    document.addEventListener('keyup', this.handleKeyPress)
+  },
+  beforeDestroy () {
+    document.removeEventListener('keyup', this.handleKeyPress)
   },
   computed: {
     hasId () {
@@ -109,10 +118,13 @@ export default {
         this.$router.replace({ query: {q} })
       },
     },
+    disableKeys () {
+      return this.$store.getters.globalSearch
+    },
   },
   methods: {
     handlePanelClose () {
-      this.$router.push({ name: 'bookmark.list' })
+      this.$router.push({ name: 'bookmark.list', query: this.$route.query })
     },
     async initModel () {
       this.editing = this.isNew
@@ -147,6 +159,79 @@ export default {
         return pinl
       }
     },
+    isActive ({ id }) {
+      if (this.hasId) {
+        return this.id == id
+      }
+      return this.highlight.includes(id)
+    },
+    highlightAt (n) {
+      if (n >= this.pinls.length) {
+        return
+      }
+      this.cursor = n
+      const { id } = this.pinls[n]
+      this.highlight = [id]
+    },
+    highlightDown () {
+      if (this.cursor + 1 >= this.pinls.length) {
+        return
+      }
+      return this.highlightAt(this.cursor + 1)
+    },
+    highlightUp () {
+      if (this.cursor - 1 < 0) {
+        return
+      }
+      return this.highlightAt(this.cursor - 1)
+    },
+    openHighlightLink () {
+      if (typeof this.pinls[this.cursor] == 'undefined') {
+        return
+      }
+      const { url } = this.pinls[this.cursor]
+      window.open(url, '_blank')
+    },
+    gotoDetail () {
+      if (typeof this.pinls[this.cursor] == 'undefined') {
+        return
+      }
+      const { id } = this.pinls[this.cursor]
+      this.$router.push({
+        name: 'bookmark',
+        params: { id },
+        query: this.$route.query,
+      })
+    },
+    handleKeyPress (e) {
+      if (this.disableKeys) {
+        return
+      }
+      if (this.hasId || this.isNew) {
+        return
+      }
+
+      if (e.key == 'a') {
+        this.$router.push({ name: 'bookmark.new' })
+        return
+      }
+      if (e.key == 'j') {
+        this.highlightDown()
+        return
+      }
+      if (e.key == 'k') {
+        this.highlightUp()
+        return
+      }
+      if (e.key == 'o') {
+        this.openHighlightLink()
+        return
+      }
+      if (e.key == 'e') {
+        this.gotoDetail()
+        return
+      }
+    },
   },
   watch: {
     id () {
@@ -154,6 +239,13 @@ export default {
     },
     isNew () {
       this.initModel()
+    },
+    '$route.query' (newValue, oldValue) {
+      if (isEqual(newValue, oldValue)) {
+        return
+      }
+      this.highlight = []
+      this.cursor = -1
     },
   },
   metaInfo () {

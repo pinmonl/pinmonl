@@ -16,6 +16,12 @@ export default {
       storedSearch: '',
     }
   },
+  mounted () {
+    document.addEventListener('keyup', this.handleKeyPress)
+  },
+  beforeDestroy () {
+    document.removeEventListener('keyup', this.handleKeyPress)
+  },
   computed: {
     search: {
       get () {
@@ -28,6 +34,9 @@ export default {
         this.$router.push({ name: 'bookmark.list', query: {q} })
       },
     },
+    disableKeys () {
+      return this.$store.getters.globalSearch
+    },
   },
   methods: {
     renderHeader (h) {
@@ -37,9 +46,29 @@ export default {
           disableKeys: this.$route.meta.noSearch,
         },
         on: {
-          input: q => this.search = q,
+          input: (q) => {
+            this.search = q
+            this.$refs.search.blur()
+          },
+          focus: () => this.$store.commit('SET_GLOBAL_SEARCH', true),
+          blur: () => this.$store.commit('SET_GLOBAL_SEARCH', false),
         },
+        ref: 'search',
       })
+    },
+    handleKeyPress (e) {
+      if (this.disableKeys) {
+        return
+      }
+
+      if (e.key == '1' && this.$route.name != 'bookmark.list') {
+        this.$router.push({ name: 'bookmark.list' })
+        return
+      }
+      if (e.key == '2' && this.$route.name != 'tag.list') {
+        this.$router.push({ name: 'tag.list' })
+        return
+      }
     },
   },
 }

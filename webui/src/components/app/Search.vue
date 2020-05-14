@@ -146,9 +146,11 @@ export default {
     },
     handleFocus () {
       this.isFocusing = true
+      this.$emit('focus')
     },
     handleBlur () {
       this.isFocusing = false
+      this.$emit('blur')
     },
     resetQuery () {
       if (this.isTagMode) {
@@ -203,18 +205,21 @@ export default {
       if (!this.isFocusing) {
         if (e.key == '/') {
           this.focus()
+          return
         }
 
         if (this.search.length > 0 && e.key == 'Escape') {
           this.input = ''
           this.selectedTags = []
           this.handleEnter()
+          return
         }
       }
 
       if (this.isFocusing) {
         if (e.key == 'Escape') {
           this.blur()
+          return
         }
       }
     },

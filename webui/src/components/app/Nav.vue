@@ -111,7 +111,7 @@ $icon-size: 16px;
 
   @screen lg {
     @apply text-right;
-    margin: 2px 0;
+    margin: 4px 0;
     &:before {
       transition: height 0.3s ease 0s, top 0.3s ease 0s;
       height: 0;
