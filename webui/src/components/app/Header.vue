@@ -67,17 +67,14 @@ export default {
   }
 }
 
-.title {
-  @apply flex-shrink-0;
-  width: 36px;
-}
-
 .search {
   @apply flex-shrink;
 }
 
+.title,
 .statusBar {
-  @apply flex-shrink;
+  @apply flex-shrink-0;
+  width: 36px;
 }
 
 .account {
