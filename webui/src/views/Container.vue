@@ -35,7 +35,8 @@ export default {
       },
     },
     disableKeys () {
-      return this.$store.getters.globalSearch
+      return this.$store.getters.globalSearch ||
+        this.$route.meta.noSearch
     },
   },
   methods: {

@@ -37,6 +37,7 @@ const routes = [
             name: 'bookmark.new',
             component: Bookmark,
             props: () => ({ isNew: true }),
+            meta: { noSearch: true },
           },
           {
             path: ':id',
@@ -62,6 +63,7 @@ const routes = [
             name: 'tag.new',
             component: Tag,
             props: () => ({ isNew: true }),
+            meta: { noSearch: true },
           },
           {
             path: ':id',

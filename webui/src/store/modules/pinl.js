@@ -159,5 +159,9 @@ export default {
         return
       }
     },
+    openLink (ctx, { pinl, newTab = true }) {
+      const { url } = pinl
+      window.open(url, newTab ? '_blank' : '')
+    },
   },
 }

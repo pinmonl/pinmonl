@@ -8,6 +8,7 @@ exports.colors = {
 
   'primary': '#3182ce',
   'error': '#e53e3e',
+  'warning': '#ffbe07',
   'disabled': '#a1a9b3',
 
   'text-primary': '#2d3748',
@@ -16,6 +17,7 @@ exports.colors = {
 
   'btn-light-bg': '#edf2f7',
   'btn-light': '#4a5568',
+  'disabled-overlay': '#ffffff40',
 
   'divider': '#cbd5e0',
   'control': '#cbd5e0',

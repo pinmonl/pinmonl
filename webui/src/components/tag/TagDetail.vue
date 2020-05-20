@@ -50,6 +50,7 @@
 import formMixin from '@/mixins/form'
 import modelMixin from '@/mixins/model'
 import placeholderMixin from '@/mixins/placeholder'
+import keybindingMixin from '@/mixins/keybinding'
 import IconLabel from '@/components/icon/IconLabel.vue'
 import Tag from './Tag.vue'
 import TagInput from './TagInput.vue'
@@ -58,7 +59,7 @@ import { validationMixin } from 'vuelidate'
 import { required } from 'vuelidate/lib/validators'
 
 export default {
-  mixins: [formMixin, modelMixin({ prop: 'tag' }), placeholderMixin, validationMixin],
+  mixins: [formMixin, modelMixin({ prop: 'tag' }), placeholderMixin, validationMixin, keybindingMixin()],
   components: {
     IconLabel,
     Tag,
@@ -86,6 +87,9 @@ export default {
   },
   created () {
     this.init()
+  },
+  mounted () {
+    this.editable && this.autoFocusName()
   },
   computed: {
     model () {
@@ -178,6 +182,19 @@ export default {
       this.$emit('update:editable', false)
       this.$emit('cancel')
     },
+    autoFocusName () {
+      this.$refs.name.focus()
+    },
+    handleKeyPress (e) {
+      if (this.editable) {
+        return
+      }
+
+      if (e.key == 'e') {
+        this.$emit('update:editable', true)
+        return
+      }
+    },
   },
   validations () {
     if (!this.editable) {
@@ -192,6 +209,13 @@ export default {
   watch: {
     'tag' () {
       this.init()
+    },
+    'editable' (val) {
+      if (val) {
+        this.$nextTick(() => {
+          this.autoFocusName()
+        })
+      }
     },
   },
 }

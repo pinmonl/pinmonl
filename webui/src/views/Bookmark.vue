@@ -29,10 +29,11 @@
         <template #controls="slotProps">
           <div :class="$style.panelButtons">
             <template v-if="!editing">
-              <Button @click="handlePanelEdit">Edit</Button>
+              <Button @click="handlePanelEdit" v-if="!deleting">Edit</Button>
+              <ConfirmButton @click="handlePanelDelete" :asking.sync="askingDelete" :loading="deleting" light>Delete</ConfirmButton>
             </template>
             <template v-else>
-              <Button :disabled="slotProps.error" @click="slotProps.submit">Save</Button>
+              <Button :disabled="slotProps.error" @click="slotProps.submit" :loading="loading">Save</Button>
               <Button @click="slotProps.cancel" light>Cancel</Button>
             </template>
           </div>
@@ -45,15 +46,19 @@
 <script>
 import Box from '@/components/app/Box.vue'
 import Button from '@/components/form/Button.vue'
+import ConfirmButton from '@/components/form/ConfirmButton.vue'
 import Modal from '@/components/modal/Modal.vue'
 import Pinl from '@/components/pinl/Pinl.vue'
 import PinlDetail from '@/components/pinl/PinlDetail.vue'
 import isEqual from 'lodash/isEqual'
+import keybindingMixin from '@/mixins/keybinding'
 
 export default {
+  mixins: [keybindingMixin()],
   components: {
     Box,
     Button,
+    ConfirmButton,
     Modal,
     Pinl,
     PinlDetail,
@@ -73,6 +78,8 @@ export default {
       loading: false,
       editing: false,
       storedSearch: '',
+      askingDelete: false,
+      deleting: false,
 
       highlight: [],
       cursor: -1,
@@ -84,12 +91,6 @@ export default {
   created () {
     this.initModel()
     this.storedSearch = this.search
-  },
-  mounted () {
-    document.addEventListener('keyup', this.handleKeyPress)
-  },
-  beforeDestroy () {
-    document.removeEventListener('keyup', this.handleKeyPress)
   },
   computed: {
     hasId () {
@@ -118,12 +119,12 @@ export default {
         this.$router.replace({ query: {q} })
       },
     },
-    disableKeys () {
-      return this.$store.getters.globalSearch
-    },
   },
   methods: {
     handlePanelClose () {
+      if (this.deleting) {
+        return
+      }
       this.$router.push({ name: 'bookmark.list', query: this.$route.query })
     },
     async initModel () {
@@ -143,9 +144,20 @@ export default {
     handlePanelCancel () {
     },
     async handlePanelSave (newModel) {
+      this.loading = true
       const model = await this.save(newModel)
+      this.loading = false
       this.model = this.original = model
       this.editing = false
+    },
+    async handlePanelDelete () {
+      this.deleting = true
+      await this.delete(this.model)
+      this.deleting = false
+      // Back to listing
+      this.$router.replace({ name: 'bookmark.list', query: this.$route.query })
+      // Move cursor up
+      this.highlightUp()
     },
     async find (id) {
       return await this.$store.dispatch('pinl/find', { id })
@@ -158,6 +170,9 @@ export default {
         this.$router.replace({ name: 'bookmark', params: {id: pinl.id} })
         return pinl
       }
+    },
+    async delete (model) {
+      return await this.$store.dispatch('pinl/delete', model)
     },
     isActive ({ id }) {
       if (this.hasId) {
@@ -189,8 +204,8 @@ export default {
       if (typeof this.pinls[this.cursor] == 'undefined') {
         return
       }
-      const { url } = this.pinls[this.cursor]
-      window.open(url, '_blank')
+      const pinl = this.pinls[this.cursor]
+      this.$store.dispatch('pinl/openLink', { pinl })
     },
     gotoDetail () {
       if (typeof this.pinls[this.cursor] == 'undefined') {
@@ -204,10 +219,21 @@ export default {
       })
     },
     handleKeyPress (e) {
-      if (this.disableKeys) {
+      if (this.shouldDisableKeys) {
         return
       }
       if (this.hasId || this.isNew) {
+        if (e.key == 'd') {
+          if (!this.askingDelete) {
+            this.askingDelete = true
+          } else {
+            this.askingDelete = false
+            this.handlePanelDelete()
+          }
+          return
+        }
+
+        // Exit if not yet
         return
       }
 
@@ -274,7 +300,7 @@ export default {
 .panelButtons {
   @apply flex;
   @apply justify-end;
-  @apply text-xs;
+  @apply text-sm;
 
   > button {
     @apply m-1;

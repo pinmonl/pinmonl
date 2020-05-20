@@ -17,7 +17,7 @@
       </InputGroup>
       <InputGroup>
         <Label>URL</Label>
-        <Input v-model="model.url" :error="$v.model.url.$error" />
+        <Input v-model="model.url" :error="$v.model.url.$error" ref="url" />
         <template #errors v-if="$v.model.url.$error">
           <p v-if="!$v.model.url.required">URL cannot be empty.</p>
           <p v-if="!$v.model.url.url">Invalid URL.</p>
@@ -67,6 +67,7 @@
 import formMixin from '@/mixins/form'
 import modelMixin from '@/mixins/model'
 import placeholderMixin from '@/mixins/placeholder'
+import keybindingMixin from '@/mixins/keybinding'
 import Img from '@/components/media/Img.vue'
 import Pkg from '@/components/pkg/Pkg.vue'
 import PkgIcon from '@/components/pkg/PkgIcon.vue'
@@ -75,7 +76,7 @@ import { validationMixin } from 'vuelidate'
 import { required, url } from 'vuelidate/lib/validators'
 
 export default {
-  mixins: [formMixin, modelMixin({ prop: 'pinl' }), placeholderMixin, validationMixin],
+  mixins: [formMixin, modelMixin({ prop: 'pinl' }), placeholderMixin, validationMixin, keybindingMixin()],
   components: {
     Img,
     Pkg,
@@ -95,6 +96,9 @@ export default {
       type: Boolean,
       default: false,
     },
+  },
+  mounted () {
+    this.editable && this.autoFocusURL()
   },
   computed: {
     model () {
@@ -150,6 +154,32 @@ export default {
       this.revertModel()
       this.$emit('update:editable', false)
       this.$emit('cancel')
+    },
+    handleKeyPress (e) {
+      if (this.editable) {
+        return
+      }
+
+      if (e.key == 'e') {
+        this.$emit('update:editable', true)
+        return
+      }
+      if (e.key == 'o') {
+        this.$store.dispatch('pinl/openLink', { pinl: this.pinl })
+        return
+      }
+    },
+    autoFocusURL () {
+      this.$refs.url.focus()
+    },
+  },
+  watch: {
+    'editable' (val) {
+      if (val) {
+        this.$nextTick(() => {
+          this.autoFocusURL()
+        })
+      }
     },
   },
   validations () {

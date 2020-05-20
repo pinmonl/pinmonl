@@ -29,10 +29,11 @@
         <template #controls="slotProps">
           <div :class="$style.panelButtons">
             <template v-if="!editing">
-              <Button @click="handlePanelEdit">Edit</Button>
+              <Button @click="handlePanelEdit" v-if="!deleting">Edit</Button>
+              <ConfirmButton @click="handlePanelDelete" :asking.sync="askingDelete" :loading="deleting" light>Delete</ConfirmButton>
             </template>
             <template v-else>
-              <Button :disabled="slotProps.error" @click="slotProps.submit">Save</Button>
+              <Button :disabled="slotProps.error" @click="slotProps.submit" :loading="loading">Save</Button>
               <Button @click="slotProps.cancel" light>Cancel</Button>
             </template>
           </div>
@@ -46,14 +47,18 @@
 import { formatRepeatParam } from '@/pkgs/utils'
 import Box from '@/components/app/Box.vue'
 import Button from '@/components/form/Button.vue'
+import ConfirmButton from '@/components/form/ConfirmButton.vue'
 import Modal from '@/components/modal/Modal.vue'
 import TagDetail from '@/components/tag/TagDetail.vue'
 import TagNode from '@/components/tag/TagNode.vue'
+import keybindingMixin from '@/mixins/keybinding'
 
 export default {
+  mixins: [keybindingMixin()],
   components: {
     Box,
     Button,
+    ConfirmButton,
     Modal,
     TagDetail,
     TagNode,
@@ -77,6 +82,8 @@ export default {
       loading: false,
       editing: false,
       storedParentName: [],
+      askingDelete: false,
+      deleting: false,
 
       highlight: [],
       cursor: -1,
@@ -87,12 +94,6 @@ export default {
   },
   created () {
     this.initModel()
-  },
-  mounted () {
-    document.addEventListener('keyup', this.handleKeyPress)
-  },
-  beforeDestroy () {
-    document.removeEventListener('keyup', this.handleKeyPress)
   },
   computed: {
     showPanel () {
@@ -124,9 +125,6 @@ export default {
       const tags = this.$store.getters['tag/tags']
       return this.$store.getters['tag/getByName'](tags, this.safeParentName)
     },
-    disableKeys () {
-      return this.$store.getters.globalSearch
-    },
   },
   methods: {
     async initModel () {
@@ -144,6 +142,9 @@ export default {
       return await this.$store.dispatch('tag/find', { id })
     },
     handlePanelClose () {
+      if (this.deleting) {
+        return
+      }
       let to = { name: 'tag.list' }
       if (this.showPanel && this.storedParentName.length) {
         to = { name: 'tag.children', params: {parentName: this.storedParentName} }
@@ -162,6 +163,15 @@ export default {
       this.model = this.original = model
       this.editing = false
     },
+    async handlePanelDelete () {
+      this.deleting = true
+      await this.delete(this.model)
+      this.deleting = false
+      // Back to listing
+      this.$router.replace({ name: 'tag.list' })
+      // Move cursor up
+      this.highlightUp()
+    },
     async save (model) {
       if (model.id) {
         return await this.$store.dispatch('tag/update', model)
@@ -170,6 +180,9 @@ export default {
         this.$router.replace({ name: 'tag', params: {id: tag.id} })
         return tag
       }
+    },
+    async delete (model) {
+      return await this.$store.dispatch('tag/delete', model)
     },
     isActive ({ id }) {
       if (this.hasId) {
@@ -203,7 +216,7 @@ export default {
       }
       const tag = this.tags[this.cursor]
       this.$router.push({
-        name: 'bookmark.list', 
+        name: 'bookmark.list',
         query: {
           q: this.$store.getters['pinl/composeSearch']({
             input: '',
@@ -263,10 +276,21 @@ export default {
       this.cursor = -1
     },
     handleKeyPress (e) {
-      if (this.disableKeys) {
+      if (this.shouldDisableKeys) {
         return
       }
       if (this.hasId || this.isNew) {
+        if (e.key == 'd') {
+          if (!this.askingDelete) {
+            this.askingDelete = true
+          } else {
+            this.askingDelete = false
+            this.handlePanelDelete()
+          }
+          return
+        }
+
+        // Exit if not yet
         return
       }
 
@@ -341,7 +365,7 @@ export default {
 .panelButtons {
   @apply flex;
   @apply justify-end;
-  @apply text-xs;
+  @apply text-sm;
 
   > button {
     @apply m-1;
