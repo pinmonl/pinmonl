@@ -115,7 +115,7 @@ func (s *dbStatStore) Update(ctx context.Context, m *model.Stat) error {
 func (s *dbStatStore) Delete(ctx context.Context, m *model.Stat) error {
 	e := s.Execer(ctx)
 	br := database.DeleteBuilder{
-		From: statTB,
+		From:  statTB,
 		Where: []string{"id = :stat_id"},
 	}
 	_, err := e.NamedExec(br.String(), m)

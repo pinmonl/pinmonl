@@ -380,7 +380,7 @@ func saveTagSubstats(ctx context.Context, stats store.StatStore, rawStat *monler
 func clearTagStats(ctx context.Context, stats store.StatStore, pkg model.Pkg) error {
 	tags, err := stats.List(ctx, &store.StatOpts{
 		PkgID: pkg.ID,
-		Kind: string(monler.KindTag),
+		Kind:  string(monler.KindTag),
 	})
 	if err != nil {
 		return err
@@ -396,7 +396,7 @@ func clearTagStats(ctx context.Context, stats store.StatStore, pkg model.Pkg) er
 	}
 	// Gets all substats.
 	substats, err := stats.List(ctx, &store.StatOpts{
-		PkgID: pkg.ID,
+		PkgID:     pkg.ID,
 		ParentIDs: parents,
 	})
 	if err != nil {

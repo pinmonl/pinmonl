@@ -44,6 +44,14 @@ func (db *DB) Beginx() (*Tx, error) {
 	return &Tx{tx, db.Locker}, nil
 }
 
+// NamedQuery wraps database's query.
+func (db *DB) NamedQuery(query string, arg interface{}) (*sqlx.Rows, error) {
+	db.RLock()
+	rows, err := db.DB.NamedQuery(query, arg)
+	db.RUnlock()
+	return rows, err
+}
+
 // Locker represents an object that can be locked and unlocked.
 type Locker interface {
 	Lock()
@@ -63,6 +71,12 @@ func (nopLocker) Unlock()  {}
 type Tx struct {
 	*sqlx.Tx
 	Locker
+}
+
+// NamedQuery wraps transaction's query.
+func (tx *Tx) NamedQuery(query string, arg interface{}) (*sqlx.Rows, error) {
+	rows, err := tx.Tx.NamedQuery(query, arg)
+	return rows, err
 }
 
 // Commit commits database transaction.
