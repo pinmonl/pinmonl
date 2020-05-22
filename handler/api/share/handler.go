@@ -3,6 +3,7 @@ package share
 import (
 	"net/http"
 
+	"github.com/pinmonl/pinmonl/handler/api/apibody"
 	"github.com/pinmonl/pinmonl/handler/api/apiutils"
 	"github.com/pinmonl/pinmonl/handler/api/request"
 	"github.com/pinmonl/pinmonl/handler/api/response"
@@ -28,7 +29,7 @@ func HandleList(shares store.ShareStore, sharetags store.SharetagStore) http.Han
 
 		resp := make([]interface{}, len(ms))
 		for i, m := range ms {
-			resp[i] = NewBody(m).WithMustTags(mts[m.ID])
+			resp[i] = apibody.NewShare(m).WithMustTags(mts[m.ID])
 		}
 		response.JSON(w, resp)
 	}
@@ -54,7 +55,7 @@ func HandleFind(shares store.ShareStore, sharetags store.SharetagStore) http.Han
 		}
 		ats := atsm[m.ID]
 
-		response.JSON(w, NewBody(m).WithMustTags(mts).WithAnyTags(ats))
+		response.JSON(w, apibody.NewShare(m).WithMustTags(mts).WithAnyTags(ats))
 	}
 }
 
@@ -109,7 +110,7 @@ func HandleCreate(shares store.ShareStore, sharetags store.SharetagStore, tags s
 			return
 		}
 
-		response.JSON(w, NewBody(m).WithMustTags(mts).WithAnyTags(ats))
+		response.JSON(w, apibody.NewShare(m).WithMustTags(mts).WithAnyTags(ats))
 	}
 }
 
@@ -164,7 +165,7 @@ func HandleUpdate(shares store.ShareStore, sharetags store.SharetagStore, tags s
 			return
 		}
 
-		response.JSON(w, NewBody(m).WithMustTags(mts).WithAnyTags(ats))
+		response.JSON(w, apibody.NewShare(m).WithMustTags(mts).WithAnyTags(ats))
 	}
 }
 

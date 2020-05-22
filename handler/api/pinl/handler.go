@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/pinmonl/pinmonl/handler/api/apibody"
 	"github.com/pinmonl/pinmonl/handler/api/apiutils"
 	"github.com/pinmonl/pinmonl/handler/api/image"
 	"github.com/pinmonl/pinmonl/handler/api/request"
@@ -13,6 +14,7 @@ import (
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/pkg/scrape"
 	"github.com/pinmonl/pinmonl/pubsub"
+	"github.com/pinmonl/pinmonl/pubsub/message"
 	"github.com/pinmonl/pinmonl/queue"
 	"github.com/pinmonl/pinmonl/store"
 )
@@ -39,15 +41,15 @@ func HandleList(pinls store.PinlStore, taggables store.TaggableStore, monpkgs st
 			}
 		}
 
-		pkgMap, statMap, err := listPkgsAndStats(ctx, monpkgs, stats, ms...)
+		pkgMap, statMap, err := apiutils.ListPinlStats(ctx, monpkgs, stats, ms...)
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		resp := make([]Body, len(ms))
+		resp := make([]apibody.Pinl, len(ms))
 		for i, m := range ms {
-			resp[i] = NewBody(m).
+			resp[i] = apibody.NewPinl(m).
 				WithTags(tsm[m.ID]).
 				WithPkgs(pkgMap[m.MonlID], statMap)
 		}
@@ -71,13 +73,13 @@ func HandleFind(taggables store.TaggableStore, monpkgs store.MonpkgStore, pkgs s
 			return
 		}
 
-		pkgMap, statMap, err := listPkgsAndStats(ctx, monpkgs, stats, m)
+		pkgMap, statMap, err := apiutils.ListPinlStats(ctx, monpkgs, stats, m)
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		resp := NewBody(m).
+		resp := apibody.NewPinl(m).
 			WithTags(ts[m.ID]).
 			WithPkgs(pkgMap[m.MonlID], statMap)
 		response.JSON(w, resp)
@@ -137,10 +139,10 @@ func HandleCreate(
 			return
 		}
 
-		resp := NewBody(m).WithTags(ts)
+		resp := apibody.NewPinl(m).WithTags(ts)
 		go func() {
+			pubsub.Publish(message.NewPinlCreateMessage(resp))
 			dp.SyncPinl(m)
-			pubsub.Publish(NewCreateMessage(resp))
 		}()
 		response.JSON(w, resp)
 	}
@@ -200,18 +202,18 @@ func HandleUpdate(
 			return
 		}
 
-		pkgMap, statMap, err := listPkgsAndStats(ctx, monpkgs, stats, m)
+		pkgMap, statMap, err := apiutils.ListPinlStats(ctx, monpkgs, stats, m)
 		if err != nil {
 			response.InternalError(w, err)
 			return
 		}
 
-		resp := NewBody(m).
+		resp := apibody.NewPinl(m).
 			WithTags(ts).
 			WithPkgs(pkgMap[m.MonlID], statMap)
 		go func() {
+			pubsub.Publish(message.NewPinlUpdateMessage(resp))
 			dp.SyncPinl(m)
-			pubsub.Publish(NewUpdateMessage(resp))
 		}()
 		response.JSON(w, resp)
 	}
@@ -239,7 +241,8 @@ func HandleDelete(
 			return
 		}
 
-		pubsub.Publish(NewDeleteMessage(NewBody(m)))
+		resp := apibody.NewPinl(m)
+		pubsub.Publish(message.NewPinlDeleteMessage(resp))
 		response.NoContent(w)
 	}
 }
@@ -289,56 +292,4 @@ func fillCardIfEmpty(ctx context.Context, images store.ImageStore, m *model.Pinl
 	}
 	*m = m2
 	return nil
-}
-
-func getPkgsFromURL(ctx context.Context, pkgs store.PkgStore, url string) ([]model.Pkg, error) {
-	ms, err := pkgs.List(ctx, &store.PkgOpts{ /* MonlURL: url */ })
-	if err != nil {
-		return nil, err
-	}
-	return ms, nil
-}
-
-func getStats(ctx context.Context, stats store.StatStore, pkgs []model.Pkg) ([]model.Stat, error) {
-	if len(pkgs) == 0 {
-		return []model.Stat{}, nil
-	}
-	pids := (model.PkgList)(pkgs).Keys()
-	ss, err := stats.List(ctx, &store.StatOpts{PkgIDs: pids, WithLatest: true})
-	if err != nil {
-		return nil, err
-	}
-	return ss, nil
-}
-
-func listPkgsAndStats(ctx context.Context, monpkgStore store.MonpkgStore, statStore store.StatStore, pinls ...model.Pinl) (map[string][]model.Pkg, map[string][]model.Stat, error) {
-	monlIDs := make([]string, len(pinls))
-	for i, p := range pinls {
-		monlIDs[i] = p.MonlID
-	}
-	pkgMap, err := monpkgStore.ListPkgs(ctx, &store.MonpkgOpts{
-		MonlIDs: monlIDs,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	pkgIDs := make([]string, 0)
-	for _, pkgs := range pkgMap {
-		for _, pkg := range pkgs {
-			pkgIDs = append(pkgIDs, pkg.ID)
-		}
-	}
-	stats, err := statStore.List(ctx, &store.StatOpts{
-		PkgIDs:     pkgIDs,
-		WithLatest: true,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	statMap := make(map[string][]model.Stat)
-	for _, stat := range stats {
-		k := stat.PkgID
-		statMap[k] = append(statMap[k], stat)
-	}
-	return pkgMap, statMap, nil
 }

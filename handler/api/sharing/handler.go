@@ -4,9 +4,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"github.com/pinmonl/pinmonl/handler/api/pinl"
+	"github.com/pinmonl/pinmonl/handler/api/apibody"
 	"github.com/pinmonl/pinmonl/handler/api/response"
-	"github.com/pinmonl/pinmonl/handler/api/tag"
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/store"
 )
@@ -31,7 +30,7 @@ func HandleFind(
 		}
 		mts := mtsm[m.ID]
 
-		response.JSON(w, NewBody(m).WithOwner(u).WithMustTags(mts))
+		response.JSON(w, apibody.NewSharing(m).WithOwner(u).WithMustTags(mts))
 	}
 }
 
@@ -53,7 +52,7 @@ func HandleListTags(sharetags store.SharetagStore) http.HandlerFunc {
 
 		resp := make([]interface{}, len(ats))
 		for i, t := range ats {
-			resp[i] = tag.NewBody(t)
+			resp[i] = apibody.NewTag(t)
 		}
 		response.JSON(w, resp)
 	}
@@ -112,7 +111,7 @@ func HandleListPinls(
 		resp := make([]interface{}, len(ps))
 		for i, p := range ps {
 			pt := ts[p.ID]
-			resp[i] = pinl.NewBody(p).WithTags(pt)
+			resp[i] = apibody.NewPinl(p).WithTags(pt)
 		}
 		response.JSON(w, resp)
 	}
@@ -190,7 +189,7 @@ func HandleFindPinl(
 		// 	return
 		// }
 
-		response.JSON(w, pinl.NewBody(p).WithTags(ts[p.ID]))
+		response.JSON(w, apibody.NewPinl(p).WithTags(ts[p.ID]))
 	}
 }
 

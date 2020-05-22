@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pinmonl/pinmonl/handler/api/apibody"
 	"github.com/pinmonl/pinmonl/handler/api/request"
 	"github.com/pinmonl/pinmonl/handler/api/response"
 	"github.com/pinmonl/pinmonl/handler/middleware"
@@ -25,7 +26,7 @@ func HandleList(tags store.TagStore) http.HandlerFunc {
 
 		resp := make([]interface{}, len(ms))
 		for i, m := range ms {
-			resp[i] = NewBody(m)
+			resp[i] = apibody.NewTag(m)
 		}
 		response.JSON(w, resp)
 	}
@@ -36,7 +37,7 @@ func HandleFind() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		m, _ := request.TagFrom(ctx)
-		response.JSON(w, NewBody(m))
+		response.JSON(w, apibody.NewTag(m))
 	}
 }
 
@@ -85,7 +86,7 @@ func HandleCreate(tags store.TagStore) http.HandlerFunc {
 			return
 		}
 
-		response.JSON(w, NewBody(m))
+		response.JSON(w, apibody.NewTag(m))
 	}
 }
 
@@ -123,7 +124,7 @@ func HandleUpdate(tags store.TagStore) http.HandlerFunc {
 			return
 		}
 
-		response.JSON(w, NewBody(m))
+		response.JSON(w, apibody.NewTag(m))
 	}
 }
 

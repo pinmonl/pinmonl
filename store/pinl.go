@@ -15,6 +15,7 @@ type PinlOpts struct {
 	ListOpts
 	ID            string
 	UserID        string
+	MonlIDs       []string
 	EmptyMonlOnly bool
 	MustTagIDs    []string
 	AnyTagIDs     []string
@@ -210,6 +211,12 @@ func bindPinlOpts(opts *PinlOpts) (database.SelectBuilder, database.QueryVars) {
 
 	if opts.EmptyMonlOnly {
 		br.Where = append(br.Where, "monl_id = ''")
+	}
+
+	if opts.MonlIDs != nil {
+		ks, ids := bindQueryIDs("monl_ids", opts.MonlIDs)
+		args.AppendStringMap(ids)
+		br.Where = append(br.Where, fmt.Sprintf("%s.monl_id IN (%s)", pinlTB, strings.Join(ks, ",")))
 	}
 
 	if opts.MustTagIDs != nil {

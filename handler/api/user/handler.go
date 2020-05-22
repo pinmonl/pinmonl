@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pinmonl/pinmonl/handler/api/apibody"
 	"github.com/pinmonl/pinmonl/handler/api/request"
 	"github.com/pinmonl/pinmonl/handler/api/response"
 	"github.com/pinmonl/pinmonl/model"
@@ -57,7 +58,7 @@ func HandleCreate(users store.UserStore) http.HandlerFunc {
 			return
 		}
 
-		response.JSON(w, NewBody(m))
+		response.JSON(w, apibody.NewUser(m))
 	}
 }
 
@@ -65,7 +66,7 @@ func HandleCreate(users store.UserStore) http.HandlerFunc {
 func HandleGetMe() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m, _ := request.UserFrom(r.Context())
-		response.JSON(w, NewBody(m))
+		response.JSON(w, apibody.NewUser(m))
 	}
 }
 
@@ -97,6 +98,6 @@ func HandleUpdateMe(users store.UserStore) http.HandlerFunc {
 			return
 		}
 
-		response.JSON(w, NewBody(m))
+		response.JSON(w, apibody.NewUser(m))
 	}
 }

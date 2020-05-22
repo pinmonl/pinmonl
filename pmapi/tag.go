@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pinmonl/pinmonl/handler/api/tag"
+	"github.com/pinmonl/pinmonl/handler/api/apibody"
 )
 
 // Tag defines the request and response structure.
-type Tag tag.Body
+type Tag apibody.Tag
 
 // ListTags retrieves Tags from server.
 func (c *Client) ListTags(_ context.Context, pageOpts PageOpts) ([]Tag, error) {

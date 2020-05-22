@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pinmonl/pinmonl/handler/api/pinl"
+	"github.com/pinmonl/pinmonl/handler/api/apibody"
 )
 
 // Pinl defines the request and response structure.
-type Pinl pinl.Body
+type Pinl apibody.Pinl
 
 // ListPinls retrieves Pinls from server.
 func (c *Client) ListPinls(_ context.Context, pageOpts PageOpts) ([]Pinl, error) {
