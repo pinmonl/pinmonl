@@ -60,6 +60,7 @@ func initQueueDispatcher(
 		Pinls:        ss.pinls,
 		Pkgs:         ss.pkgs,
 		Stats:        ss.stats,
+		Taggables:    ss.taggables,
 	})
 	if err != nil {
 		logx.Panic(err)

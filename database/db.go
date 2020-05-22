@@ -46,9 +46,9 @@ func (db *DB) Beginx() (*Tx, error) {
 
 // NamedQuery wraps database's query.
 func (db *DB) NamedQuery(query string, arg interface{}) (*sqlx.Rows, error) {
-	db.RLock()
+	db.Lock()
 	rows, err := db.DB.NamedQuery(query, arg)
-	db.RUnlock()
+	db.Unlock()
 	return rows, err
 }
 
@@ -81,14 +81,16 @@ func (tx *Tx) NamedQuery(query string, arg interface{}) (*sqlx.Rows, error) {
 
 // Commit commits database transaction.
 func (tx *Tx) Commit() error {
+	err := tx.Tx.Commit()
 	tx.Unlock()
-	return tx.Tx.Commit()
+	return err
 }
 
 // Rollback rollbacks database transaction.
 func (tx *Tx) Rollback() error {
+	err := tx.Tx.Rollback()
 	tx.Unlock()
-	return tx.Tx.Rollback()
+	return err
 }
 
 // Binder provides database bind var functions.

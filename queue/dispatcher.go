@@ -11,6 +11,7 @@ import (
 	"github.com/pinmonl/pinmonl/monler"
 	"github.com/pinmonl/pinmonl/monler/github"
 	"github.com/pinmonl/pinmonl/pubsub"
+	"github.com/pinmonl/pinmonl/pubsub/message"
 	"github.com/pinmonl/pinmonl/store"
 )
 
@@ -25,33 +26,36 @@ type DispatcherOpts struct {
 	Pinls        store.PinlStore
 	Pkgs         store.PkgStore
 	Stats        store.StatStore
+	Taggables    store.TaggableStore
 }
 
 // Dispatcher handles request of job.
 type Dispatcher struct {
-	qm      *Manager
-	ws      *pubsub.Server
-	monler  *monler.Repository
-	store   store.Store
-	monls   store.MonlStore
-	monpkgs store.MonpkgStore
-	pinls   store.PinlStore
-	pkgs    store.PkgStore
-	stats   store.StatStore
+	qm        *Manager
+	ws        *pubsub.Server
+	monler    *monler.Repository
+	store     store.Store
+	monls     store.MonlStore
+	monpkgs   store.MonpkgStore
+	pinls     store.PinlStore
+	pkgs      store.PkgStore
+	stats     store.StatStore
+	taggables store.TaggableStore
 }
 
 // NewDispatcher creates dispatcher.
 func NewDispatcher(opts *DispatcherOpts) (*Dispatcher, error) {
 	return &Dispatcher{
-		qm:      opts.QueueManager,
-		ws:      opts.Pubsub,
-		monler:  opts.Monler,
-		store:   opts.Store,
-		monls:   opts.Monls,
-		monpkgs: opts.Monpkgs,
-		pinls:   opts.Pinls,
-		pkgs:    opts.Pkgs,
-		stats:   opts.Stats,
+		qm:        opts.QueueManager,
+		ws:        opts.Pubsub,
+		monler:    opts.Monler,
+		store:     opts.Store,
+		monls:     opts.Monls,
+		monpkgs:   opts.Monpkgs,
+		pinls:     opts.Pinls,
+		pkgs:      opts.Pkgs,
+		stats:     opts.Stats,
+		taggables: opts.Taggables,
 	}, nil
 }
 
@@ -227,6 +231,9 @@ func (d *Dispatcher) saveMonlerReport(ctx context.Context, monl model.Monl, repo
 		if err := d.monls.Update(ctx, &monl); err != nil {
 			return err
 		}
+		if err := message.NotifyPkgUser(ctx, d.ws, d.pinls, d.monpkgs, d.taggables, d.stats, pkg); err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
@@ -395,17 +402,19 @@ func clearTagStats(ctx context.Context, stats store.StatStore, pkg model.Pkg) er
 		}
 	}
 	// Gets all substats.
-	substats, err := stats.List(ctx, &store.StatOpts{
-		PkgID:     pkg.ID,
-		ParentIDs: parents,
-	})
-	if err != nil {
-		return err
-	}
-	for _, s := range substats {
-		err := stats.Delete(ctx, &s)
+	if len(parents) > 0 {
+		substats, err := stats.List(ctx, &store.StatOpts{
+			PkgID:     pkg.ID,
+			ParentIDs: parents,
+		})
 		if err != nil {
 			return err
+		}
+		for _, s := range substats {
+			err := stats.Delete(ctx, &s)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
