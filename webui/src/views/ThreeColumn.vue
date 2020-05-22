@@ -1,9 +1,15 @@
 <script>
 import Footer from '@/components/app/Footer.vue'
 import Nav from '@/components/app/Nav.vue'
-import ThreeColumn from '@/components/app/ThreeColumn.vue'
+import ThreeColumn from '@/components/layout/ThreeColumn.vue'
+import scrollable from '@/provides/scrollable'
 
 export default {
+  provide () {
+    return {
+      [scrollable.name]: () => this.$el,
+    }
+  },
   render (h) {
     return h(ThreeColumn, {
       scopedSlots: {
@@ -13,7 +19,15 @@ export default {
       },
     })
   },
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      vm.$el.scrollTo({ top: 0, left: 0 })
+    })
+  },
   computed: {
+    scrollable () {
+      return this.$el
+    },
     navShowNewBookmark () {
       return this.$route.matched.filter(m => m.meta.navShowNewBookmark).length > 0
     },

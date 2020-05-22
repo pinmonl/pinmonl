@@ -2,7 +2,7 @@
   <div :class="$style.tagView">
     <Box v-if="tags.length > 0">
       <template v-for="tag in tags">
-        <TagNode :tag="tag" :previsouParentName="safeParentName" :key="tag.id" :active="isActive(tag)">
+        <TagNode :tag="tag" :previsouParentName="safeParentName" :key="tag.id" :active="isActive(tag)" ref="tags">
           <template #before>
             <Anchor :to="{ name: 'tag', params: {id: tag.id} }" :replace="showPanel" inset />
           </template>
@@ -52,6 +52,7 @@ import Modal from '@/components/modal/Modal.vue'
 import TagDetail from '@/components/tag/TagDetail.vue'
 import TagNode from '@/components/tag/TagNode.vue'
 import keybindingMixin from '@/mixins/keybinding'
+import scrollable from '@/provides/scrollable'
 
 export default {
   mixins: [keybindingMixin()],
@@ -62,6 +63,11 @@ export default {
     Modal,
     TagDetail,
     TagNode,
+  },
+  inject: {
+    scrollable: {
+      from: scrollable.name,
+    },
   },
   props: {
     id: {
@@ -197,6 +203,7 @@ export default {
       this.cursor = n
       const { id } = this.tags[n]
       this.highlight = [id]
+      this.scrollToTag(n)
     },
     highlightDown () {
       if (this.cursor + 1 >= this.tags.length) {
@@ -209,6 +216,25 @@ export default {
         return
       }
       return this.highlightAt(this.cursor - 1)
+    },
+    scrollToTag (n) {
+      const tagRef = this.$refs.tags[n]
+      if (!tagRef) {
+        return
+      }
+
+      const $tag = tagRef.$el
+      const $parent = this.scrollable()
+      const tagRect = $tag.getBoundingClientRect()
+      const parentRect = $parent.getBoundingClientRect()
+
+      const botDiff = tagRect.bottom - parentRect.bottom
+      const topDiff = tagRect.top - parentRect.top
+      if (botDiff > 0) {
+        $parent.scrollTo({ top: $parent.scrollTop + botDiff })
+      } else if (topDiff < 0) {
+        $parent.scrollTo({ top: $parent.scrollTop + topDiff })
+      }
     },
     gotoBookmark () {
       if (typeof this.tags[this.cursor] == 'undefined') {

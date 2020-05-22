@@ -2,7 +2,7 @@
   <div :class="$style.bookmarkView">
     <Box v-if="pinls.length > 0">
       <template v-for="pinl in pinls">
-        <Pinl :pinl="pinl" :key="pinl.id" :class="$style.pinl" :active="isActive(pinl)">
+        <Pinl :pinl="pinl" :key="pinl.id" :class="$style.pinl" :active="isActive(pinl)" ref="pinls">
           <template #before>
             <Anchor :to="{ name: 'bookmark', params: {id: pinl.id}, query: $route.query }" :replace="showPanel" inset />
           </template>
@@ -52,6 +52,7 @@ import Pinl from '@/components/pinl/Pinl.vue'
 import PinlDetail from '@/components/pinl/PinlDetail.vue'
 import isEqual from 'lodash/isEqual'
 import keybindingMixin from '@/mixins/keybinding'
+import scrollable from '@/provides/scrollable'
 
 export default {
   mixins: [keybindingMixin()],
@@ -62,6 +63,11 @@ export default {
     Modal,
     Pinl,
     PinlDetail,
+  },
+  inject: {
+    scrollable: {
+      from: scrollable.name,
+    },
   },
   props: {
     id: {
@@ -187,6 +193,7 @@ export default {
       this.cursor = n
       const { id } = this.pinls[n]
       this.highlight = [id]
+      this.scrollToPinl(n)
     },
     highlightDown () {
       if (this.cursor + 1 >= this.pinls.length) {
@@ -199,6 +206,25 @@ export default {
         return
       }
       return this.highlightAt(this.cursor - 1)
+    },
+    scrollToPinl (n) {
+      const pinlRef = this.$refs.pinls[n]
+      if (!pinlRef) {
+        return
+      }
+
+      const $pinl = pinlRef.$el
+      const $parent = this.scrollable()
+      const pinlRect = $pinl.getBoundingClientRect()
+      const parentRect = $parent.getBoundingClientRect()
+
+      const botDiff = pinlRect.bottom - parentRect.bottom
+      const topDiff = pinlRect.top - parentRect.top
+      if (botDiff > 0) {
+        $parent.scrollTo({ top: $parent.scrollTop + botDiff })
+      } else if (topDiff < 0) {
+        $parent.scrollTo({ top: $parent.scrollTop + topDiff })
+      }
     },
     openHighlightLink () {
       if (typeof this.pinls[this.cursor] == 'undefined') {
@@ -220,6 +246,9 @@ export default {
     },
     handleKeyPress (e) {
       if (this.shouldDisableKeys) {
+        return
+      }
+      if (this.editing) {
         return
       }
       if (this.hasId || this.isNew) {
