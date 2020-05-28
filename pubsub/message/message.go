@@ -60,6 +60,10 @@ func NotifyPinlUser(
 	statStore store.StatStore,
 	pinls ...model.Pinl,
 ) error {
+	if len(pinls) == 0 {
+		return nil
+	}
+
 	pkgMap, statMap, err := apiutils.ListPinlStats(ctx, monpkgStore, statStore, pinls...)
 	if err != nil {
 		return err

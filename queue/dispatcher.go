@@ -153,6 +153,13 @@ func (d *Dispatcher) FetchMonlerReports(monl model.Monl) error {
 			rs = append(rs, r)
 		}
 
+		err := d.txFunc(ctx, func(ctx context.Context) error {
+			return d.monls.Update(ctx, &monl)
+		})
+		if err != nil {
+			return err
+		}
+
 		// Save report to pkg
 		for _, report := range rs {
 			err := d.saveMonlerReport(ctx, monl, report, cred, rs)
@@ -226,9 +233,6 @@ func (d *Dispatcher) saveMonlerReport(ctx context.Context, monl model.Monl, repo
 			return err
 		}
 		if err := saveReportTags(ctx, d.stats, report, pkg); err != nil {
-			return err
-		}
-		if err := d.monls.Update(ctx, &monl); err != nil {
 			return err
 		}
 		if err := message.NotifyPkgUser(ctx, d.ws, d.pinls, d.monpkgs, d.taggables, d.stats, pkg); err != nil {

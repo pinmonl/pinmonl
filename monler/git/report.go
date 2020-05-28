@@ -2,13 +2,14 @@ package git
 
 import (
 	"bytes"
+	"io/ioutil"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/pinmonl/pinmonl/monler"
 	"github.com/pinmonl/pinmonl/pkg/payload"
@@ -26,6 +27,7 @@ type Report struct {
 	tags      []*monler.Stat
 	latestTag *monler.Stat
 	cursor    int
+	tempDir   string
 }
 
 // NewReport creates report.
@@ -94,6 +96,16 @@ func (r *Report) Download() error {
 
 // Close closes the report.
 func (r *Report) Close() error {
+	if r.tempDir != "" {
+		err := os.RemoveAll(r.tempDir)
+		if err != nil {
+			return err
+		}
+		err = os.Remove(r.tempDir)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -143,7 +155,11 @@ func ReportFromReadme(mlrepo *monler.Repository, readme string, cred monler.Cred
 }
 
 func (r *Report) download() error {
-	repo, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+	dir, err := r.getTempDir()
+	if err != nil {
+		return err
+	}
+	repo, err := git.PlainClone(dir, false, &git.CloneOptions{
 		URL: r.URL(),
 	})
 	if ErrIsEmptyGitRepository(err) {
@@ -168,6 +184,21 @@ func (r *Report) download() error {
 	}
 
 	return nil
+}
+
+func (r *Report) getTempDir() (string, error) {
+	if r.tempDir == "" {
+		dir, err := ioutil.TempDir("", "pinmonl-git-")
+		if err != nil {
+			return "", err
+		}
+		err = os.RemoveAll(dir)
+		if err != nil {
+			return "", err
+		}
+		r.tempDir = dir
+	}
+	return r.tempDir, nil
 }
 
 func parseTags(repo *git.Repository) ([]*monler.Stat, error) {
