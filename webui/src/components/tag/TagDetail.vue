@@ -187,12 +187,19 @@ export default {
     },
     handleKeyPress (e) {
       if (this.editable) {
+        if (e.key == 's' && e.ctrlKey) {
+          e.preventDefault()
+          this.handleSubmit()
+          return false
+        }
+
         return
       }
 
       if (e.key == 'e') {
         this.$emit('update:editable', true)
-        return
+        e.preventDefault()
+        return false
       }
     },
   },

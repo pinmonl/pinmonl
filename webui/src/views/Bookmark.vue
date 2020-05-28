@@ -1,6 +1,6 @@
 <template>
   <div :class="$style.bookmarkView">
-    <Box v-if="pinls.length > 0">
+    <Box v-if="pinls.length > 0" :key="listKey">
       <template v-for="pinl in pinls">
         <Pinl :pinl="pinl" :key="pinl.id" :class="$style.pinl" :active="isActive(pinl)" ref="pinls">
           <template #before>
@@ -125,6 +125,9 @@ export default {
         this.$router.replace({ query: {q} })
       },
     },
+    listKey () {
+      return JSON.stringify(this.$route.query)
+    },
   },
   methods: {
     handlePanelClose () {
@@ -163,7 +166,7 @@ export default {
       // Back to listing
       this.$router.replace({ name: 'bookmark.list', query: this.$route.query })
       // Move cursor up
-      this.highlightUp()
+      this.highlightAt(Math.min(this.cursor, this.pinls.length - 1))
     },
     async find (id) {
       return await this.$store.dispatch('pinl/find', { id })
@@ -173,7 +176,7 @@ export default {
         return await this.$store.dispatch('pinl/update', model)
       } else {
         const pinl = await this.$store.dispatch('pinl/create', model)
-        this.$router.replace({ name: 'bookmark', params: {id: pinl.id} })
+        this.$router.replace({ name: 'bookmark', params: {id: pinl.id}, query: this.$route.query })
         return pinl
       }
     },
@@ -219,7 +222,7 @@ export default {
       const parentRect = $parent.getBoundingClientRect()
 
       const botDiff = pinlRect.bottom - parentRect.bottom
-      const topDiff = pinlRect.top - parentRect.top
+      const topDiff = pinlRect.top - parentRect.top - 1
       if (botDiff > 0) {
         $parent.scrollTo({ top: $parent.scrollTop + botDiff })
       } else if (topDiff < 0) {
@@ -267,8 +270,9 @@ export default {
       }
 
       if (e.key == 'a') {
-        this.$router.push({ name: 'bookmark.new' })
-        return
+        this.$router.push({ name: 'bookmark.new', query: this.$route.query })
+        e.preventDefault()
+        return false
       }
       if (e.key == 'j') {
         this.highlightDown()

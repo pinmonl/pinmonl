@@ -34,9 +34,7 @@
     </template>
 
     <template v-else>
-      <div :class="$style.image" v-if="model.imageId">
-        <Img :id="model.imageId" />
-      </div>
+      <Img :class="$style.image" :id="model.imageId" v-if="model.imageId" />
       <div :class="$style.title">
         <Anchor :to="model.url" external color v-text="model.title" />
       </div>
@@ -157,12 +155,19 @@ export default {
     },
     handleKeyPress (e) {
       if (this.editable) {
+        if (e.key == 's' && e.ctrlKey) {
+          e.preventDefault()
+          this.handleSubmit()
+          return false
+        }
+
         return
       }
 
       if (e.key == 'e') {
         this.$emit('update:editable', true)
-        return
+        e.preventDefault()
+        return false
       }
       if (e.key == 'o') {
         this.$store.dispatch('pinl/openLink', { pinl: this.pinl })
@@ -211,6 +216,7 @@ export default {
   height: 80px;
   @apply rounded-lg;
   @apply overflow-hidden;
+  @apply object-cover;
 }
 
 .title {

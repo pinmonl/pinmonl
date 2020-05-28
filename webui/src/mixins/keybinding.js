@@ -1,10 +1,10 @@
 export default () => {
   return {
     mounted () {
-      document.addEventListener('keyup', this.handleKeyPress)
+      document.addEventListener('keydown', this.handleKeyPress)
     },
     beforeDestroy () {
-      document.removeEventListener('keyup', this.handleKeyPress)
+      document.removeEventListener('keydown', this.handleKeyPress)
     },
     computed: {
       shouldDisableKeys () {

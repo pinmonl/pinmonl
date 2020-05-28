@@ -17,6 +17,12 @@ export default {
         } else {
           commit('pinl/ADD_PINL', data)
         }
+        return
+      }
+
+      if (['pinl.delete'].includes(topic)) {
+        commit('pinl/DELETE_PINL', data)
+        return
       }
     },
   },

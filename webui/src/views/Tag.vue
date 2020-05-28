@@ -1,6 +1,6 @@
 <template>
   <div :class="$style.tagView">
-    <Box v-if="tags.length > 0">
+    <Box v-if="tags.length > 0" :key="listKey">
       <template v-for="tag in tags">
         <TagNode :tag="tag" :previsouParentName="safeParentName" :key="tag.id" :active="isActive(tag)" ref="tags">
           <template #before>
@@ -131,6 +131,9 @@ export default {
       const tags = this.$store.getters['tag/tags']
       return this.$store.getters['tag/getByName'](tags, this.safeParentName)
     },
+    listKey () {
+      return JSON.stringify(this.$route.query)
+    },
   },
   methods: {
     async initModel () {
@@ -229,7 +232,7 @@ export default {
       const parentRect = $parent.getBoundingClientRect()
 
       const botDiff = tagRect.bottom - parentRect.bottom
-      const topDiff = tagRect.top - parentRect.top
+      const topDiff = tagRect.top - parentRect.top - 1
       if (botDiff > 0) {
         $parent.scrollTo({ top: $parent.scrollTop + botDiff })
       } else if (topDiff < 0) {
@@ -322,7 +325,8 @@ export default {
 
       if (e.key == 'a') {
         this.$router.push({ name: 'tag.new' })
-        return
+        e.preventDefault()
+        return false
       }
       if (e.key == 'j') {
         this.highlightDown()

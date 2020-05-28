@@ -1,20 +1,22 @@
 <template>
   <div :class="$style.header">
-    <!-- <Hamburger :class="$style.hamburger" @click="openNav" :active="showNav" /> -->
-    <div :class="$style.title">
-      <Anchor to="/">
-        <LogoSVG />
-      </Anchor>
-    </div>
-    <div :class="$style.centeredContent">
-      <slot></slot>
-    </div>
-    <div :class="$style.statusBar">
-      <!--
-      <Anchor :to="{ name: 'account' }" :class="$style.account" v-if="!noAccount">
-        <IconButton name="accountCircle" block />
-      </Anchor>
-      -->
+    <div :class="$style.container">
+      <!-- <Hamburger :class="$style.hamburger" @click="openNav" :active="showNav" /> -->
+      <div :class="$style.title">
+        <Anchor to="/">
+          <LogoSVG />
+        </Anchor>
+      </div>
+      <div :class="$style.centeredContent">
+        <slot></slot>
+      </div>
+      <div :class="$style.statusBar">
+        <!--
+        <Anchor :to="{ name: 'account' }" :class="$style.account" v-if="!noAccount">
+          <IconButton name="accountCircle" block />
+        </Anchor>
+        -->
+      </div>
     </div>
   </div>
 </template>
@@ -47,6 +49,10 @@ export default {
 
 <style lang="scss" module>
 .header {
+  @apply border-b;
+}
+
+.container {
   @apply h-header;
   @apply px-4;
   @apply relative;
@@ -54,7 +60,15 @@ export default {
   @apply flex;
   @apply items-center;
   @apply justify-between;
-  @apply border-b;
+  @apply mx-auto;
+
+  @screen lg {
+    max-width: 1080px;
+  }
+
+  @screen xl {
+    max-width: 1300px;
+  }
 }
 
 .hamburger {

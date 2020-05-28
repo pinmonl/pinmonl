@@ -114,7 +114,7 @@ export default {
         return pinl
       }
     },
-    async create ({ rootGetters, commit }, data) {
+    async create ({ rootGetters }, data) {
       const req = rootGetters.newRequest('/api/pinl', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -125,11 +125,10 @@ export default {
       }
       if (resp.ok) {
         const pinl = await resp.json()
-        commit('ADD_PINL', pinl)
         return pinl
       }
     },
-    async update ({ rootGetters, commit }, data) {
+    async update ({ rootGetters }, data) {
       const { id } = data
       const req = rootGetters.newRequest(`/api/pinl/${id}`, {
         method: 'PUT',
@@ -141,11 +140,10 @@ export default {
       }
       if (resp.ok) {
         const pinl = await resp.json()
-        commit('UPDATE_PINL', pinl)
         return pinl
       }
     },
-    async delete ({ rootGetters, commit }, data) {
+    async delete ({ rootGetters }, data) {
       const { id } = data
       const req = rootGetters.newRequest(`/api/pinl/${id}`, {
         method: 'DELETE',
@@ -155,7 +153,6 @@ export default {
         throw resp
       }
       if (resp.ok) {
-        commit('DELETE_PINL', data)
         return
       }
     },
