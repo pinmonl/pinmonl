@@ -1,7 +1,7 @@
 ---
 kind: pipeline
 type: kubernetes
-name: test
+name: linux-amd64
 
 steps:
 - name: gotest
@@ -33,6 +33,7 @@ steps:
 - name: build:docker
   image: plugins/docker
   settings:
+    auto_tag: true
     username:
       from_secret: dockerhub_username
     password:
@@ -42,6 +43,10 @@ steps:
     build_args:
     - BUILD_OS=linux
     - BUILD_ARCH=amd64
+  when:
+    event:
+    - push
+    - tag
 
 ---
 kind: secret

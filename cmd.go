@@ -8,6 +8,7 @@ import (
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/monler"
 	"github.com/pinmonl/pinmonl/queue"
+	"github.com/pinmonl/pinmonl/version"
 	"github.com/urfave/cli"
 )
 
@@ -30,7 +31,7 @@ func initCmd(
 
 	return &cli.App{
 		Name:     "pinmonl",
-		Version:  "dev",
+		Version:  version.VersionString,
 		Commands: cmds.Commands(),
 	}
 }
