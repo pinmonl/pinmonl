@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/pinmonl/pinmonl/database/dbtest"
+	"github.com/pinmonl/pinmonl/handler/api/apibody"
 	"github.com/pinmonl/pinmonl/handler/api/request"
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/store"
@@ -91,7 +92,7 @@ func testHandleGetMe(users store.UserStore) func(*testing.T) {
 		)
 
 		HandleGetMe()(w, r)
-		var resp Body
+		var resp apibody.User
 		assert.Nil(t, json.Unmarshal(w.Body.Bytes(), &resp))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, user.ID, resp.ID, w.Body)
@@ -112,7 +113,7 @@ func testHandleUpdateMe(users store.UserStore) func(*testing.T) {
 		)
 
 		HandleUpdateMe(users)(w, r)
-		var resp Body
+		var resp apibody.User
 		assert.Nil(t, json.Unmarshal(w.Body.Bytes(), &resp))
 		assert.Equal(t, 200, w.Code, w.Body)
 		assert.Equal(t, "user1b", resp.Login)
