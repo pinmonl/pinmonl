@@ -81,6 +81,7 @@ $image-size: 50px;
   height: $image-size;
   padding: 2px;
   @apply rounded-lg;
+  @apply object-cover;
 }
 
 .content {
