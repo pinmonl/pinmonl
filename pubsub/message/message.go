@@ -14,18 +14,22 @@ func newPinlMessage(pinl apibody.Pinl, topic string) *pubsub.Message {
 	return pubsub.NewMessage(pinl.UserID, topic, pinl)
 }
 
+// NewPinlCreateMessage creates pinl create message.
 func NewPinlCreateMessage(pinl apibody.Pinl) *pubsub.Message {
 	return newPinlMessage(pinl, "pinl.create")
 }
 
+// NewPinlUpdateMessage creates pinl update message.
 func NewPinlUpdateMessage(pinl apibody.Pinl) *pubsub.Message {
 	return newPinlMessage(pinl, "pinl.update")
 }
 
+// NewPinlDeleteMessage creates pinl delete message.
 func NewPinlDeleteMessage(pinl apibody.Pinl) *pubsub.Message {
 	return newPinlMessage(pinl, "pinl.delete")
 }
 
+// NotifyPkgUser notifies user by pkg.
 func NotifyPkgUser(
 	ctx context.Context,
 	ws *pubsub.Server,
@@ -52,6 +56,7 @@ func NotifyPkgUser(
 	return NotifyPinlUser(ctx, ws, monpkgStore, taggableStore, statStore, pinls...)
 }
 
+// NotifyPinlUser notifies user by pinl.
 func NotifyPinlUser(
 	ctx context.Context,
 	ws *pubsub.Server,

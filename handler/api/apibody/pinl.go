@@ -25,14 +25,14 @@ func (p Pinl) WithTags(ts []model.Tag) Pinl {
 }
 
 // WithPkgs sets value of pkgs.
-func (ap Pinl) WithPkgs(ps []model.Pkg, statMap map[string][]model.Stat) Pinl {
-	ap.Pkgs = make([]Pkg, len(ps))
-	for i, p := range ps {
-		pBody := NewPkg(p)
+func (p Pinl) WithPkgs(pinls []model.Pkg, statMap map[string][]model.Stat) Pinl {
+	p.Pkgs = make([]Pkg, len(pinls))
+	for i, pinl := range pinls {
+		pBody := NewPkg(pinl)
 		if statMap != nil {
-			pBody = pBody.WithStats(statMap[p.ID]...)
+			pBody = pBody.WithStats(statMap[pinl.ID]...)
 		}
-		ap.Pkgs[i] = pBody
+		p.Pkgs[i] = pBody
 	}
-	return ap
+	return p
 }

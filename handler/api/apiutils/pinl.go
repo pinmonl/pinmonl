@@ -7,6 +7,7 @@ import (
 	"github.com/pinmonl/pinmonl/store"
 )
 
+// ListPinlStats fetches pkgs and stats of pinls.
 func ListPinlStats(
 	ctx context.Context,
 	monpkgStore store.MonpkgStore,
