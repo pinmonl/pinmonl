@@ -6,5 +6,4 @@ RUN apk add --no-cache \
 
 RUN go get -u golang.org/x/lint/golint \
 	&& go get golang.org/x/tools/cmd/goimports \
-	&& go get github.com/go-task/task/cmd/task \
-	&& go get github.com/gobuffalo/packr/v2/packr2
+	&& go get github.com/markbates/pkger/cmd/pkger
