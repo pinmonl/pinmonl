@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -16,14 +15,17 @@ import (
 )
 
 func main() {
-	pkger.Include("/migrations/server")
+	pkger.Include("/migrations")
+
 	c := config.Read()
 	db, _ := database.NewDB(&database.DBOpts{
 		Driver: c.DB.Driver,
 		DSN:    c.DB.DSN,
 	})
-	fmt.Println(db.Migrate.Down())
-	fmt.Println(db.Migrate.Up())
+	defer db.Close()
+
+	db.Migrate.Down()
+	db.Migrate.Up()
 
 	s := newStores(db)
 	r := newRouter(s)
@@ -31,14 +33,12 @@ func main() {
 }
 
 type stores struct {
-	store *store.Store
 	users *store.Users
 }
 
 func newStores(db *database.DB) stores {
 	s := store.NewStore(db)
 	return stores{
-		store: s,
 		users: store.NewUsers(s),
 	}
 }

@@ -3,10 +3,11 @@ CREATE TABLE IF NOT EXISTS stats (
   pkg_id       VARCHAR(50),
   parent_id    VARCHAR(50),
   recorded_at  TIMESTAMP,
-  kind         VARCHAR(100),
+  kind         INTEGER,
   value        VARCHAR(250),
   value_type   INTEGER,
-  digest       VARCHAR(500),
+  checksum     VARCHAR(500),
+  weight       INTEGER,
   is_latest    BOOLEAN,
   has_children BOOLEAN
 );

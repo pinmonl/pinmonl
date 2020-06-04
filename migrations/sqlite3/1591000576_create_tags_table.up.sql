@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS tags (
   parent_id    VARCHAR(50),
   level        INTEGER,
   color        VARCHAR(20),
-  bgcolor      VARCHAR(20),
+  bg_color     VARCHAR(20),
   has_children BOOLEAN,
   created_at   TIMESTAMP,
   updated_at   TIMESTAMP

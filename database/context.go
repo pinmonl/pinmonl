@@ -13,5 +13,9 @@ func WithRunner(ctx context.Context, runner Runner) context.Context {
 }
 
 func GetRunner(ctx context.Context) Runner {
-	return ctx.Value(RunnerKey).(Runner)
+	r, ok := ctx.Value(RunnerKey).(Runner)
+	if !ok {
+		return nil
+	}
+	return r
 }
