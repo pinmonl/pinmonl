@@ -24,15 +24,13 @@ func (u User) MorphName() string { return "user" }
 type UserRole int
 
 const (
-	UserRoleNotSet UserRole = iota
-	NormalUser
+	NormalUser UserRole = iota
 )
 
 type UserStatus int
 
 const (
-	UserStatusNotSet UserStatus = iota
-	ActiveUser
+	ActiveUser UserStatus = iota
 	ExpiredUser
 )
 

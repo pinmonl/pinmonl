@@ -24,8 +24,7 @@ func (s Stat) MorphName() string { return "stat" }
 type StatKind int
 
 const (
-	StatKindNotSet StatKind = iota
-	TagStat
+	TagStat StatKind = iota
 	AliasStat
 	StarStat
 	ForkStat
@@ -39,8 +38,7 @@ const (
 type StatValueType int
 
 const (
-	StatValueTypeNotSet StatValueType = iota
-	StringStat
+	StringStat StatValueType = iota
 	IntegerStat
 )
 

@@ -17,8 +17,7 @@ type Sharetag struct {
 type SharetagKind int
 
 const (
-	SharetagKindNotSet SharetagKind = iota
-	SharetagMust
+	SharetagMust SharetagKind = iota
 	SharetagAny
 )
 
