@@ -9,6 +9,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/pinmonl/pinmonl/database/dbtest"
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,7 +44,7 @@ func testUsersList(ctx context.Context, users *Users, mock sqlmock.Sqlmock) func
 		opts = nil
 		mock.ExpectQuery(prefix).
 			WillReturnRows(sqlmock.NewRows(users.columns()).
-				AddRow("user-id-1", "user1", "pw", "user name 1", "", "hash", model.NormalUser, model.ActiveUser, timestamp(), timestamp()))
+				AddRow("user-id-1", "user1", "pw", "user name 1", "", "hash", model.NormalUser, model.ActiveUser, nil, timestamp(), timestamp()))
 		list, err = users.List(ctx, opts)
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(list))
@@ -57,17 +58,17 @@ func testUsersList(ctx context.Context, users *Users, mock sqlmock.Sqlmock) func
 		assert.Nil(t, err)
 
 		// Test filter by status.
-		opts = &UserOpts{Status: model.ActiveUser}
+		opts = &UserOpts{Status: field.NewNullValue(model.ActiveUser)}
 		mock.ExpectQuery(fmt.Sprintf("%s WHERE status = ?", prefix)).
-			WithArgs(opts.Status).
+			WithArgs(opts.Status.Value()).
 			WillReturnRows(sqlmock.NewRows(users.columns()))
 		_, err = users.List(ctx, opts)
 		assert.Nil(t, err)
 
 		// Test filter by status.
-		opts = &UserOpts{Role: model.NormalUser}
+		opts = &UserOpts{Role: field.NewNullValue(model.NormalUser)}
 		mock.ExpectQuery(fmt.Sprintf("%s WHERE role = ?", prefix)).
-			WithArgs(opts.Role).
+			WithArgs(opts.Role.Value()).
 			WillReturnRows(sqlmock.NewRows(users.columns()))
 		_, err = users.List(ctx, opts)
 		assert.Nil(t, err)
@@ -115,7 +116,7 @@ func testUsersFind(ctx context.Context, users *Users, mock sqlmock.Sqlmock) func
 		mock.ExpectQuery(query).
 			WithArgs(id).
 			WillReturnRows(sqlmock.NewRows(users.columns()).
-				AddRow(id, "login", "pw", "name", "", "hash", model.NormalUser, model.ActiveUser, nil, nil))
+				AddRow(id, "login", "pw", "name", "", "hash", model.NormalUser, model.ActiveUser, nil, nil, nil))
 		user, err = users.Find(ctx, id)
 		assert.Nil(t, err)
 		if assert.NotNil(t, user) {
@@ -137,7 +138,7 @@ func testUsersFindLogin(ctx context.Context, users *Users, mock sqlmock.Sqlmock)
 		mock.ExpectQuery(query).
 			WithArgs(login, model.ActiveUser).
 			WillReturnRows(sqlmock.NewRows(users.columns()).
-				AddRow("user-id-1", login, "pw", "name", "", "hash", model.NormalUser, model.ActiveUser, nil, nil))
+				AddRow("user-id-1", login, "pw", "name", "", "hash", model.NormalUser, model.ActiveUser, nil, nil, nil))
 		user, err = users.FindLogin(ctx, login)
 		assert.Nil(t, err)
 		if assert.NotNil(t, user) {
@@ -173,6 +174,7 @@ func expectUsersInsert(mock sqlmock.Sqlmock, user *model.User) {
 			user.Hash,
 			user.Role,
 			user.Status,
+			user.LastSeen,
 			sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 }
@@ -202,6 +204,7 @@ func expectUsersUpdate(mock sqlmock.Sqlmock, user *model.User) {
 			user.Hash,
 			user.Role,
 			user.Status,
+			user.LastSeen,
 			sqlmock.AnyArg(),
 			user.ID).
 		WillReturnResult(sqlmock.NewResult(0, 1))

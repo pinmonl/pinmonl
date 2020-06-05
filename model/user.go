@@ -35,3 +35,13 @@ const (
 	ActiveUser
 	ExpiredUser
 )
+
+type UserList []*User
+
+func (ul UserList) Keys() []string {
+	var keys []string
+	for _, u := range ul {
+		keys = append(keys, u.ID)
+	}
+	return keys
+}

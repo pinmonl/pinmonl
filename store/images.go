@@ -171,7 +171,7 @@ func (i *Images) Update(ctx context.Context, image *model.Image) error {
 		Set("size", image2.Size).
 		Set("content_type", image2.ContentType).
 		Set("updated_at", image2.UpdatedAt).
-		Where("id = ?", image.ID).
+		Where("id = ?", image2.ID).
 		Limit(1)
 	_, err := qb.Exec()
 	if err != nil {

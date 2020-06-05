@@ -39,3 +39,13 @@ func (p *Pkg) UnmarshalURI(data []byte) error {
 	p.ProviderURI = strings.Trim(u.Path, "/")
 	return nil
 }
+
+type PkgList []*Pkg
+
+func (pl PkgList) Keys() []string {
+	var keys []string
+	for _, p := range pl {
+		keys = append(keys, p.ID)
+	}
+	return keys
+}

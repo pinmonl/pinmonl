@@ -6,6 +6,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/model/field"
 )
 
 type Tags struct {
@@ -17,6 +18,8 @@ type TagOpts struct {
 	UserID      string
 	Name        string
 	NamePattern string
+	ParentIDs   []string
+	Level       field.NullInt64
 }
 
 func NewTags(s *Store) *Tags {
@@ -112,6 +115,14 @@ func (t *Tags) bindOpts(b squirrel.SelectBuilder, opts *TagOpts) squirrel.Select
 
 	if opts.NamePattern != "" {
 		b = b.Where("name LIKE ?", opts.NamePattern)
+	}
+
+	if len(opts.ParentIDs) > 0 {
+		b = b.Where(squirrel.Eq{"parent_id": opts.ParentIDs})
+	}
+
+	if opts.Level.Valid {
+		b = b.Where("level = ?", opts.Level.Value())
 	}
 
 	return b

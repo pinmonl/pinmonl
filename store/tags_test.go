@@ -9,6 +9,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/pinmonl/pinmonl/database/dbtest"
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,6 +68,22 @@ func testTagsList(ctx context.Context, tags *Tags, mock sqlmock.Sqlmock) func(*t
 		opts = &TagOpts{NamePattern: "%tag%"}
 		mock.ExpectQuery(fmt.Sprintf("%s WHERE name LIKE ?", prefix)).
 			WithArgs(opts.NamePattern).
+			WillReturnRows(sqlmock.NewRows(tags.columns()))
+		_, err = tags.List(ctx, opts)
+		assert.Nil(t, err)
+
+		// Test filter by parents.
+		opts = &TagOpts{ParentIDs: []string{"parent-id-1", "parent-id-2"}}
+		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE parent_id IN (?,?)"), prefix)).
+			WithArgs(opts.ParentIDs[0], opts.ParentIDs[1]).
+			WillReturnRows(sqlmock.NewRows(tags.columns()))
+		_, err = tags.List(ctx, opts)
+		assert.Nil(t, err)
+
+		// Test filter by level.
+		opts = &TagOpts{Level: field.NewNullInt64(0)}
+		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE level = ?"), prefix)).
+			WithArgs(opts.Level.Value()).
 			WillReturnRows(sqlmock.NewRows(tags.columns()))
 		_, err = tags.List(ctx, opts)
 		assert.Nil(t, err)

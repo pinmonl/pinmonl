@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"regexp"
 	"testing"
@@ -54,12 +53,12 @@ func testImagesList(ctx context.Context, images *Images, mock sqlmock.Sqlmock) f
 			&model.Pinl{ID: "pinl-id-2"},
 			&model.Pinl{ID: "pinl-id-3"},
 		}}
-		targetArgs := []driver.Value{opts.Targets.MorphName()}
-		for _, t := range opts.Targets {
-			targetArgs = append(targetArgs, t.MorphKey())
-		}
 		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE target_name = ? AND target_id IN (?,?,?)"), prefix)).
-			WithArgs(targetArgs...).
+			WithArgs(
+				opts.Targets[0].MorphName(),
+				opts.Targets[0].MorphKey(),
+				opts.Targets[1].MorphKey(),
+				opts.Targets[2].MorphKey()).
 			WillReturnRows(sqlmock.NewRows(images.columns()))
 		_, err = images.List(ctx, opts)
 		assert.Nil(t, err)

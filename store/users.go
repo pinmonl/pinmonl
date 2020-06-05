@@ -6,6 +6,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/model/field"
 )
 
 type Users struct {
@@ -15,8 +16,8 @@ type Users struct {
 type UserOpts struct {
 	ListOpts
 	Login  string
-	Role   model.UserRole
-	Status model.UserStatus
+	Role   field.NullValue
+	Status field.NullValue
 }
 
 func NewUsers(s *Store) *Users {
@@ -105,12 +106,16 @@ func (u *Users) bindOpts(b squirrel.SelectBuilder, opts *UserOpts) squirrel.Sele
 		b = b.Where("login = ?", opts.Login)
 	}
 
-	if opts.Status != model.UserStatusNotSet {
-		b = b.Where("status = ?", opts.Status)
+	if opts.Status.Valid {
+		if s, ok := opts.Status.Value().(model.UserStatus); ok {
+			b = b.Where("status = ?", s)
+		}
 	}
 
-	if opts.Role != model.UserRoleNotSet {
-		b = b.Where("role = ?", opts.Role)
+	if opts.Role.Valid {
+		if r, ok := opts.Role.Value().(model.UserRole); ok {
+			b = b.Where("role = ?", r)
+		}
 	}
 
 	return b
@@ -126,6 +131,7 @@ func (u *Users) columns() []string {
 		"hash",
 		"role",
 		"status",
+		"last_seen",
 		"created_at",
 		"updated_at",
 	}
@@ -142,6 +148,7 @@ func (u *Users) scan(row database.RowScanner) (*model.User, error) {
 		&user.Hash,
 		&user.Role,
 		&user.Status,
+		&user.LastSeen,
 		&user.CreatedAt,
 		&user.UpdatedAt)
 	if err != nil {
@@ -166,6 +173,7 @@ func (u *Users) Create(ctx context.Context, user *model.User) error {
 			"hash",
 			"role",
 			"status",
+			"last_seen",
 			"created_at").
 		Values(
 			user2.ID,
@@ -176,6 +184,7 @@ func (u *Users) Create(ctx context.Context, user *model.User) error {
 			user2.Hash,
 			user2.Role,
 			user2.Status,
+			user2.LastSeen,
 			user2.CreatedAt)
 	_, err := qb.Exec()
 	if err != nil {
@@ -198,6 +207,7 @@ func (u *Users) Update(ctx context.Context, user *model.User) error {
 		Set("hash", user2.Hash).
 		Set("role", user2.Role).
 		Set("status", user2.Status).
+		Set("last_seen", user2.LastSeen).
 		Set("updated_at", user2.UpdatedAt).
 		Where("id = ?", user2.ID).
 		Limit(1)

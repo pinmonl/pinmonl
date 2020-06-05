@@ -15,3 +15,11 @@ func timestamp() field.Time {
 	t := time.Now().Round(time.Second).UTC()
 	return (field.Time)(t)
 }
+
+func prefixStrings(arr []string, prefix string) []string {
+	arr2 := make([]string, len(arr))
+	for i, s := range arr {
+		arr2[i] = prefix + s
+	}
+	return arr2
+}

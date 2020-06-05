@@ -145,7 +145,7 @@ func (m *Monls) Update(ctx context.Context, monl *model.Monl) error {
 		Update(m.table()).
 		Set("url", monl2.URL).
 		Set("updated_at", monl2.UpdatedAt).
-		Where("id = ?", monl.ID).
+		Where("id = ?", monl2.ID).
 		Limit(1)
 	_, err := qb.Exec()
 	if err != nil {

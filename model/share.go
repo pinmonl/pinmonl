@@ -15,3 +15,13 @@ type Share struct {
 
 func (s Share) MorphKey() string  { return s.ID }
 func (s Share) MorphName() string { return "share" }
+
+type ShareList []*Share
+
+func (sl ShareList) Keys() []string {
+	var keys []string
+	for _, s := range sl {
+		keys = append(keys, s.ID)
+	}
+	return keys
+}

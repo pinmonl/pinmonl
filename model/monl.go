@@ -11,3 +11,13 @@ type Monl struct {
 
 func (m Monl) MorphKey() string  { return m.ID }
 func (m Monl) MorphName() string { return "monl" }
+
+type MonlList []*Monl
+
+func (ml MonlList) Keys() []string {
+	var keys []string
+	for _, m := range ml {
+		keys = append(keys, m.ID)
+	}
+	return keys
+}

@@ -190,7 +190,7 @@ func (p *Pkgs) Update(ctx context.Context, pkg *model.Pkg) error {
 		Set("provider_host", pkg2.ProviderHost).
 		Set("provider_uri", pkg2.ProviderURI).
 		Set("updated_at", pkg2.UpdatedAt).
-		Where("id = ?", pkg.ID).
+		Where("id = ?", pkg2.ID).
 		Limit(1)
 	_, err := qb.Exec()
 	if err != nil {

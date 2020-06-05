@@ -16,3 +16,13 @@ type Pinl struct {
 
 func (p Pinl) MorphKey() string  { return p.ID }
 func (p Pinl) MorphName() string { return "pinl" }
+
+type PinlList []*Pinl
+
+func (pl PinlList) Keys() []string {
+	var keys []string
+	for _, p := range pl {
+		keys = append(keys, p.ID)
+	}
+	return keys
+}

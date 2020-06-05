@@ -14,8 +14,18 @@ type Tag struct {
 	CreatedAt   field.Time `json:"createdAt"`
 	UpdatedAt   field.Time `json:"updatedAt"`
 
-	Children *[]*Tag `json:"children,omitempty"`
+	Children *TagList `json:"children,omitempty"`
 }
 
 func (t Tag) MorphKey() string  { return t.ID }
 func (t Tag) MorphName() string { return "tag" }
+
+type TagList []*Tag
+
+func (tl TagList) Keys() []string {
+	var keys []string
+	for _, t := range tl {
+		keys = append(keys, t.ID)
+	}
+	return keys
+}

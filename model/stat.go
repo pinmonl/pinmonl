@@ -15,7 +15,7 @@ type Stat struct {
 	IsLatest    bool          `json:"isLatest"`
 	HasChildren bool          `json:"hasChildren"`
 
-	Substats *[]*Stat `json:"substats,omitempty"`
+	Substats *StatList `json:"substats,omitempty"`
 }
 
 func (s Stat) MorphKey() string  { return s.ID }
@@ -43,3 +43,13 @@ const (
 	StringStat
 	IntegerStat
 )
+
+type StatList []*Stat
+
+func (sl StatList) Keys() []string {
+	var keys []string
+	for _, s := range sl {
+		keys = append(keys, s.ID)
+	}
+	return keys
+}

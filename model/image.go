@@ -18,3 +18,13 @@ type Image struct {
 
 func (i Image) MorphKey() string  { return i.ID }
 func (i Image) MorphName() string { return "image" }
+
+type ImageList []*Image
+
+func (il ImageList) Keys() []string {
+	var keys []string
+	for _, i := range il {
+		keys = append(keys, i.ID)
+	}
+	return keys
+}
