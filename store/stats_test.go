@@ -104,7 +104,7 @@ func testStatsCount(ctx context.Context, stats *Stats, mock sqlmock.Sqlmock) fun
 func testStatsFind(ctx context.Context, stats *Stats, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = "SELECT (.+) FROM stats WHERE id = \\? LIMIT 1"
+			query = "SELECT (.+) FROM stats WHERE id = \\?"
 			id    string
 			stat  *model.Stat
 			err   error
@@ -170,7 +170,7 @@ func testStatsUpdate(ctx context.Context, stats *Stats, mock sqlmock.Sqlmock) fu
 }
 
 func expectStatsUpdate(mock sqlmock.Sqlmock, stat *model.Stat) {
-	mock.ExpectExec("UPDATE stats (.+) WHERE id = \\? LIMIT 1").
+	mock.ExpectExec("UPDATE stats (.+) WHERE id = \\?").
 		WithArgs(
 			stat.PkgID,
 			stat.ParentID,
@@ -189,7 +189,7 @@ func expectStatsUpdate(mock sqlmock.Sqlmock, stat *model.Stat) {
 func testStatsDelete(ctx context.Context, stats *Stats, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = regexp.QuoteMeta("DELETE FROM stats WHERE id = ? LIMIT 1")
+			query = regexp.QuoteMeta("DELETE FROM stats WHERE id = ?")
 			id    string
 			n     int64
 			err   error

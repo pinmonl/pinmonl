@@ -79,7 +79,7 @@ func testMonlsCount(ctx context.Context, monls *Monls, mock sqlmock.Sqlmock) fun
 func testMonlsFind(ctx context.Context, monls *Monls, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = "SELECT (.+) FROM monls WHERE id = \\? LIMIT 1"
+			query = "SELECT (.+) FROM monls WHERE id = \\?"
 			id    string
 			monl  *model.Monl
 			err   error
@@ -139,7 +139,7 @@ func testMonlsUpdate(ctx context.Context, monls *Monls, mock sqlmock.Sqlmock) fu
 }
 
 func expectMonlsUpdate(mock sqlmock.Sqlmock, monl *model.Monl) {
-	mock.ExpectExec("UPDATE monls (.+) WHERE id = \\? LIMIT 1").
+	mock.ExpectExec("UPDATE monls (.+) WHERE id = \\?").
 		WithArgs(
 			monl.URL,
 			sqlmock.AnyArg(),
@@ -150,7 +150,7 @@ func expectMonlsUpdate(mock sqlmock.Sqlmock, monl *model.Monl) {
 func testMonlsDelete(ctx context.Context, monls *Monls, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = regexp.QuoteMeta("DELETE FROM monls WHERE id = ? LIMIT 1")
+			query = regexp.QuoteMeta("DELETE FROM monls WHERE id = ?")
 			id    string
 			n     int64
 			err   error

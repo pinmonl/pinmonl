@@ -87,7 +87,7 @@ func testMonpkgsCount(ctx context.Context, monpkgs *Monpkgs, mock sqlmock.Sqlmoc
 func testMonpkgsFind(ctx context.Context, monpkgs *Monpkgs, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query  = "SELECT (.+) FROM monpkgs WHERE id = \\? LIMIT 1"
+			query  = "SELECT (.+) FROM monpkgs WHERE id = \\?"
 			id     string
 			monpkg *model.Monpkg
 			err    error
@@ -146,7 +146,7 @@ func testMonpkgsUpdate(ctx context.Context, monpkgs *Monpkgs, mock sqlmock.Sqlmo
 }
 
 func expectMonpkgsUpdate(mock sqlmock.Sqlmock, monpkg *model.Monpkg) {
-	mock.ExpectExec("UPDATE monpkgs (.+) WHERE id = \\? LIMIT 1").
+	mock.ExpectExec("UPDATE monpkgs (.+) WHERE id = \\?").
 		WithArgs(
 			monpkg.MonlID,
 			monpkg.PkgID,
@@ -158,7 +158,7 @@ func expectMonpkgsUpdate(mock sqlmock.Sqlmock, monpkg *model.Monpkg) {
 func testMonpkgsDelete(ctx context.Context, monpkgs *Monpkgs, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = regexp.QuoteMeta("DELETE FROM monpkgs WHERE id = ? LIMIT 1")
+			query = regexp.QuoteMeta("DELETE FROM monpkgs WHERE id = ?")
 			id    string
 			n     int64
 			err   error

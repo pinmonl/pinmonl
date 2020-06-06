@@ -71,8 +71,7 @@ func (p *Pinpkgs) Count(ctx context.Context, opts *PinpkgOpts) (int64, error) {
 func (p *Pinpkgs) Find(ctx context.Context, id string) (*model.Pinpkg, error) {
 	qb := p.RunnableBuilder(ctx).
 		Select(p.columns()...).From(p.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	row := qb.QueryRow()
 	pinpkg, err := p.scan(row)
 	if err != nil {
@@ -146,8 +145,7 @@ func (p *Pinpkgs) Update(ctx context.Context, pinpkg *model.Pinpkg) error {
 		Update(p.table()).
 		Set("pinl_id", pinpkg2.PinlID).
 		Set("pkg_id", pinpkg2.PkgID).
-		Where("id = ?", pinpkg2.ID).
-		Limit(1)
+		Where("id = ?", pinpkg2.ID)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -159,8 +157,7 @@ func (p *Pinpkgs) Update(ctx context.Context, pinpkg *model.Pinpkg) error {
 func (p *Pinpkgs) Delete(ctx context.Context, id string) (int64, error) {
 	qb := p.RunnableBuilder(ctx).
 		Delete(p.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

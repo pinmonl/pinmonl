@@ -71,8 +71,7 @@ func (m *Monpkgs) Count(ctx context.Context, opts *MonpkgOpts) (int64, error) {
 func (m *Monpkgs) Find(ctx context.Context, id string) (*model.Monpkg, error) {
 	qb := m.RunnableBuilder(ctx).
 		Select(m.columns()...).From(m.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	row := qb.QueryRow()
 	monpkg, err := m.scan(row)
 	if err != nil {
@@ -151,8 +150,7 @@ func (m *Monpkgs) Update(ctx context.Context, monpkg *model.Monpkg) error {
 		Set("monl_id", monpkg2.MonlID).
 		Set("pkg_id", monpkg2.PkgID).
 		Set("kind", monpkg2.Kind).
-		Where("id = ?", monpkg2.ID).
-		Limit(1)
+		Where("id = ?", monpkg2.ID)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -164,8 +162,7 @@ func (m *Monpkgs) Update(ctx context.Context, monpkg *model.Monpkg) error {
 func (m *Monpkgs) Delete(ctx context.Context, id string) (int64, error) {
 	qb := m.RunnableBuilder(ctx).
 		Delete(m.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

@@ -72,8 +72,7 @@ func (s *Shares) Count(ctx context.Context, opts *ShareOpts) (int64, error) {
 func (s *Shares) Find(ctx context.Context, id string) (*model.Share, error) {
 	qb := s.RunnableBuilder(ctx).
 		Select(s.columns()...).From(s.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	row := qb.QueryRow()
 	share, err := s.scan(row)
 	if err != nil {
@@ -163,8 +162,7 @@ func (s *Shares) Update(ctx context.Context, share *model.Share) error {
 		Set("description", share2.Description).
 		Set("image_id", share2.ImageID).
 		Set("updated_at", share2.UpdatedAt).
-		Where("id = ?", share2.ID).
-		Limit(1)
+		Where("id = ?", share2.ID)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -176,8 +174,7 @@ func (s *Shares) Update(ctx context.Context, share *model.Share) error {
 func (s *Shares) Delete(ctx context.Context, id string) (int64, error) {
 	qb := s.RunnableBuilder(ctx).
 		Delete(s.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

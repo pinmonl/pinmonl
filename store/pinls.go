@@ -71,8 +71,7 @@ func (p *Pinls) Count(ctx context.Context, opts *PinlOpts) (int64, error) {
 func (p *Pinls) Find(ctx context.Context, id string) (*model.Pinl, error) {
 	qb := p.RunnableBuilder(ctx).
 		Select(p.columns()...).From(p.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	row := qb.QueryRow()
 	pinl, err := p.scan(row)
 	if err != nil {
@@ -167,8 +166,7 @@ func (p *Pinls) Update(ctx context.Context, pinl *model.Pinl) error {
 		Set("description", pinl2.Description).
 		Set("image_id", pinl2.ImageID).
 		Set("updated_at", pinl2.UpdatedAt).
-		Where("id = ?", pinl2.ID).
-		Limit(1)
+		Where("id = ?", pinl2.ID)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -180,8 +178,7 @@ func (p *Pinls) Update(ctx context.Context, pinl *model.Pinl) error {
 func (p *Pinls) Delete(ctx context.Context, id string) (int64, error) {
 	qb := p.RunnableBuilder(ctx).
 		Delete(p.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

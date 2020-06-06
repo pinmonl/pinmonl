@@ -95,7 +95,7 @@ func testPkgsCount(ctx context.Context, pkgs *Pkgs, mock sqlmock.Sqlmock) func(*
 func testPkgsFind(ctx context.Context, pkgs *Pkgs, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = "SELECT (.+) FROM pkgs WHERE id = \\? LIMIT 1"
+			query = "SELECT (.+) FROM pkgs WHERE id = \\?"
 			id    string
 			pkg   *model.Pkg
 			err   error
@@ -117,7 +117,7 @@ func testPkgsFind(ctx context.Context, pkgs *Pkgs, mock sqlmock.Sqlmock) func(*t
 func testPkgsFindURI(ctx context.Context, pkgs *Pkgs, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query   = "SELECT (.+) FROM pkgs WHERE provider = \\? AND provider_host = \\? AND provider_uri = \\? LIMIT 1"
+			query   = "SELECT (.+) FROM pkgs WHERE provider = \\? AND provider_host = \\? AND provider_uri = \\?"
 			prd     string
 			prdHost string
 			prdURI  string
@@ -184,7 +184,7 @@ func testPkgsUpdate(ctx context.Context, pkgs *Pkgs, mock sqlmock.Sqlmock) func(
 }
 
 func expectPkgsUpdate(mock sqlmock.Sqlmock, pkg *model.Pkg) {
-	mock.ExpectExec("UPDATE pkgs (.+) WHERE id = \\? LIMIT 1").
+	mock.ExpectExec("UPDATE pkgs (.+) WHERE id = \\?").
 		WithArgs(
 			pkg.URL,
 			pkg.Provider,
@@ -198,7 +198,7 @@ func expectPkgsUpdate(mock sqlmock.Sqlmock, pkg *model.Pkg) {
 func testPkgsDelete(ctx context.Context, pkgs *Pkgs, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = regexp.QuoteMeta("DELETE FROM pkgs WHERE id = ? LIMIT 1")
+			query = regexp.QuoteMeta("DELETE FROM pkgs WHERE id = ?")
 			id    string
 			n     int64
 			err   error

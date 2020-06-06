@@ -75,8 +75,7 @@ func (s *Sharetags) Count(ctx context.Context, opts *SharetagOpts) (int64, error
 func (s *Sharetags) Find(ctx context.Context, id string) (*model.Sharetag, error) {
 	qb := s.RunnableBuilder(ctx).
 		Select(s.columns()...).From(s.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	row := qb.QueryRow()
 	sharetag, err := s.scan(row)
 	if err != nil {
@@ -176,8 +175,7 @@ func (s *Sharetags) Update(ctx context.Context, sharetag *model.Sharetag) error 
 		Set("parent_id", sharetag2.ParentID).
 		Set("level", sharetag2.Level).
 		Set("has_children", sharetag2.HasChildren).
-		Where("id = ?", sharetag2.ID).
-		Limit(1)
+		Where("id = ?", sharetag2.ID)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -189,8 +187,7 @@ func (s *Sharetags) Update(ctx context.Context, sharetag *model.Sharetag) error 
 func (s *Sharetags) Delete(ctx context.Context, id string) (int64, error) {
 	qb := s.RunnableBuilder(ctx).
 		Delete(s.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

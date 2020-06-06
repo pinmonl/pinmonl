@@ -72,8 +72,7 @@ func (t *Taggables) Count(ctx context.Context, opts *TaggableOpts) (int64, error
 func (t *Taggables) Find(ctx context.Context, id string) (*model.Taggable, error) {
 	qb := t.RunnableBuilder(ctx).
 		Select(t.columns()...).From(t.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	row := qb.QueryRow()
 	taggable, err := t.scan(row)
 	if err != nil {
@@ -204,8 +203,7 @@ func (t *Taggables) Update(ctx context.Context, taggable *model.Taggable) error 
 		Set("tag_id", taggable2.TagID).
 		Set("taggable_id", taggable2.TaggableID).
 		Set("taggable_name", taggable2.TaggableName).
-		Where("id = ?", taggable2.ID).
-		Limit(1)
+		Where("id = ?", taggable2.ID)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -217,8 +215,7 @@ func (t *Taggables) Update(ctx context.Context, taggable *model.Taggable) error 
 func (t *Taggables) Delete(ctx context.Context, id string) (int64, error) {
 	qb := t.RunnableBuilder(ctx).
 		Delete(t.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

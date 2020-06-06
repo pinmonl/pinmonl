@@ -71,8 +71,7 @@ func (p *Pkgs) Count(ctx context.Context, opts *PkgOpts) (int64, error) {
 func (p *Pkgs) Find(ctx context.Context, id string) (*model.Pkg, error) {
 	qb := p.RunnableBuilder(ctx).
 		Select(p.columns()...).From(p.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	row := qb.QueryRow()
 	pkg, err := p.scan(row)
 	if err != nil {
@@ -92,8 +91,7 @@ func (p *Pkgs) FindURI(ctx context.Context, uri string) (*model.Pkg, error) {
 		Select(p.columns()...).From(p.table()).
 		Where("provider = ?", match.Provider).
 		Where("provider_host = ?", match.ProviderHost).
-		Where("provider_uri = ?", match.ProviderURI).
-		Limit(1)
+		Where("provider_uri = ?", match.ProviderURI)
 	row := qb.QueryRow()
 	pkg, err := p.scan(row)
 	if err != nil {
@@ -190,8 +188,7 @@ func (p *Pkgs) Update(ctx context.Context, pkg *model.Pkg) error {
 		Set("provider_host", pkg2.ProviderHost).
 		Set("provider_uri", pkg2.ProviderURI).
 		Set("updated_at", pkg2.UpdatedAt).
-		Where("id = ?", pkg2.ID).
-		Limit(1)
+		Where("id = ?", pkg2.ID)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -203,8 +200,7 @@ func (p *Pkgs) Update(ctx context.Context, pkg *model.Pkg) error {
 func (p *Pkgs) Delete(ctx context.Context, id string) (int64, error) {
 	qb := p.RunnableBuilder(ctx).
 		Delete(p.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

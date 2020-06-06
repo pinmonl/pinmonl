@@ -73,8 +73,7 @@ func (u *Users) Count(ctx context.Context, opts *UserOpts) (int64, error) {
 func (u *Users) Find(ctx context.Context, id string) (*model.User, error) {
 	qb := u.RunnableBuilder(ctx).
 		Select(u.columns()...).From(u.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	row := qb.QueryRow()
 	user, err := u.scan(row)
 	if err != nil {
@@ -87,8 +86,7 @@ func (u *Users) FindLogin(ctx context.Context, login string) (*model.User, error
 	qb := u.RunnableBuilder(ctx).
 		Select(u.columns()...).From(u.table()).
 		Where("login = ?", login).
-		Where("status = ?", model.ActiveUser).
-		Limit(1)
+		Where("status = ?", model.ActiveUser)
 	row := qb.QueryRow()
 	user, err := u.scan(row)
 	if err != nil {
@@ -209,8 +207,7 @@ func (u *Users) Update(ctx context.Context, user *model.User) error {
 		Set("status", user2.Status).
 		Set("last_seen", user2.LastSeen).
 		Set("updated_at", user2.UpdatedAt).
-		Where("id = ?", user2.ID).
-		Limit(1)
+		Where("id = ?", user2.ID)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -222,8 +219,7 @@ func (u *Users) Update(ctx context.Context, user *model.User) error {
 func (u *Users) Delete(ctx context.Context, id string) (int64, error) {
 	qb := u.RunnableBuilder(ctx).
 		Delete(u.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

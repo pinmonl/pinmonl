@@ -70,8 +70,7 @@ func (i *Images) Count(ctx context.Context, opts *ImageOpts) (int64, error) {
 func (i *Images) Find(ctx context.Context, id string) (*model.Image, error) {
 	qb := i.RunnableBuilder(ctx).
 		Select(i.columns()...).From(i.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	row := qb.QueryRow()
 	image, err := i.scan(row)
 	if err != nil {
@@ -171,8 +170,7 @@ func (i *Images) Update(ctx context.Context, image *model.Image) error {
 		Set("size", image2.Size).
 		Set("content_type", image2.ContentType).
 		Set("updated_at", image2.UpdatedAt).
-		Where("id = ?", image2.ID).
-		Limit(1)
+		Where("id = ?", image2.ID)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -184,8 +182,7 @@ func (i *Images) Update(ctx context.Context, image *model.Image) error {
 func (i *Images) Delete(ctx context.Context, id string) (int64, error) {
 	qb := i.RunnableBuilder(ctx).
 		Delete(i.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

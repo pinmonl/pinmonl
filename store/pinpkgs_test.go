@@ -87,7 +87,7 @@ func testPinpkgsCount(ctx context.Context, pinpkgs *Pinpkgs, mock sqlmock.Sqlmoc
 func testPinpkgsFind(ctx context.Context, pinpkgs *Pinpkgs, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query  = "SELECT (.+) FROM pinpkgs WHERE id = \\? LIMIT 1"
+			query  = "SELECT (.+) FROM pinpkgs WHERE id = \\?"
 			id     string
 			pinpkg *model.Pinpkg
 			err    error
@@ -145,7 +145,7 @@ func testPinpkgsUpdate(ctx context.Context, pinpkgs *Pinpkgs, mock sqlmock.Sqlmo
 }
 
 func expectPinpkgsUpdate(mock sqlmock.Sqlmock, pinpkg *model.Pinpkg) {
-	mock.ExpectExec("UPDATE pinpkgs (.+) WHERE id = \\? LIMIT 1").
+	mock.ExpectExec("UPDATE pinpkgs (.+) WHERE id = \\?").
 		WithArgs(
 			pinpkg.PinlID,
 			pinpkg.PkgID,
@@ -156,7 +156,7 @@ func expectPinpkgsUpdate(mock sqlmock.Sqlmock, pinpkg *model.Pinpkg) {
 func testPinpkgsDelete(ctx context.Context, pinpkgs *Pinpkgs, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = regexp.QuoteMeta("DELETE FROM pinpkgs WHERE id = ? LIMIT 1")
+			query = regexp.QuoteMeta("DELETE FROM pinpkgs WHERE id = ?")
 			id    string
 			n     int64
 			err   error

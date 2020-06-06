@@ -106,7 +106,7 @@ func testUsersCount(ctx context.Context, users *Users, mock sqlmock.Sqlmock) fun
 func testUsersFind(ctx context.Context, users *Users, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = "SELECT (.+) FROM users WHERE id = \\? LIMIT 1"
+			query = "SELECT (.+) FROM users WHERE id = \\?"
 			id    string
 			user  *model.User
 			err   error
@@ -128,7 +128,7 @@ func testUsersFind(ctx context.Context, users *Users, mock sqlmock.Sqlmock) func
 func testUsersFindLogin(ctx context.Context, users *Users, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = "SELECT (.+) FROM users WHERE login = \\? AND status = \\? LIMIT 1"
+			query = "SELECT (.+) FROM users WHERE login = \\? AND status = \\?"
 			login string
 			user  *model.User
 			err   error
@@ -195,7 +195,7 @@ func testUsersUpdate(ctx context.Context, users *Users, mock sqlmock.Sqlmock) fu
 }
 
 func expectUsersUpdate(mock sqlmock.Sqlmock, user *model.User) {
-	mock.ExpectExec("UPDATE users (.+) WHERE id = \\? LIMIT 1").
+	mock.ExpectExec("UPDATE users (.+) WHERE id = \\?").
 		WithArgs(
 			user.Login,
 			user.Password,
@@ -213,7 +213,7 @@ func expectUsersUpdate(mock sqlmock.Sqlmock, user *model.User) {
 func testUsersDelete(ctx context.Context, users *Users, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = "DELETE FROM users WHERE id = \\? LIMIT 1"
+			query = "DELETE FROM users WHERE id = \\?"
 			id    string
 			n     int64
 			err   error

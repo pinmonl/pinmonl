@@ -70,8 +70,7 @@ func (m *Monls) Count(ctx context.Context, opts *MonlOpts) (int64, error) {
 func (m *Monls) Find(ctx context.Context, id string) (*model.Monl, error) {
 	qb := m.RunnableBuilder(ctx).
 		Select(m.columns()...).From(m.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	row := qb.QueryRow()
 	monl, err := m.scan(row)
 	if err != nil {
@@ -145,8 +144,7 @@ func (m *Monls) Update(ctx context.Context, monl *model.Monl) error {
 		Update(m.table()).
 		Set("url", monl2.URL).
 		Set("updated_at", monl2.UpdatedAt).
-		Where("id = ?", monl2.ID).
-		Limit(1)
+		Where("id = ?", monl2.ID)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -158,8 +156,7 @@ func (m *Monls) Update(ctx context.Context, monl *model.Monl) error {
 func (m *Monls) Delete(ctx context.Context, id string) (int64, error) {
 	qb := m.RunnableBuilder(ctx).
 		Delete(m.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

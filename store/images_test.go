@@ -87,7 +87,7 @@ func testImagesCount(ctx context.Context, images *Images, mock sqlmock.Sqlmock) 
 func testImagesFind(ctx context.Context, images *Images, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = "SELECT (.+) FROM images WHERE id = \\? LIMIT 1"
+			query = "SELECT (.+) FROM images WHERE id = \\?"
 			id    string
 			image *model.Image
 			err   error
@@ -152,7 +152,7 @@ func testImagesUpdate(ctx context.Context, images *Images, mock sqlmock.Sqlmock)
 }
 
 func expectImagesUpdate(mock sqlmock.Sqlmock, image *model.Image) {
-	mock.ExpectExec("UPDATE images (.+) WHERE id = \\? LIMIT 1").
+	mock.ExpectExec("UPDATE images (.+) WHERE id = \\?").
 		WithArgs(
 			image.TargetID,
 			image.TargetName,
@@ -168,7 +168,7 @@ func expectImagesUpdate(mock sqlmock.Sqlmock, image *model.Image) {
 func testImagesDelete(ctx context.Context, images *Images, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = regexp.QuoteMeta("DELETE FROM images WHERE id = ? LIMIT 1")
+			query = regexp.QuoteMeta("DELETE FROM images WHERE id = ?")
 			id    string
 			n     int64
 			err   error

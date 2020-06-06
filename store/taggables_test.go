@@ -96,7 +96,7 @@ func testTaggablesCount(ctx context.Context, taggables *Taggables, mock sqlmock.
 func testTaggablesFind(ctx context.Context, taggables *Taggables, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query    = "SELECT (.+) FROM taggables WHERE id = \\? LIMIT 1"
+			query    = "SELECT (.+) FROM taggables WHERE id = \\?"
 			id       string
 			taggable *model.Taggable
 			err      error
@@ -182,7 +182,7 @@ func testTaggablesUpdate(ctx context.Context, taggables *Taggables, mock sqlmock
 }
 
 func expectTaggablesUpdate(mock sqlmock.Sqlmock, taggable *model.Taggable) {
-	mock.ExpectExec("UPDATE taggables (.+) WHERE id = \\? LIMIT 1").
+	mock.ExpectExec("UPDATE taggables (.+) WHERE id = \\?").
 		WithArgs(
 			taggable.TagID,
 			taggable.TaggableID,
@@ -194,7 +194,7 @@ func expectTaggablesUpdate(mock sqlmock.Sqlmock, taggable *model.Taggable) {
 func testTaggablesDelete(ctx context.Context, taggables *Taggables, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = regexp.QuoteMeta("DELETE FROM taggables WHERE id = ? LIMIT 1")
+			query = regexp.QuoteMeta("DELETE FROM taggables WHERE id = ?")
 			id    string
 			n     int64
 			err   error

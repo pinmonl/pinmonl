@@ -80,7 +80,7 @@ func testSharetagsCount(ctx context.Context, sharetags *Sharetags, mock sqlmock.
 func testSharetagsFind(ctx context.Context, sharetags *Sharetags, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query    = "SELECT (.+) FROM sharetags WHERE id = \\? LIMIT 1"
+			query    = "SELECT (.+) FROM sharetags WHERE id = \\?"
 			id       string
 			sharetag *model.Sharetag
 			err      error
@@ -142,7 +142,7 @@ func testSharetagsUpdate(ctx context.Context, sharetags *Sharetags, mock sqlmock
 }
 
 func expectSharetagsUpdate(mock sqlmock.Sqlmock, sharetag *model.Sharetag) {
-	mock.ExpectExec("UPDATE sharetags (.+) WHERE id = \\? LIMIT 1").
+	mock.ExpectExec("UPDATE sharetags (.+) WHERE id = \\?").
 		WithArgs(
 			sharetag.ShareID,
 			sharetag.TagID,
@@ -157,7 +157,7 @@ func expectSharetagsUpdate(mock sqlmock.Sqlmock, sharetag *model.Sharetag) {
 func testSharetagsDelete(ctx context.Context, sharetags *Sharetags, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = regexp.QuoteMeta("DELETE FROM sharetags WHERE id = ? LIMIT 1")
+			query = regexp.QuoteMeta("DELETE FROM sharetags WHERE id = ?")
 			id    string
 			n     int64
 			err   error

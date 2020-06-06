@@ -74,8 +74,7 @@ func (s *Stats) Count(ctx context.Context, opts *StatOpts) (int64, error) {
 func (s *Stats) Find(ctx context.Context, id string) (*model.Stat, error) {
 	qb := s.RunnableBuilder(ctx).
 		Select(s.columns()...).From(s.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	row := qb.QueryRow()
 	stat, err := s.scan(row)
 	if err != nil {
@@ -199,8 +198,7 @@ func (s *Stats) Update(ctx context.Context, stat *model.Stat) error {
 		Set("weight", stat2.Weight).
 		Set("is_latest", stat2.IsLatest).
 		Set("has_children", stat2.HasChildren).
-		Where("id = ?", stat2.ID).
-		Limit(1)
+		Where("id = ?", stat2.ID)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -212,8 +210,7 @@ func (s *Stats) Update(ctx context.Context, stat *model.Stat) error {
 func (s *Stats) Delete(ctx context.Context, id string) (int64, error) {
 	qb := s.RunnableBuilder(ctx).
 		Delete(s.table()).
-		Where("id = ?", id).
-		Limit(1)
+		Where("id = ?", id)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

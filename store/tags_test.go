@@ -112,7 +112,7 @@ func testTagsCount(ctx context.Context, tags *Tags, mock sqlmock.Sqlmock) func(*
 func testTagsFind(ctx context.Context, tags *Tags, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = "SELECT (.+) FROM tags WHERE id = \\? LIMIT 1"
+			query = "SELECT (.+) FROM tags WHERE id = \\?"
 			id    string
 			tag   *model.Tag
 			err   error
@@ -178,7 +178,7 @@ func testTagsUpdate(ctx context.Context, tags *Tags, mock sqlmock.Sqlmock) func(
 }
 
 func expectTagsUpdate(mock sqlmock.Sqlmock, tag *model.Tag) {
-	mock.ExpectExec("UPDATE tags (.+) WHERE id = \\? LIMIT 1").
+	mock.ExpectExec("UPDATE tags (.+) WHERE id = \\?").
 		WithArgs(
 			tag.Name,
 			tag.UserID,
@@ -201,7 +201,7 @@ func testTagsDelete(ctx context.Context, tags *Tags, mock sqlmock.Sqlmock) func(
 		)
 
 		id = "tag-id-1"
-		mock.ExpectExec("DELETE FROM tags WHERE id = \\? LIMIT 1").
+		mock.ExpectExec("DELETE FROM tags WHERE id = \\?").
 			WithArgs(id).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		n, err = tags.Delete(ctx, id)

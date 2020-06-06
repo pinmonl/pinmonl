@@ -70,7 +70,7 @@ func testSharesCount(ctx context.Context, shares *Shares, mock sqlmock.Sqlmock) 
 func testSharesFind(ctx context.Context, shares *Shares, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = "SELECT (.+) FROM shares WHERE id = \\? LIMIT 1"
+			query = "SELECT (.+) FROM shares WHERE id = \\?"
 			id    string
 			share *model.Share
 			err   error
@@ -134,7 +134,7 @@ func testSharesUpdate(ctx context.Context, shares *Shares, mock sqlmock.Sqlmock)
 }
 
 func expectSharesUpdate(mock sqlmock.Sqlmock, share *model.Share) {
-	mock.ExpectExec("UPDATE shares (.+) WHERE id = \\? LIMIT 1").
+	mock.ExpectExec("UPDATE shares (.+) WHERE id = \\?").
 		WithArgs(
 			share.UserID,
 			share.Slug,
@@ -149,7 +149,7 @@ func expectSharesUpdate(mock sqlmock.Sqlmock, share *model.Share) {
 func testSharesDelete(ctx context.Context, shares *Shares, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
-			query = regexp.QuoteMeta("DELETE FROM shares WHERE id = ? LIMIT 1")
+			query = regexp.QuoteMeta("DELETE FROM shares WHERE id = ?")
 			id    string
 			n     int64
 			err   error
