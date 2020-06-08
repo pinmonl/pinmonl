@@ -1,10 +1,8 @@
 package model
 
 import (
-	"net/url"
-	"strings"
-
 	"github.com/pinmonl/pinmonl/model/field"
+	"github.com/pinmonl/pinmonl/pkgs/pkguri"
 )
 
 type Pkg struct {
@@ -20,23 +18,18 @@ type Pkg struct {
 func (p Pkg) MorphKey() string  { return p.ID }
 func (p Pkg) MorphName() string { return "pkg" }
 
-func (p Pkg) MarshalURI() ([]byte, error) {
-	uri := &url.URL{
-		Scheme: p.Provider,
-		Host:   p.ProviderHost,
-		Path:   p.ProviderURI,
-	}
-	return []byte(uri.String()), nil
+func (p Pkg) MarshalPkgURI() (*pkguri.PkgURI, error) {
+	return &pkguri.PkgURI{
+		Provider: p.Provider,
+		Host:     p.ProviderHost,
+		URI:      p.ProviderURI,
+	}, nil
 }
 
-func (p *Pkg) UnmarshalURI(data []byte) error {
-	u, err := url.Parse(string(data))
-	if err != nil {
-		return err
-	}
-	p.Provider = u.Scheme
-	p.ProviderHost = u.Host
-	p.ProviderURI = strings.Trim(u.Path, "/")
+func (p *Pkg) UnmarshalPkgURI(pu *pkguri.PkgURI) error {
+	p.Provider = pu.Provider
+	p.ProviderHost = pu.Host
+	p.ProviderURI = pu.URI
 	return nil
 }
 
@@ -49,3 +42,6 @@ func (pl PkgList) Keys() []string {
 	}
 	return keys
 }
+
+var _ pkguri.Marshaler = &Pkg{}
+var _ pkguri.Unmarshaler = &Pkg{}

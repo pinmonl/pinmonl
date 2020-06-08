@@ -20,6 +20,7 @@ type SharetagOpts struct {
 	Kind      field.NullValue
 	Level     field.NullInt64
 	ParentIDs []string
+	Status    field.NullValue
 }
 
 func NewSharetags(s *Store) *Sharetags {
@@ -92,6 +93,7 @@ func (s *Sharetags) columns() []string {
 		"kind",
 		"parent_id",
 		"level",
+		"status",
 		"has_children",
 	}
 }
@@ -115,6 +117,20 @@ func (s *Sharetags) bindOpts(b squirrel.SelectBuilder, opts *SharetagOpts) squir
 		}
 	}
 
+	if opts.Level.Valid {
+		b = b.Where("level = ?", opts.Level.Value())
+	}
+
+	if len(opts.ParentIDs) > 0 {
+		b = b.Where(squirrel.Eq{"parent_id": opts.ParentIDs})
+	}
+
+	if opts.Status.Valid {
+		if s, ok := opts.Status.Value().(model.ShareStatus); ok {
+			b = b.Where("status = ?", s)
+		}
+	}
+
 	return b
 }
 
@@ -127,6 +143,7 @@ func (s *Sharetags) scan(row database.RowScanner) (*model.Sharetag, error) {
 		&sharetag.Kind,
 		&sharetag.ParentID,
 		&sharetag.Level,
+		&sharetag.Status,
 		&sharetag.HasChildren)
 	if err != nil {
 		return nil, err
@@ -147,6 +164,7 @@ func (s *Sharetags) Create(ctx context.Context, sharetag *model.Sharetag) error 
 			"kind",
 			"parent_id",
 			"level",
+			"status",
 			"has_children").
 		Values(
 			sharetag2.ID,
@@ -155,6 +173,7 @@ func (s *Sharetags) Create(ctx context.Context, sharetag *model.Sharetag) error 
 			sharetag2.Kind,
 			sharetag2.ParentID,
 			sharetag2.Level,
+			sharetag2.Status,
 			sharetag2.HasChildren)
 	_, err := qb.Exec()
 	if err != nil {
@@ -174,6 +193,7 @@ func (s *Sharetags) Update(ctx context.Context, sharetag *model.Sharetag) error 
 		Set("kind", sharetag2.Kind).
 		Set("parent_id", sharetag2.ParentID).
 		Set("level", sharetag2.Level).
+		Set("status", sharetag2.Status).
 		Set("has_children", sharetag2.HasChildren).
 		Where("id = ?", sharetag2.ID)
 	_, err := qb.Exec()
@@ -188,6 +208,17 @@ func (s *Sharetags) Delete(ctx context.Context, id string) (int64, error) {
 	qb := s.RunnableBuilder(ctx).
 		Delete(s.table()).
 		Where("id = ?", id)
+	res, err := qb.Exec()
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+func (s *Sharetags) DeleteByShare(ctx context.Context, shareID string) (int64, error) {
+	qb := s.RunnableBuilder(ctx).
+		Delete(s.table()).
+		Where("share_id = ?", shareID)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

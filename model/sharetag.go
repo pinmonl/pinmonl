@@ -7,6 +7,7 @@ type Sharetag struct {
 	Kind        SharetagKind `json:"kind"`
 	ParentID    string       `json:"parentId"`
 	Level       int          `json:"level"`
+	Status      ShareStatus  `json:"status"`
 	HasChildren bool         `json:"hasChildren"`
 
 	Share    *Share        `json:"share,omitempty"`
@@ -20,6 +21,15 @@ const (
 	SharetagMust SharetagKind = iota
 	SharetagAny
 )
+
+func IsValidSharetagKind(k SharetagKind) bool {
+	checks := map[SharetagKind]int{
+		SharetagMust: 0,
+		SharetagAny:  0,
+	}
+	_, ok := checks[k]
+	return ok
+}
 
 type SharetagList []*Sharetag
 

@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS shares (
   name        VARCHAR(250),
   description TEXT,
   image_id    VARCHAR(50),
+  status      INTEGER,
   created_at  TIMESTAMP,
   updated_at  TIMESTAMP
 );

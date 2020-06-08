@@ -24,9 +24,9 @@ func (s *Store) Queryer(ctx context.Context) database.Queryer {
 }
 
 func (s *Store) Runner(ctx context.Context) database.Runner {
-	r := database.GetRunner(ctx)
-	if r != nil {
-		return r
+	tx := database.TxFrom(ctx)
+	if tx != nil {
+		return tx
 	}
 	return s.db
 }

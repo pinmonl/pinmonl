@@ -1,6 +1,9 @@
 package model
 
-import "github.com/pinmonl/pinmonl/model/field"
+import (
+	"github.com/Masterminds/semver"
+	"github.com/pinmonl/pinmonl/model/field"
+)
 
 type Stat struct {
 	ID          string        `json:"id"`
@@ -50,4 +53,42 @@ func (sl StatList) Keys() []string {
 		keys = append(keys, s.ID)
 	}
 	return keys
+}
+
+func (sl StatList) GetKind(k StatKind) StatList {
+	var list []*Stat
+	for _, s := range sl {
+		if s.Kind == k {
+			list = append(list, s)
+		}
+	}
+	return list
+}
+
+func (sl StatList) GetLatest() StatList {
+	var list []*Stat
+	for _, s := range sl {
+		if s.IsLatest {
+			list = append(list, s)
+		}
+	}
+	return list
+}
+
+type StatBySemver StatList
+
+func (sl StatBySemver) Len() int { return len(sl) }
+
+func (sl StatBySemver) Swap(i, j int) { sl[i], sl[j] = sl[j], sl[i] }
+
+func (sl StatBySemver) Less(i, j int) bool {
+	iv, err := semver.NewVersion(sl[i].Value)
+	if err != nil {
+		return false
+	}
+	ij, err := semver.NewVersion(sl[j].Value)
+	if err != nil {
+		return false
+	}
+	return iv.Compare(ij) < 0
 }

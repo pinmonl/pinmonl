@@ -50,7 +50,7 @@ func testTagsList(ctx context.Context, tags *Tags, mock sqlmock.Sqlmock) func(*t
 
 		// Test filter by user.
 		opts = &TagOpts{UserID: "user-id-1"}
-		mock.ExpectQuery(fmt.Sprintf("%s WHERE user_id = ?", prefix)).
+		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE user_id IN (?)"), prefix)).
 			WithArgs(opts.UserID).
 			WillReturnRows(sqlmock.NewRows(tags.columns()))
 		_, err = tags.List(ctx, opts)

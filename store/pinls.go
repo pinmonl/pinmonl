@@ -15,6 +15,7 @@ type Pinls struct {
 type PinlOpts struct {
 	ListOpts
 	UserID  string
+	UserIDs []string
 	MonlIDs []string
 }
 
@@ -97,6 +98,17 @@ func (p *Pinls) columns() []string {
 func (p *Pinls) bindOpts(b squirrel.SelectBuilder, opts *PinlOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
+	}
+
+	if opts.UserID != "" {
+		opts.UserIDs = append(opts.UserIDs, opts.UserID)
+	}
+	if len(opts.UserIDs) > 0 {
+		b = b.Where(squirrel.Eq{"user_id": opts.UserIDs})
+	}
+
+	if len(opts.MonlIDs) > 0 {
+		b = b.Where(squirrel.Eq{"monl_id": opts.MonlIDs})
 	}
 
 	return b

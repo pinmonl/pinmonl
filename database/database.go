@@ -3,9 +3,14 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/golang-migrate/migrate/v4"
+)
+
+var (
+	ErrNoTx = errors.New("Tx does not exist")
 )
 
 type DB struct {
@@ -49,19 +54,14 @@ func (d *DB) DriverName() string {
 	return d.drv
 }
 
-func (d *DB) TxFunc(fn func(context.Context) error) error {
+func (d *DB) TxFunc(ctx context.Context, fn func(context.Context) bool) error {
 	tx, err := d.Begin()
 	if err != nil {
 		return err
 	}
-	ctx := context.TODO()
-	ctx = WithRunner(ctx, tx)
-	err = fn(ctx)
-	if err != nil {
-		if err2 := tx.Rollback(); err2 != nil {
-			return err2
-		}
-		return err
+	ok := fn(WithTx(ctx, tx))
+	if !ok {
+		return tx.Rollback()
 	}
 	return tx.Commit()
 }
@@ -75,6 +75,38 @@ func (d *DB) Begin() (*Tx, error) {
 		Tx:     tx,
 		Locker: d.Locker,
 	}, nil
+}
+
+func (d *DB) WithTx(ctx context.Context) (context.Context, error) {
+	tx, err := d.Begin()
+	if err != nil {
+		return ctx, err
+	}
+	return WithTx(ctx, tx), nil
+}
+
+func (d *DB) TxFrom(ctx context.Context) (*Tx, error) {
+	tx := TxFrom(ctx)
+	if tx == nil {
+		return nil, ErrNoTx
+	}
+	return tx, nil
+}
+
+func (d *DB) CommitFrom(ctx context.Context) error {
+	tx, err := d.TxFrom(ctx)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (d *DB) RollbackFrom(ctx context.Context) error {
+	tx, err := d.TxFrom(ctx)
+	if err != nil {
+		return err
+	}
+	return tx.Rollback()
 }
 
 func (d *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
@@ -147,4 +179,13 @@ func NewBuilderFromBase(base squirrel.StatementBuilderType) Builder {
 
 func (b Builder) RunWith(runner Runner) Builder {
 	return NewBuilderFromBase(b.StatementBuilderType.RunWith(runner))
+}
+
+type Txer interface {
+	Begin() (*Tx, error)
+	WithTx(context.Context) (context.Context, error)
+	TxFrom(context.Context) (*Tx, error)
+	TxFunc(context.Context, func(context.Context) bool) error
+	CommitFrom(context.Context) error
+	RollbackFrom(context.Context) error
 }

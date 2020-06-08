@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS sharetags (
   kind         INTEGER,
   parent_id    VARCHAR(50),
   level        INTEGER,
+  status       INTEGER,
   has_children BOOLEAN
 );
 

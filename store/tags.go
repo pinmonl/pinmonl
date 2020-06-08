@@ -16,6 +16,7 @@ type Tags struct {
 type TagOpts struct {
 	ListOpts
 	UserID      string
+	UserIDs     []string
 	Name        string
 	NamePattern string
 	ParentIDs   []string
@@ -105,7 +106,10 @@ func (t *Tags) bindOpts(b squirrel.SelectBuilder, opts *TagOpts) squirrel.Select
 	}
 
 	if opts.UserID != "" {
-		b = b.Where("user_id = ?", opts.UserID)
+		opts.UserIDs = append(opts.UserIDs, opts.UserID)
+	}
+	if len(opts.UserIDs) > 0 {
+		b = b.Where(squirrel.Eq{"user_id": opts.UserIDs})
 	}
 
 	if opts.Name != "" {

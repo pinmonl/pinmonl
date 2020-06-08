@@ -15,8 +15,9 @@ type Taggables struct {
 
 type TaggableOpts struct {
 	ListOpts
-	TagIDs  []string
-	Targets model.MorphableList
+	TagIDs     []string
+	Targets    model.MorphableList
+	TargetName string
 }
 
 func NewTaggables(s *Store) *Taggables {
@@ -102,6 +103,10 @@ func (t *Taggables) bindOpts(b squirrel.SelectBuilder, opts *TaggableOpts) squir
 	if len(opts.Targets) > 0 && !opts.Targets.IsMixed() {
 		b = b.Where("target_name = ?", opts.Targets.MorphName()).
 			Where(squirrel.Eq{"target_id": opts.Targets.MorphKeys()})
+	}
+
+	if opts.TargetName != "" {
+		b = b.Where("target_name = ?", opts.TargetName)
 	}
 
 	return b
@@ -216,6 +221,18 @@ func (t *Taggables) Delete(ctx context.Context, id string) (int64, error) {
 	qb := t.RunnableBuilder(ctx).
 		Delete(t.table()).
 		Where("id = ?", id)
+	res, err := qb.Exec()
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+func (t *Taggables) DeleteByTaggable(ctx context.Context, target model.Morphable) (int64, error) {
+	qb := t.RunnableBuilder(ctx).
+		Delete(t.table()).
+		Where("taggable_name = ?", target.MorphName()).
+		Where("taggable_id = ?", target.MorphKey())
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

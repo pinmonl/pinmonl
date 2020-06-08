@@ -41,7 +41,7 @@ func testSharesList(ctx context.Context, shares *Shares, mock sqlmock.Sqlmock) f
 		opts = nil
 		mock.ExpectQuery(prefix).
 			WillReturnRows(sqlmock.NewRows(shares.columns()).
-				AddRow("share-id-1", "user-id-1", "user/share", "share name", "description", "", nil, nil))
+				AddRow("share-id-1", "user-id-1", "user/share", "share name", "description", "", model.PublishedShare, nil, nil))
 		list, err = shares.List(ctx, opts)
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(list))
@@ -80,7 +80,7 @@ func testSharesFind(ctx context.Context, shares *Shares, mock sqlmock.Sqlmock) f
 		mock.ExpectQuery(query).
 			WithArgs(id).
 			WillReturnRows(sqlmock.NewRows(shares.columns()).
-				AddRow(id, "user-id-1", "user/share", "share name", "description", "", nil, nil))
+				AddRow(id, "user-id-1", "user/share", "share name", "description", "", model.PublishedShare, nil, nil))
 		share, err = shares.Find(ctx, id)
 		assert.Nil(t, err)
 		if assert.NotNil(t, share) {
@@ -114,6 +114,7 @@ func expectSharesCreate(mock sqlmock.Sqlmock, share *model.Share) {
 			share.Name,
 			share.Description,
 			share.ImageID,
+			share.Status,
 			sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 }
@@ -141,6 +142,7 @@ func expectSharesUpdate(mock sqlmock.Sqlmock, share *model.Share) {
 			share.Name,
 			share.Description,
 			share.ImageID,
+			share.Status,
 			sqlmock.AnyArg(),
 			share.ID).
 		WillReturnResult(sqlmock.NewResult(0, 1))

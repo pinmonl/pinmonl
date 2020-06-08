@@ -6,6 +6,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/pkgs/pkguri"
 )
 
 type Pkgs struct {
@@ -81,8 +82,12 @@ func (p *Pkgs) Find(ctx context.Context, id string) (*model.Pkg, error) {
 }
 
 func (p *Pkgs) FindURI(ctx context.Context, uri string) (*model.Pkg, error) {
+	pu, err := pkguri.Parse(uri)
+	if err != nil {
+		return nil, err
+	}
 	match := model.Pkg{}
-	err := match.UnmarshalURI([]byte(uri))
+	err = match.UnmarshalPkgURI(pu)
 	if err != nil {
 		return nil, err
 	}

@@ -45,6 +45,10 @@ func testPinlsList(ctx context.Context, pinls *Pinls, mock sqlmock.Sqlmock) func
 		list, err = pinls.List(ctx, opts)
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(list))
+
+		// Test filter by user.
+		// Test filter by users.
+		// Test filter by monls.
 	}
 }
 
