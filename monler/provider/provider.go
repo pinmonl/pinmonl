@@ -31,6 +31,9 @@ type Repo interface {
 	// Derived creates other Reports which is derived from primary report.
 	Derived() ([]Report, error)
 
+	// Skipped reports the monler providers that should be skipped.
+	Skipped() []string
+
 	// Close closes and frees up resources.
 	Close() error
 }

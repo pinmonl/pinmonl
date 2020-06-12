@@ -28,7 +28,7 @@ func TestToNpm(t *testing.T) {
 
 	for _, test := range tests {
 		got := ToNpm(test.pu)
-		assert.Equal(t, test.expect, got)
+		assert.Equal(t, test.expect, got.String())
 	}
 }
 
@@ -42,7 +42,6 @@ func TestParseFromNpm(t *testing.T) {
 			rawurl: "https://www.npmjs.com/package/my-pkg",
 			expect: &PkgURI{
 				Provider: NpmProvider,
-				Host:     NpmHost,
 				URI:      "my-pkg",
 			},
 			err: nil,
@@ -51,7 +50,6 @@ func TestParseFromNpm(t *testing.T) {
 			rawurl: "https://www.npmjs.com/package/@org/my-pkg",
 			expect: &PkgURI{
 				Provider: NpmProvider,
-				Host:     NpmHost,
 				URI:      "@org/my-pkg",
 			},
 			err: nil,
@@ -85,7 +83,6 @@ func TestParseFromNpmRegistry(t *testing.T) {
 			rawurl: "https://registry.npmjs.org/my-pkg",
 			expect: &PkgURI{
 				Provider: NpmProvider,
-				Host:     NpmHost,
 				URI:      "my-pkg",
 			},
 			err: nil,
@@ -94,7 +91,6 @@ func TestParseFromNpmRegistry(t *testing.T) {
 			rawurl: "https://registry.npmjs.org/@org/my-pkg",
 			expect: &PkgURI{
 				Provider: NpmProvider,
-				Host:     NpmHost,
 				URI:      "@org/my-pkg",
 			},
 			err: nil,
@@ -133,7 +129,7 @@ func TestToGithub(t *testing.T) {
 
 	for _, test := range tests {
 		got := ToGithub(test.pu)
-		assert.Equal(t, test.expect, got)
+		assert.Equal(t, test.expect, got.String())
 	}
 }
 
@@ -147,7 +143,6 @@ func TestParseFromGithub(t *testing.T) {
 			rawurl: "https://github.com/owner/repo",
 			expect: &PkgURI{
 				Provider: GithubProvider,
-				Host:     GithubHost,
 				URI:      "owner/repo",
 			},
 			err: nil,
@@ -161,7 +156,6 @@ func TestParseFromGithub(t *testing.T) {
 			rawurl: "https://github.com/owner/repo/tree/dev/folder",
 			expect: &PkgURI{
 				Provider: GithubProvider,
-				Host:     GithubHost,
 				URI:      "owner/repo",
 			},
 			err: nil,

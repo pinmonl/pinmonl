@@ -1,6 +1,7 @@
 package pkguri
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -71,4 +72,46 @@ func TestParse(t *testing.T) {
 
 	_, err := Parse("pvd://provider.com")
 	assert.Equal(t, ErrNoURI, err)
+}
+
+func TestParseURL(t *testing.T) {
+	tests := []struct {
+		rawurl string
+		expect *url.URL
+		err    error
+	}{
+		{
+			rawurl: "https://github.com/owner/repo",
+			expect: &url.URL{
+				Scheme: "https",
+				Host:   "github.com",
+				Path:   "/owner/repo",
+			},
+			err: nil,
+		},
+		{
+			rawurl: "/owner/repo",
+			expect: nil,
+			err:    ErrHost,
+		},
+		{
+			rawurl: "github.com/owner/repo",
+			expect: &url.URL{
+				Scheme: DefaultProto,
+				Host:   "github.com",
+				Path:   "/owner/repo",
+			},
+			err: nil,
+		},
+	}
+
+	for _, test := range tests {
+		got, err := ParseURL(test.rawurl)
+		assert.Equal(t, test.err, err)
+		if test.expect != nil {
+			assert.Equal(t, test.expect.Scheme, got.Scheme)
+			assert.Equal(t, test.expect.Host, got.Host)
+			assert.Equal(t, test.expect.Path, got.Path)
+		}
+	}
 }

@@ -149,9 +149,9 @@ func (r *Repo) analyze() (*Report, error) {
 	}
 
 	// Construct pkguri.
-	pu := &pkguri.PkgURI{
-		Provider: pkguri.GitProvider,
-		URI:      r.gitURL,
+	pu, err := pkguri.ParseFromGit(r.gitURL)
+	if err != nil {
+		return nil, err
 	}
 
 	return newReport(pu, tags)
@@ -159,6 +159,10 @@ func (r *Repo) analyze() (*Report, error) {
 
 func (r *Repo) Derived() ([]provider.Report, error) {
 	return nil, nil
+}
+
+func (r *Repo) Skipped() []string {
+	return nil
 }
 
 func (r *Repo) Close() error {
@@ -171,14 +175,6 @@ func (r *Repo) openFile(file string) (*os.File, error) {
 
 func (r *Repo) openFilePath(file pkgrepo.FilePath) (*os.File, error) {
 	return r.openFile(file.String())
-}
-
-type File *os.File
-type Files map[pkgrepo.FilePath]File
-
-func (r *Repo) GetReadme() (File, error) {
-	f, err := r.openFile("readme.md")
-	return f, err
 }
 
 func (r *Repo) GetNpmURI() (*pkguri.PkgURI, error) {

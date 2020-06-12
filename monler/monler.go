@@ -33,7 +33,11 @@ func Open(providerName, url string) (provider.Repo, error) {
 	if !ok {
 		return nil, ErrUnknownProvider
 	}
-	return pvd.Open(url)
+	u, err := pkguri.ParseURL(url)
+	if err != nil {
+		return nil, err
+	}
+	return pvd.Open(u.String())
 }
 
 func Parse(uri string) (provider.Repo, error) {
@@ -53,7 +57,11 @@ func Ping(providerName, url string) error {
 	if !ok {
 		return ErrUnknownProvider
 	}
-	return pvd.Ping(url)
+	u, err := pkguri.ParseURL(url)
+	if err != nil {
+		return err
+	}
+	return pvd.Ping(u.String())
 }
 
 func Guess(url string) ([]provider.Repo, error) {

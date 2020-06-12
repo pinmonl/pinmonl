@@ -139,3 +139,22 @@ func Unmarshal(data string, v interface{}) error {
 		return ErrNoUnmarshaler
 	}
 }
+
+func ParseURL(rawurl string) (*url.URL, error) {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, err
+	}
+
+	if u.Host == "" {
+		if strings.HasPrefix(u.Path, "/") {
+			return nil, ErrHost
+		}
+		splits := strings.SplitN(u.Path, "/", 2)
+		u.Host, u.Path = splits[0], "/"+splits[1]
+	}
+	if u.Scheme == "" {
+		u.Scheme = DefaultProto
+	}
+	return u, nil
+}

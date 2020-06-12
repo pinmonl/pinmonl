@@ -21,6 +21,10 @@ var (
 	// Github.
 	GithubProvider = "github"
 	GithubHost     = "github.com"
+
+	// Docker.
+	DockerProvider = "docker"
+	DockerHost     = "hub.docker.com"
 )
 
 // Errors.
@@ -138,5 +142,23 @@ func ParseFromGithub(rawurl string) (*PkgURI, error) {
 	return &PkgURI{
 		Provider: GithubProvider,
 		URI:      uri,
+	}, nil
+}
+
+// ToGit produces the url to git repository.
+func ToGit(pu *PkgURI) *url.URL {
+	return pu.URL()
+}
+
+// ParseFromGit parses git url to pkguri.
+func ParseFromGit(rawurl string) (*PkgURI, error) {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, err
+	}
+	return &PkgURI{
+		Provider: GitProvider,
+		Proto:    u.Scheme,
+		URI:      u.Host + u.Path,
 	}, nil
 }
