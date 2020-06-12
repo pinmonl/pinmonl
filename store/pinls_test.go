@@ -41,7 +41,7 @@ func testPinlsList(ctx context.Context, pinls *Pinls, mock sqlmock.Sqlmock) func
 		opts = nil
 		mock.ExpectQuery(prefix).
 			WillReturnRows(sqlmock.NewRows(pinls.columns()).
-				AddRow("pinl-id-1", "user-id-1", "monl-id-1", "http://somewhere.com", "title", "description", "", nil, nil))
+				AddRow("pinl-id-1", "user-id-1", "monl-id-1", "http://somewhere.com", "title", "description", "", model.Active, nil, nil))
 		list, err = pinls.List(ctx, opts)
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(list))
@@ -84,7 +84,7 @@ func testPinlsFind(ctx context.Context, pinls *Pinls, mock sqlmock.Sqlmock) func
 		mock.ExpectQuery(query).
 			WithArgs(id).
 			WillReturnRows(sqlmock.NewRows(pinls.columns()).
-				AddRow(id, "user-id-1", "monl-id-1", "http://somewhere.com", "title", "description", "", nil, nil))
+				AddRow(id, "user-id-1", "monl-id-1", "http://somewhere.com", "title", "description", "", model.Active, nil, nil))
 		pinl, err = pinls.Find(ctx, id)
 		assert.Nil(t, err)
 		if assert.NotNil(t, pinl) {
@@ -119,6 +119,7 @@ func expectPinlsCreate(mock sqlmock.Sqlmock, pinl *model.Pinl) {
 			pinl.Title,
 			pinl.Description,
 			pinl.ImageID,
+			pinl.Status,
 			sqlmock.AnyArg(),
 			sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -148,6 +149,7 @@ func expectPinlsUpdate(mock sqlmock.Sqlmock, pinl *model.Pinl) {
 			pinl.Title,
 			pinl.Description,
 			pinl.ImageID,
+			pinl.Status,
 			sqlmock.AnyArg(),
 			pinl.ID).
 		WillReturnResult(sqlmock.NewResult(0, 1))

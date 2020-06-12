@@ -43,7 +43,7 @@ func testSharetagsList(ctx context.Context, sharetags *Sharetags, mock sqlmock.S
 		opts = nil
 		mock.ExpectQuery(prefix).
 			WillReturnRows(sqlmock.NewRows(sharetags.columns()).
-				AddRow("sharetag-id-1", "share-id-1", "tag-id-1", model.SharetagMust, "", 0, model.PublishedShare, false))
+				AddRow("sharetag-id-1", "share-id-1", "tag-id-1", model.SharetagMust, "", 0, model.Active, false))
 		list, err = sharetags.List(ctx, opts)
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(list))
@@ -90,7 +90,7 @@ func testSharetagsFind(ctx context.Context, sharetags *Sharetags, mock sqlmock.S
 		mock.ExpectQuery(query).
 			WithArgs(id).
 			WillReturnRows(sqlmock.NewRows(sharetags.columns()).
-				AddRow("sharetag-id-1", "share-id-1", "tag-id-1", model.SharetagMust, "", 0, model.PublishedShare, false))
+				AddRow("sharetag-id-1", "share-id-1", "tag-id-1", model.SharetagMust, "", 0, model.Active, false))
 		sharetag, err = sharetags.Find(ctx, id)
 		assert.Nil(t, err)
 		if assert.NotNil(t, sharetag) {

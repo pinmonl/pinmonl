@@ -7,7 +7,7 @@ type Sharetag struct {
 	Kind        SharetagKind `json:"kind"`
 	ParentID    string       `json:"parentId"`
 	Level       int          `json:"level"`
-	Status      ShareStatus  `json:"status"`
+	Status      Status       `json:"status"`
 	HasChildren bool         `json:"hasChildren"`
 
 	Share    *Share        `json:"share,omitempty"`

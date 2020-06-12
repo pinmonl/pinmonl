@@ -68,7 +68,7 @@ func (s *Server) prepareShareHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		share.Name = in.Name
 		share.Description = in.Description
-		share.Status = model.PreparingShare
+		share.Status = model.Preparing
 
 		if share.ID == "" {
 			err = s.Shares.Create(ctx, share)
@@ -149,7 +149,7 @@ func (s *Server) publishShareHandler(w http.ResponseWriter, r *http.Request) {
 	)
 
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
-		share.Status = model.PublishedShare
+		share.Status = model.Active
 		err = s.Shares.Update(ctx, share)
 		return err == nil
 	})

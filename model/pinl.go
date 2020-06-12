@@ -10,6 +10,7 @@ type Pinl struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
 	ImageID     string     `json:"imageId"`
+	Status      Status     `json:"status"`
 	CreatedAt   field.Time `json:"createdAt"`
 	UpdatedAt   field.Time `json:"updatedAt"`
 }

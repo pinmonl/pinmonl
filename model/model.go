@@ -29,3 +29,11 @@ func (ml MorphableList) MorphKeys() []string {
 	}
 	return keys
 }
+
+type Status int
+
+const (
+	Active Status = iota
+	Preparing
+	Deleted
+)

@@ -42,7 +42,7 @@ func testSharepinsList(ctx context.Context, sharepins *Sharepins, mock sqlmock.S
 		opts = nil
 		mock.ExpectQuery(prefix).
 			WillReturnRows(sqlmock.NewRows(sharepins.columns()).
-				AddRow("sharepin-id-1", "share-id-1", "pinl-id-1", model.PublishedShare))
+				AddRow("sharepin-id-1", "share-id-1", "pinl-id-1", model.Active))
 		list, err = sharepins.List(ctx, opts)
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(list))
@@ -97,7 +97,7 @@ func testSharepinsFind(ctx context.Context, sharepins *Sharepins, mock sqlmock.S
 		mock.ExpectQuery(query).
 			WithArgs(id).
 			WillReturnRows(sqlmock.NewRows(sharepins.columns()).
-				AddRow("sharepin-id-1", "share-id-1", "pinl-id-1", model.PublishedShare))
+				AddRow("sharepin-id-1", "share-id-1", "pinl-id-1", model.Active))
 		sharepin, err = sharepins.Find(ctx, id)
 		assert.Nil(t, err)
 		if assert.NotNil(t, sharepin) {

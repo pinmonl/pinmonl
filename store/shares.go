@@ -134,7 +134,7 @@ func (s *Shares) bindOpts(b squirrel.SelectBuilder, opts *ShareOpts) squirrel.Se
 	}
 
 	if opts.Status.Valid {
-		if s, ok := opts.Status.Value().(model.ShareStatus); ok {
+		if s, ok := opts.Status.Value().(model.Status); ok {
 			b = b.Where("status = ?", s)
 		}
 	}

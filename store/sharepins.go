@@ -128,7 +128,7 @@ func (s *Sharepins) bindOpts(b squirrel.SelectBuilder, opts *SharepinOpts) squir
 	}
 
 	if opts.Status.Valid {
-		if s, ok := opts.Status.Value().(model.ShareStatus); ok {
+		if s, ok := opts.Status.Value().(model.Status); ok {
 			b = b.Where("status = ?", s)
 		}
 	}

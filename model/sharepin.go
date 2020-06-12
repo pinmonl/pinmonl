@@ -1,10 +1,10 @@
 package model
 
 type Sharepin struct {
-	ID      string      `json:"id"`
-	ShareID string      `json:"shareId"`
-	PinlID  string      `json:"pinlId"`
-	Status  ShareStatus `json:"status"`
+	ID      string `json:"id"`
+	ShareID string `json:"shareId"`
+	PinlID  string `json:"pinlId"`
+	Status  Status `json:"status"`
 
 	Share *Share `json:"share,omitempty"`
 	Pinl  *Pinl  `json:"pinl,omitempty"`

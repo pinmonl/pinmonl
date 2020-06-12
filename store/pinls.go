@@ -94,6 +94,7 @@ func (p *Pinls) columns() []string {
 		"title",
 		"description",
 		"image_id",
+		"status",
 		"created_at",
 		"updated_at",
 	}
@@ -128,6 +129,7 @@ func (p *Pinls) scan(row database.RowScanner) (*model.Pinl, error) {
 		&pinl.Title,
 		&pinl.Description,
 		&pinl.ImageID,
+		&pinl.Status,
 		&pinl.CreatedAt,
 		&pinl.UpdatedAt)
 	if err != nil {
@@ -152,6 +154,7 @@ func (p *Pinls) Create(ctx context.Context, pinl *model.Pinl) error {
 			"title",
 			"description",
 			"image_id",
+			"status",
 			"created_at",
 			"updated_at").
 		Values(
@@ -162,6 +165,7 @@ func (p *Pinls) Create(ctx context.Context, pinl *model.Pinl) error {
 			pinl2.Title,
 			pinl2.Description,
 			pinl2.ImageID,
+			pinl2.Status,
 			pinl2.CreatedAt,
 			pinl2.UpdatedAt)
 	_, err := qb.Exec()
@@ -184,6 +188,7 @@ func (p *Pinls) Update(ctx context.Context, pinl *model.Pinl) error {
 		Set("title", pinl2.Title).
 		Set("description", pinl2.Description).
 		Set("image_id", pinl2.ImageID).
+		Set("status", pinl2.Status).
 		Set("updated_at", pinl2.UpdatedAt).
 		Where("id = ?", pinl2.ID)
 	_, err := qb.Exec()
