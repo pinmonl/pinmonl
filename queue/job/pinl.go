@@ -9,20 +9,22 @@ import (
 )
 
 type PinlUpdated struct {
-	PinlID string
-	Pinls  *store.Pinls
-	Monls  *store.Monls
-	Pkgs   *store.Pkgs
-	Stats  *store.Stats
+	PinlID  string
+	Pinls   *store.Pinls
+	Monls   *store.Monls
+	Pkgs    *store.Pkgs
+	Stats   *store.Stats
+	Monpkgs *store.Monpkgs
 }
 
-func NewPinlUpdated(pinlID string, pinls *store.Pinls, monls *store.Monls, pkgs *store.Pkgs, stats *store.Stats) PinlUpdated {
+func NewPinlUpdated(pinlID string, pinls *store.Pinls, monls *store.Monls, pkgs *store.Pkgs, stats *store.Stats, monpkgs *store.Monpkgs) PinlUpdated {
 	return PinlUpdated{
-		PinlID: pinlID,
-		Pinls:  pinls,
-		Monls:  monls,
-		Pkgs:   pkgs,
-		Stats:  stats,
+		PinlID:  pinlID,
+		Pinls:   pinls,
+		Monls:   monls,
+		Pkgs:    pkgs,
+		Stats:   stats,
+		Monpkgs: monpkgs,
 	}
 }
 
@@ -63,7 +65,7 @@ func (p PinlUpdated) Run(ctx context.Context) ([]Job, error) {
 		if err != nil {
 			return nil, err
 		}
-		jobs = append(jobs, NewMonlCreated(monl.ID, p.Monls, p.Pkgs, p.Stats))
+		jobs = append(jobs, NewMonlCreated(monl.ID, p.Monls, p.Pkgs, p.Stats, p.Monpkgs))
 	}
 
 	pinl.MonlID = monl.ID
