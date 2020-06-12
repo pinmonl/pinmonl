@@ -13,7 +13,7 @@ type Stat struct {
 	Kind        StatKind      `json:"kind"`
 	Value       string        `json:"value"`
 	ValueType   StatValueType `json:"valueType"`
-	Checksum    string        `json:"digest"`
+	Checksum    string        `json:"checksum"`
 	Weight      int           `json:"weight"`
 	IsLatest    bool          `json:"isLatest"`
 	HasChildren bool          `json:"hasChildren"`
@@ -73,6 +73,36 @@ func (sl StatList) GetLatest() StatList {
 	var list []*Stat
 	for _, s := range sl {
 		if s.IsLatest {
+			list = append(list, s)
+		}
+	}
+	return list
+}
+
+func (sl StatList) GetPkgID(pkgID string) StatList {
+	var list []*Stat
+	for _, s := range sl {
+		if s.PkgID == pkgID {
+			list = append(list, s)
+		}
+	}
+	return list
+}
+
+func (sl StatList) GetParentID(parentID string) StatList {
+	var list []*Stat
+	for _, s := range sl {
+		if s.ParentID == parentID {
+			list = append(list, s)
+		}
+	}
+	return list
+}
+
+func (sl StatList) GetValue(value string) StatList {
+	var list []*Stat
+	for _, s := range sl {
+		if s.Value == value {
 			list = append(list, s)
 		}
 	}

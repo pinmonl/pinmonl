@@ -8,3 +8,5 @@ type Pinpkg struct {
 	Pinl *Pinl `json:"pinl,omitempty"`
 	Pkg  *Pkg  `json:"pkg,omitempty"`
 }
+
+type PinpkgList []*Pinpkg

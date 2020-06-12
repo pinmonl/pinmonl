@@ -11,3 +11,5 @@ type Monpkg struct {
 }
 
 type MonpkgKind int
+
+type MonpkgList []*Monpkg

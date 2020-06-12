@@ -13,6 +13,8 @@ type Pkg struct {
 	ProviderURI  string     `json:"providerUri"`
 	CreatedAt    field.Time `json:"createdAt"`
 	UpdatedAt    field.Time `json:"updatedAt"`
+
+	Stats *StatList `json:"stats,omitempty"`
 }
 
 func (p Pkg) MorphKey() string  { return p.ID }
