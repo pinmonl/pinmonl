@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -75,6 +76,9 @@ func (s *Sharepins) Find(ctx context.Context, id string) (*model.Sharepin, error
 		Where("id = ?", id)
 	row := qb.QueryRow()
 	sharepin, err := s.scan(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}

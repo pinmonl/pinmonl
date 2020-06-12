@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -76,6 +77,9 @@ func (u *Users) Find(ctx context.Context, id string) (*model.User, error) {
 		Where("id = ?", id)
 	row := qb.QueryRow()
 	user, err := u.scan(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +93,9 @@ func (u *Users) FindLogin(ctx context.Context, login string) (*model.User, error
 		Where("status = ?", model.ActiveUser)
 	row := qb.QueryRow()
 	user, err := u.scan(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}

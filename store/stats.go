@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -77,6 +78,9 @@ func (s *Stats) Find(ctx context.Context, id string) (*model.Stat, error) {
 		Where("id = ?", id)
 	row := qb.QueryRow()
 	stat, err := s.scan(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/Masterminds/squirrel"
@@ -76,6 +77,9 @@ func (t *Taggables) Find(ctx context.Context, id string) (*model.Taggable, error
 		Where("id = ?", id)
 	row := qb.QueryRow()
 	taggable, err := t.scan(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}

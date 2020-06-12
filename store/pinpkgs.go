@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -74,6 +75,9 @@ func (p *Pinpkgs) Find(ctx context.Context, id string) (*model.Pinpkg, error) {
 		Where("id = ?", id)
 	row := qb.QueryRow()
 	pinpkg, err := p.scan(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}

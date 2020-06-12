@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -77,6 +78,9 @@ func (s *Shares) Find(ctx context.Context, id string) (*model.Share, error) {
 		Where("id = ?", id)
 	row := qb.QueryRow()
 	share, err := s.scan(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +94,9 @@ func (s *Shares) FindSlug(ctx context.Context, userID, slug string) (*model.Shar
 		Where("slug = ?", slug)
 	row := qb.QueryRow()
 	share, err := s.scan(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
