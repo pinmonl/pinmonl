@@ -1,21 +1,25 @@
 package git
 
 import (
+	"encoding/json"
 	"errors"
-	"io"
-	"net/url"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
+	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/pinmonl/pinmonl/monler/provider"
+	"github.com/pinmonl/pinmonl/monler/prvdutils"
+	"github.com/pinmonl/pinmonl/pkgs/pkgrepo"
 	"github.com/pinmonl/pinmonl/pkgs/pkguri"
+	"github.com/sirupsen/logrus"
 )
 
 // Errors.
@@ -30,8 +34,8 @@ func NewProvider() (*Provider, error) {
 	return &Provider{}, nil
 }
 
-func (p *Provider) Name() string {
-	return provider.Git
+func (p *Provider) ProviderName() string {
+	return pkguri.GitProvider
 }
 
 func (p *Provider) Open(rawurl string) (provider.Repo, error) {
@@ -39,87 +43,85 @@ func (p *Provider) Open(rawurl string) (provider.Repo, error) {
 }
 
 func (p *Provider) Parse(uri string) (provider.Repo, error) {
-	u, err := url.Parse(uri)
+	pu, err := pkguri.Parse(uri)
 	if err != nil {
 		return nil, err
 	}
-	if u.Scheme != p.Name() {
+	if pu.Provider != p.ProviderName() {
 		return nil, ErrNotSupportedURI
 	}
-	proto := "https"
-	return p.open(proto + "://" + u.Host + "/" + strings.Trim(u.Path, "/"))
+	return p.open(pu.URL().String())
 }
 
-func (p *Provider) open(rawurl string) (provider.Repo, error) {
+func (p *Provider) open(rawurl string) (*Repo, error) {
 	return newRepo(rawurl)
 }
 
-func (p *Provider) Ping(_ string) error {
-	return ErrNoPing
-}
-
-type Repo struct {
-	*sync.Mutex
-	gitURL string
-}
-
-func newRepo(gitURL string) (*Repo, error) {
-	return &Repo{
-		Mutex:  &sync.Mutex{},
-		gitURL: gitURL,
-	}, nil
-}
-
-func (r *Repo) Analyze() (provider.Report, error) {
-	pu := &pkguri.PkgURI{
-		Provider: provider.Git,
-		URI:      r.gitURL,
+func (p *Provider) Ping(rawurl string) error {
+	remote := git.NewRemote(memory.NewStorage(), &config.RemoteConfig{
+		URLs: []string{rawurl},
+	})
+	_, err := remote.List(&git.ListOptions{})
+	if err != nil && err != transport.ErrEmptyRemoteRepository {
+		return err
 	}
-	return newReport(pu)
-}
-
-func (r *Repo) Derived() ([]provider.Report, error) {
-	return nil, nil
-}
-
-func (r *Repo) Close() error {
 	return nil
 }
 
-type Report struct {
-	*pkguri.PkgURI
-	*sync.Mutex
-	cursor  int
-	repo    *git.Repository
+type Repo struct {
+	gitURL  string
 	tempDir string
-	tags    model.StatList
+	repo    *git.Repository
 }
 
-func newReport(uri *pkguri.PkgURI) (*Report, error) {
-	// Prepare temp directory.
-	dir, err := getTempDir()
+func NewRepo(gitURL string) (*Repo, error) {
+	return newRepo(gitURL)
+}
+
+func newRepo(gitURL string) (*Repo, error) {
+	// Git clone to temp directory.
+	dir, err := getCloneDir(gitURL)
 	if err != nil {
 		return nil, err
 	}
 	repo, err := git.PlainClone(dir, false, &git.CloneOptions{
-		URL:        uri.URI,
+		URL:        gitURL,
 		NoCheckout: true,
 		Progress:   CloneProgress,
 	})
+	if err == git.ErrRepositoryAlreadyExists {
+		repo, err = git.PlainOpen(dir)
+		if err == nil {
+			repo.Fetch(&git.FetchOptions{
+				Progress: CloneProgress,
+			})
+		}
+	}
 	if err != nil && err != transport.ErrEmptyRemoteRepository {
-		os.RemoveAll(dir)
 		return nil, err
 	}
 
+	return &Repo{
+		gitURL:  gitURL,
+		tempDir: dir,
+		repo:    repo,
+	}, nil
+}
+
+func (r *Repo) Analyze() (provider.Report, error) {
+	return r.analyze()
+}
+
+func (r *Repo) analyze() (*Report, error) {
 	// Fill in tags.
-	tagIter, err := repo.Tags()
+	tagIter, err := r.repo.Tags()
 	if err != nil {
 		return nil, err
 	}
 	tags := make([]*model.Stat, 0)
 	tagIter.ForEach(func(ref *plumbing.Reference) error {
 		// Parse annotated tag.
-		tag, err := repo.TagObject(ref.Hash())
+		tag, err := r.repo.TagObject(ref.Hash())
 		if err == nil {
 			tags = append(tags, &model.Stat{
 				RecordedAt: field.Time(tag.Tagger.When),
@@ -129,7 +131,7 @@ func newReport(uri *pkguri.PkgURI) (*Report, error) {
 			return nil
 		}
 		// Parse lightweight tag.
-		commit, err := repo.CommitObject(ref.Hash())
+		commit, err := r.repo.CommitObject(ref.Hash())
 		if err == nil {
 			tags = append(tags, &model.Stat{
 				RecordedAt: field.Time(commit.Committer.When),
@@ -146,54 +148,73 @@ func newReport(uri *pkguri.PkgURI) (*Report, error) {
 		tags[len(tags)-1].IsLatest = true
 	}
 
-	// Create report.
-	r := &Report{
-		Mutex:   &sync.Mutex{},
-		cursor:  -1,
-		repo:    repo,
-		tempDir: dir,
-		tags:    tags,
+	// Construct pkguri.
+	pu := &pkguri.PkgURI{
+		Provider: pkguri.GitProvider,
+		URI:      r.gitURL,
 	}
-	return r, nil
+
+	return newReport(pu, tags)
 }
 
-func (r *Report) URI() (*pkguri.PkgURI, error) {
-	return r.PkgURI, nil
-}
-
-func (r *Report) Stats() ([]*model.Stat, error) {
+func (r *Repo) Derived() ([]provider.Report, error) {
 	return nil, nil
 }
 
-func (r *Report) Next() bool {
-	r.Lock()
-	defer r.Unlock()
-	if r.cursor+1 < len(r.tags) {
-		r.cursor++
-		return true
-	}
-	return false
-}
-
-func (r *Report) Tag() (*model.Stat, error) {
-	r.Lock()
-	defer r.Unlock()
-	if r.cursor < 0 {
-		return nil, errors.New("git: out of range")
-	}
-	if r.cursor >= len(r.tags) {
-		return nil, io.EOF
-	}
-	return r.tags[r.cursor], nil
-}
-
-func (r *Report) Close() error {
-	if r.tempDir != "" {
-		if err := os.RemoveAll(r.tempDir); err != nil {
-			return err
-		}
-	}
+func (r *Repo) Close() error {
 	return nil
+}
+
+func (r *Repo) openFile(file string) (*os.File, error) {
+	return os.Open(filepath.Join(r.tempDir, file))
+}
+
+func (r *Repo) openFilePath(file pkgrepo.FilePath) (*os.File, error) {
+	return r.openFile(file.String())
+}
+
+type File *os.File
+type Files map[pkgrepo.FilePath]File
+
+func (r *Repo) GetReadme() (File, error) {
+	f, err := r.openFile("readme.md")
+	return f, err
+}
+
+func (r *Repo) GetNpmURI() (*pkguri.PkgURI, error) {
+	f, err := r.openFilePath(pkgrepo.NpmPackage)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var pkg struct {
+		Name string `json:"name"`
+	}
+	err = json.NewDecoder(f).Decode(&pkg)
+	if err != nil {
+		logrus.Debugf("git: GetNpmURI parse err(%v)", err)
+		return nil, err
+	}
+	if pkg.Name == "" {
+		return nil, errors.New("git: npm package name is not valid")
+	}
+
+	return &pkguri.PkgURI{
+		Provider: pkguri.NpmProvider,
+		URI:      pkg.Name,
+	}, nil
+}
+
+// Report inherits StaticReport.
+type Report struct {
+	*prvdutils.StaticReport
+}
+
+func newReport(pu *pkguri.PkgURI, tags []*model.Stat) (*Report, error) {
+	return &Report{
+		StaticReport: prvdutils.NewStaticReport(pu, nil, tags),
+	}, nil
 }
 
 var _ provider.Provider = &Provider{}

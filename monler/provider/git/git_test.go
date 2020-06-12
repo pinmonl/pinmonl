@@ -3,69 +3,73 @@ package git
 import (
 	"testing"
 
-	"github.com/pinmonl/pinmonl/pkgs/pkguri"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestProviderPing(t *testing.T) {
 	p, err := NewProvider()
 	assert.Nil(t, err)
-	assert.Equal(t, ErrNoPing, p.Ping("anything"))
+	assert.Nil(t, p.Ping("https://github.com/ahshum/empty"))
+	assert.Nil(t, p.Ping("https://github.com/ahshum/release"))
+	assert.NotNil(t, p.Ping("https://github.com/ahshum/not-exist"))
 }
 
-func TestNewReport(t *testing.T) {
+func TestRepoAnalyze(t *testing.T) {
 	var (
-		r   *Report
-		err error
+		repo   *Repo
+		report *Report
+		err    error
 	)
 
 	// Empty repo.
-	r, err = newReport(&pkguri.PkgURI{
-		URI: "https://github.com/ahshum/empty",
-	})
+	repo, err = newRepo("https://github.com/ahshum/empty")
 	assert.Nil(t, err)
-	assert.NotNil(t, r)
-	r.Close()
+	if assert.NotNil(t, repo) {
+		report, err = repo.analyze()
+		assert.Nil(t, err)
+		assert.NotNil(t, report)
+		repo.Close()
+	}
 
 	// Annotated tags.
-	r, err = newReport(&pkguri.PkgURI{
-		URI: "https://github.com/ahshum/release",
-	})
+	repo, err = newRepo("https://github.com/ahshum/release")
 	assert.Nil(t, err)
-	if assert.NotNil(t, r) {
-		if assert.True(t, r.Next()) {
-			tag, err := r.Tag()
+	if assert.NotNil(t, repo) {
+		report, err = repo.analyze()
+		assert.Nil(t, err)
+		if assert.True(t, report.Next()) {
+			tag, err := report.Tag()
 			assert.Nil(t, err)
 			assert.Equal(t, "v1.0.0", tag.Value)
 		}
-		if assert.True(t, r.Next()) {
-			tag, err := r.Tag()
+		if assert.True(t, report.Next()) {
+			tag, err := report.Tag()
 			assert.Nil(t, err)
 			assert.Equal(t, "v2.0.0", tag.Value)
 			assert.True(t, tag.IsLatest)
 		}
-		assert.False(t, r.Next())
-		r.Close()
+		assert.False(t, report.Next())
+		repo.Close()
 	}
 
 	// Lightweight tags.
-	r, err = newReport(&pkguri.PkgURI{
-		URI: "https://github.com/ahshum/release-lw",
-	})
+	repo, err = newRepo("https://github.com/ahshum/release-lw")
 	assert.Nil(t, err)
-	if assert.NotNil(t, r) {
-		if assert.True(t, r.Next()) {
-			tag, err := r.Tag()
+	if assert.NotNil(t, repo) {
+		report, err = repo.analyze()
+		assert.Nil(t, err)
+		if assert.True(t, report.Next()) {
+			tag, err := report.Tag()
 			assert.Nil(t, err)
 			assert.Equal(t, "v1.0.0", tag.Value)
 		}
-		if assert.True(t, r.Next()) {
-			tag, err := r.Tag()
+		if assert.True(t, report.Next()) {
+			tag, err := report.Tag()
 			assert.Nil(t, err)
 			assert.Equal(t, "v2.0.0", tag.Value)
 			assert.True(t, tag.IsLatest)
 		}
-		assert.False(t, r.Next())
-		r.Close()
+		assert.False(t, report.Next())
+		repo.Close()
 	}
 }

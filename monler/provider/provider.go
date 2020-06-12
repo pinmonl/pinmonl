@@ -9,10 +9,11 @@ import (
 
 // Provider is the interface that must be implemented by a monler provider.
 type Provider interface {
-	// Name is the provider name.
-	Name() string
+	// ProviderName is the provider name.
+	ProviderName() string
 
 	// Open creates Repo with the web url.
+	// Note: It is assumed Ping check is done before calling Open.
 	Open(url string) (Repo, error)
 
 	// Parse creates Repo with the pkguri format url.

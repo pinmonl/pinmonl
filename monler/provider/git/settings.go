@@ -1,17 +1,28 @@
 package git
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 )
 
 var (
-	TempDir     = ""
-	TempPattern = "monler-git-"
+	TempDir  = ""
+	CloneDir = "monler/git"
 
 	CloneProgress io.Writer
 )
 
-func getTempDir() (string, error) {
-	return ioutil.TempDir(TempDir, TempPattern)
+func getCloneDir(gitURL string) (string, error) {
+	h := sha256.New()
+	h.Write([]byte(gitURL))
+
+	tempDir := TempDir
+	if tempDir == "" {
+		tempDir = os.TempDir()
+	}
+
+	dir := fmt.Sprintf("%s/%s/%x", tempDir, CloneDir, h.Sum(nil))
+	return dir, nil
 }

@@ -1,7 +1,7 @@
 package monler
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/pinmonl/pinmonl/monler/provider"
 	"github.com/pinmonl/pinmonl/pkgs/pkguri"
@@ -9,6 +9,11 @@ import (
 
 var (
 	providers = make(map[string]provider.Provider)
+)
+
+// Errors.
+var (
+	ErrUnknownProvider = errors.New("monler: unknown provider")
 )
 
 func Register(name string, provider provider.Provider) {
@@ -26,7 +31,7 @@ func Providers() []string {
 func Open(providerName, url string) (provider.Repo, error) {
 	pvd, ok := providers[providerName]
 	if !ok {
-		return nil, fmt.Errorf("monler: unknown provider %q", providerName)
+		return nil, ErrUnknownProvider
 	}
 	return pvd.Open(url)
 }
@@ -38,14 +43,22 @@ func Parse(uri string) (provider.Repo, error) {
 	}
 	pvd, ok := providers[pu.Provider]
 	if !ok {
-		return nil, fmt.Errorf("monler: unknown provider %q", providerName)
+		return nil, ErrUnknownProvider
 	}
 	return pvd.Parse(uri)
 }
 
+func Ping(providerName, url string) error {
+	pvd, ok := providers[providerName]
+	if !ok {
+		return ErrUnknownProvider
+	}
+	return pvd.Ping(url)
+}
+
 func Guess(url string) ([]provider.Repo, error) {
 	repos := make([]provider.Repo, 0)
-	for name, pvd := range providers {
+	for _, pvd := range providers {
 		if err := pvd.Ping(url); err != nil {
 			continue
 		}
