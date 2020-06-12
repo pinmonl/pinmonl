@@ -29,7 +29,7 @@ func (p *Pkgs) table() string {
 	return "pkgs"
 }
 
-func (p *Pkgs) List(ctx context.Context, opts *PkgOpts) ([]*model.Pkg, error) {
+func (p *Pkgs) List(ctx context.Context, opts *PkgOpts) (model.PkgList, error) {
 	if opts == nil {
 		opts = &PkgOpts{}
 	}
@@ -154,6 +154,7 @@ func (p *Pkgs) Create(ctx context.Context, pkg *model.Pkg) error {
 	pkg2 := *pkg
 	pkg2.ID = newID()
 	pkg2.CreatedAt = timestamp()
+	pkg2.UpdatedAt = timestamp()
 
 	qb := p.RunnableBuilder(ctx).
 		Insert(p.table()).
@@ -163,14 +164,16 @@ func (p *Pkgs) Create(ctx context.Context, pkg *model.Pkg) error {
 			"provider",
 			"provider_host",
 			"provider_uri",
-			"created_at").
+			"created_at",
+			"updated_at").
 		Values(
 			pkg2.ID,
 			pkg2.URL,
 			pkg2.Provider,
 			pkg2.ProviderHost,
 			pkg2.ProviderURI,
-			pkg2.CreatedAt)
+			pkg2.CreatedAt,
+			pkg2.UpdatedAt)
 	_, err := qb.Exec()
 	if err != nil {
 		return err

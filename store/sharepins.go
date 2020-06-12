@@ -29,7 +29,7 @@ func (s *Sharepins) table() string {
 	return "sharepins"
 }
 
-func (s *Sharepins) List(ctx context.Context, opts *SharepinOpts) ([]*model.Sharepin, error) {
+func (s *Sharepins) List(ctx context.Context, opts *SharepinOpts) (model.SharepinList, error) {
 	if opts == nil {
 		opts = &SharepinOpts{}
 	}

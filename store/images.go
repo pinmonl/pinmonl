@@ -26,7 +26,7 @@ func (i *Images) table() string {
 	return "images"
 }
 
-func (i *Images) List(ctx context.Context, opts *ImageOpts) ([]*model.Image, error) {
+func (i *Images) List(ctx context.Context, opts *ImageOpts) (model.ImageList, error) {
 	if opts == nil {
 		opts = &ImageOpts{}
 	}
@@ -132,6 +132,7 @@ func (i *Images) Create(ctx context.Context, image *model.Image) error {
 	image2 := *image
 	image2.ID = newID()
 	image2.CreatedAt = timestamp()
+	image2.UpdatedAt = timestamp()
 
 	qb := i.RunnableBuilder(ctx).
 		Insert(i.table()).
@@ -143,7 +144,8 @@ func (i *Images) Create(ctx context.Context, image *model.Image) error {
 			"description",
 			"size",
 			"content_type",
-			"created_at").
+			"created_at",
+			"updated_at").
 		Values(
 			image2.ID,
 			image2.TargetID,
@@ -152,7 +154,8 @@ func (i *Images) Create(ctx context.Context, image *model.Image) error {
 			image2.Description,
 			image2.Size,
 			image2.ContentType,
-			image2.CreatedAt)
+			image2.CreatedAt,
+			image2.UpdatedAt)
 	_, err := qb.Exec()
 	if err != nil {
 		return err

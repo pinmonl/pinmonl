@@ -30,7 +30,7 @@ func (s *Stats) table() string {
 	return "stats"
 }
 
-func (s *Stats) List(ctx context.Context, opts *StatOpts) ([]*model.Stat, error) {
+func (s *Stats) List(ctx context.Context, opts *StatOpts) (model.StatList, error) {
 	if opts == nil {
 		opts = &StatOpts{}
 	}
@@ -85,6 +85,26 @@ func (s *Stats) Find(ctx context.Context, id string) (*model.Stat, error) {
 		return nil, err
 	}
 	return stat, nil
+}
+
+func (s *Stats) FindMany(ctx context.Context, ids []string) (model.StatList, error) {
+	qb := s.RunnableBuilder(ctx).
+		Select(s.columns()...).From(s.table()).
+		Where(squirrel.Eq{"id": ids})
+	rows, err := qb.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []*model.Stat
+	for rows.Next() {
+		stat, err := s.scan(rows)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, stat)
+	}
+	return list, nil
 }
 
 func (s *Stats) columns() []string {

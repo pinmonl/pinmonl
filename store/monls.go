@@ -26,7 +26,7 @@ func (m *Monls) table() string {
 	return "monls"
 }
 
-func (m *Monls) List(ctx context.Context, opts *MonlOpts) ([]*model.Monl, error) {
+func (m *Monls) List(ctx context.Context, opts *MonlOpts) (model.MonlList, error) {
 	if opts == nil {
 		opts = &MonlOpts{}
 	}
@@ -121,17 +121,20 @@ func (m *Monls) Create(ctx context.Context, monl *model.Monl) error {
 	monl2 := *monl
 	monl2.ID = newID()
 	monl2.CreatedAt = timestamp()
+	monl2.UpdatedAt = timestamp()
 
 	qb := m.RunnableBuilder(ctx).
 		Insert(m.table()).
 		Columns(
 			"id",
 			"url",
-			"created_at").
+			"created_at",
+			"updated_at").
 		Values(
 			monl2.ID,
 			monl2.URL,
-			monl2.CreatedAt)
+			monl2.CreatedAt,
+			monl2.UpdatedAt)
 	_, err := qb.Exec()
 	if err != nil {
 		return err

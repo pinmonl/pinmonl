@@ -27,7 +27,7 @@ func (p *Pinpkgs) table() string {
 	return "pinpkgs"
 }
 
-func (p *Pinpkgs) List(ctx context.Context, opts *PinpkgOpts) ([]*model.Pinpkg, error) {
+func (p *Pinpkgs) List(ctx context.Context, opts *PinpkgOpts) (model.PinpkgList, error) {
 	if opts == nil {
 		opts = &PinpkgOpts{}
 	}

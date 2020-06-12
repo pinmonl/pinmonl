@@ -28,7 +28,7 @@ func (p *Pinls) table() string {
 	return "pinls"
 }
 
-func (p *Pinls) List(ctx context.Context, opts *PinlOpts) ([]*model.Pinl, error) {
+func (p *Pinls) List(ctx context.Context, opts *PinlOpts) (model.PinlList, error) {
 	if opts == nil {
 		opts = &PinlOpts{}
 	}
@@ -140,6 +140,7 @@ func (p *Pinls) Create(ctx context.Context, pinl *model.Pinl) error {
 	pinl2 := *pinl
 	pinl2.ID = newID()
 	pinl2.CreatedAt = timestamp()
+	pinl2.UpdatedAt = timestamp()
 
 	qb := p.RunnableBuilder(ctx).
 		Insert(p.table()).
@@ -151,7 +152,8 @@ func (p *Pinls) Create(ctx context.Context, pinl *model.Pinl) error {
 			"title",
 			"description",
 			"image_id",
-			"created_at").
+			"created_at",
+			"updated_at").
 		Values(
 			pinl2.ID,
 			pinl2.UserID,
@@ -160,7 +162,8 @@ func (p *Pinls) Create(ctx context.Context, pinl *model.Pinl) error {
 			pinl2.Title,
 			pinl2.Description,
 			pinl2.ImageID,
-			pinl2.CreatedAt)
+			pinl2.CreatedAt,
+			pinl2.UpdatedAt)
 	_, err := qb.Exec()
 	if err != nil {
 		return err

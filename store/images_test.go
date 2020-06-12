@@ -132,6 +132,7 @@ func expectImagesCreate(mock sqlmock.Sqlmock, image *model.Image) {
 			image.Description,
 			image.Size,
 			image.ContentType,
+			sqlmock.AnyArg(),
 			sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 }

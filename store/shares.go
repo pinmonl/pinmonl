@@ -30,7 +30,7 @@ func (s *Shares) table() string {
 	return "shares"
 }
 
-func (s *Shares) List(ctx context.Context, opts *ShareOpts) ([]*model.Share, error) {
+func (s *Shares) List(ctx context.Context, opts *ShareOpts) (model.ShareList, error) {
 	if opts == nil {
 		opts = &ShareOpts{}
 	}
@@ -164,6 +164,7 @@ func (s *Shares) Create(ctx context.Context, share *model.Share) error {
 	share2 := *share
 	share2.ID = newID()
 	share2.CreatedAt = timestamp()
+	share2.UpdatedAt = timestamp()
 
 	qb := s.RunnableBuilder(ctx).
 		Insert(s.table()).
@@ -175,7 +176,8 @@ func (s *Shares) Create(ctx context.Context, share *model.Share) error {
 			"description",
 			"image_id",
 			"status",
-			"created_at").
+			"created_at",
+			"updated_at").
 		Values(
 			share2.ID,
 			share2.UserID,
@@ -184,7 +186,8 @@ func (s *Shares) Create(ctx context.Context, share *model.Share) error {
 			share2.Description,
 			share2.ImageID,
 			share2.Status,
-			share2.CreatedAt)
+			share2.CreatedAt,
+			share2.UpdatedAt)
 	_, err := qb.Exec()
 	if err != nil {
 		return err

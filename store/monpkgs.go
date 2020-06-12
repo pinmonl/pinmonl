@@ -27,7 +27,7 @@ func (m *Monpkgs) table() string {
 	return "monpkgs"
 }
 
-func (m *Monpkgs) List(ctx context.Context, opts *MonpkgOpts) ([]*model.Monpkg, error) {
+func (m *Monpkgs) List(ctx context.Context, opts *MonpkgOpts) (model.MonpkgList, error) {
 	if opts == nil {
 		opts = &MonpkgOpts{}
 	}
@@ -82,6 +82,26 @@ func (m *Monpkgs) Find(ctx context.Context, id string) (*model.Monpkg, error) {
 		return nil, err
 	}
 	return monpkg, nil
+}
+
+func (m *Monpkgs) FindOrCreate(ctx context.Context, data *model.Monpkg) (*model.Monpkg, error) {
+	found, err := m.List(ctx, &MonpkgOpts{
+		MonlIDs: []string{data.MonlID},
+		PkgIDs:  []string{data.PkgID},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(found) > 0 {
+		return found[0], nil
+	}
+
+	monpkg := *data
+	err = m.Create(ctx, &monpkg)
+	if err != nil {
+		return nil, err
+	}
+	return &monpkg, nil
 }
 
 func (m *Monpkgs) columns() []string {

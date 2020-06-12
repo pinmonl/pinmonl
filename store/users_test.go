@@ -155,7 +155,7 @@ func testUsersCreate(ctx context.Context, users *Users, mock sqlmock.Sqlmock) fu
 		)
 
 		user = &model.User{}
-		expectUsersInsert(mock, user)
+		expectUsersCreate(mock, user)
 		err = users.Create(ctx, user)
 		assert.Nil(t, err)
 		assert.NotEmpty(t, user.ID)
@@ -163,7 +163,7 @@ func testUsersCreate(ctx context.Context, users *Users, mock sqlmock.Sqlmock) fu
 	}
 }
 
-func expectUsersInsert(mock sqlmock.Sqlmock, user *model.User) {
+func expectUsersCreate(mock sqlmock.Sqlmock, user *model.User) {
 	mock.ExpectExec("INSERT INTO users").
 		WithArgs(
 			sqlmock.AnyArg(),
@@ -175,6 +175,7 @@ func expectUsersInsert(mock sqlmock.Sqlmock, user *model.User) {
 			user.Role,
 			user.Status,
 			user.LastSeen,
+			sqlmock.AnyArg(),
 			sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 }

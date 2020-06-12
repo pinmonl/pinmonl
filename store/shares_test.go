@@ -115,6 +115,7 @@ func expectSharesCreate(mock sqlmock.Sqlmock, share *model.Share) {
 			share.Description,
 			share.ImageID,
 			share.Status,
+			sqlmock.AnyArg(),
 			sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 }

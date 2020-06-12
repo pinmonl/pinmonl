@@ -29,7 +29,7 @@ func (t *Taggables) table() string {
 	return "taggables"
 }
 
-func (t *Taggables) List(ctx context.Context, opts *TaggableOpts) ([]*model.Taggable, error) {
+func (t *Taggables) List(ctx context.Context, opts *TaggableOpts) (model.TaggableList, error) {
 	if opts == nil {
 		opts = &TaggableOpts{}
 	}
@@ -129,7 +129,7 @@ func (t *Taggables) scan(row database.RowScanner) (*model.Taggable, error) {
 	return &taggable, nil
 }
 
-func (t *Taggables) ListWithTags(ctx context.Context, opts *TaggableOpts) ([]*model.Taggable, error) {
+func (t *Taggables) ListWithTags(ctx context.Context, opts *TaggableOpts) (model.TaggableList, error) {
 	if opts == nil {
 		opts = &TaggableOpts{}
 	}

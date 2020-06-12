@@ -29,7 +29,7 @@ func (u *Users) table() string {
 	return "users"
 }
 
-func (u *Users) List(ctx context.Context, opts *UserOpts) ([]*model.User, error) {
+func (u *Users) List(ctx context.Context, opts *UserOpts) (model.UserList, error) {
 	if opts == nil {
 		opts = &UserOpts{}
 	}
@@ -166,6 +166,7 @@ func (u *Users) Create(ctx context.Context, user *model.User) error {
 	user2 := *user
 	user2.ID = newID()
 	user2.CreatedAt = timestamp()
+	user2.UpdatedAt = timestamp()
 
 	qb := u.RunnableBuilder(ctx).
 		Insert(u.table()).
@@ -179,7 +180,8 @@ func (u *Users) Create(ctx context.Context, user *model.User) error {
 			"role",
 			"status",
 			"last_seen",
-			"created_at").
+			"created_at",
+			"updated_at").
 		Values(
 			user2.ID,
 			user2.Login,
@@ -190,7 +192,8 @@ func (u *Users) Create(ctx context.Context, user *model.User) error {
 			user2.Role,
 			user2.Status,
 			user2.LastSeen,
-			user2.CreatedAt)
+			user2.CreatedAt,
+			user2.UpdatedAt)
 	_, err := qb.Exec()
 	if err != nil {
 		return err

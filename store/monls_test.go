@@ -119,6 +119,7 @@ func expectMonlsCreate(mock sqlmock.Sqlmock, monl *model.Monl) {
 		WithArgs(
 			sqlmock.AnyArg(),
 			monl.URL,
+			sqlmock.AnyArg(),
 			sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 }

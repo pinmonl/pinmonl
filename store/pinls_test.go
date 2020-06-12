@@ -119,6 +119,7 @@ func expectPinlsCreate(mock sqlmock.Sqlmock, pinl *model.Pinl) {
 			pinl.Title,
 			pinl.Description,
 			pinl.ImageID,
+			sqlmock.AnyArg(),
 			sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 }

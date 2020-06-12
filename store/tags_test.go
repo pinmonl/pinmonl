@@ -158,6 +158,7 @@ func expectTagsCreate(mock sqlmock.Sqlmock, tag *model.Tag) {
 			tag.Color,
 			tag.BgColor,
 			tag.HasChildren,
+			sqlmock.AnyArg(),
 			sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 }

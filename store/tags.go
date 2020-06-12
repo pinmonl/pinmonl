@@ -32,7 +32,7 @@ func (t *Tags) table() string {
 	return "tags"
 }
 
-func (t *Tags) List(ctx context.Context, opts *TagOpts) ([]*model.Tag, error) {
+func (t *Tags) List(ctx context.Context, opts *TagOpts) (model.TagList, error) {
 	if opts == nil {
 		opts = &TagOpts{}
 	}
@@ -158,6 +158,7 @@ func (t *Tags) Create(ctx context.Context, tag *model.Tag) error {
 	tag2 := *tag
 	tag2.ID = newID()
 	tag2.CreatedAt = timestamp()
+	tag2.UpdatedAt = timestamp()
 
 	qb := t.RunnableBuilder(ctx).
 		Insert(t.table()).
@@ -170,7 +171,8 @@ func (t *Tags) Create(ctx context.Context, tag *model.Tag) error {
 			"color",
 			"bg_color",
 			"has_children",
-			"created_at").
+			"created_at",
+			"updated_at").
 		Values(
 			tag2.ID,
 			tag2.Name,
@@ -180,7 +182,8 @@ func (t *Tags) Create(ctx context.Context, tag *model.Tag) error {
 			tag2.Color,
 			tag2.BgColor,
 			tag2.HasChildren,
-			tag2.CreatedAt)
+			tag2.CreatedAt,
+			tag2.UpdatedAt)
 	_, err := qb.Exec()
 	if err != nil {
 		return err

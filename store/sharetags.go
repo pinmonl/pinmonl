@@ -32,7 +32,7 @@ func (s *Sharetags) table() string {
 	return "sharetags"
 }
 
-func (s *Sharetags) List(ctx context.Context, opts *SharetagOpts) ([]*model.Sharetag, error) {
+func (s *Sharetags) List(ctx context.Context, opts *SharetagOpts) (model.SharetagList, error) {
 	if opts == nil {
 		opts = &SharetagOpts{}
 	}

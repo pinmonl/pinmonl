@@ -9,6 +9,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/pinmonl/pinmonl/database/dbtest"
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/pkgs/pkguri"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -130,7 +131,11 @@ func testPkgsFindURI(ctx context.Context, pkgs *Pkgs, mock sqlmock.Sqlmock) func
 			WithArgs(prd, prdHost, prdURI).
 			WillReturnRows(sqlmock.NewRows(pkgs.columns()).
 				AddRow("pkg-id-1", "https://provider.com/url", prd, prdHost, prdURI, nil, nil))
-		pkg, err = pkgs.FindURI(ctx, fmt.Sprintf("%s://%s/%s", prd, prdHost, prdURI))
+		pkg, err = pkgs.FindURI(ctx, &pkguri.PkgURI{
+			Provider: prd,
+			Host:     prdHost,
+			URI:      prdURI,
+		})
 		assert.Nil(t, err)
 		if assert.NotNil(t, pkg) {
 			assert.Equal(t, prd, pkg.Provider)
@@ -164,6 +169,7 @@ func expectPkgsCreate(mock sqlmock.Sqlmock, pkg *model.Pkg) {
 			pkg.Provider,
 			pkg.ProviderHost,
 			pkg.ProviderURI,
+			sqlmock.AnyArg(),
 			sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 }
