@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+const (
+	DefaultProto = "https"
+)
+
 // Errors
 var (
 	ErrNoURI         = errors.New("pkguri: uri is not defined")
@@ -18,6 +22,7 @@ type PkgURI struct {
 	Provider string
 	Host     string
 	URI      string
+	Proto    string
 }
 
 // Parse fills PkgURI by the data from rawurl.
@@ -30,10 +35,15 @@ func Parse(rawurl string) (*PkgURI, error) {
 	if path == "" {
 		return nil, ErrNoURI
 	}
+	proto := DefaultProto
+	if protoq := u.Query().Get("proto"); protoq != "" {
+		proto = protoq
+	}
 	return &PkgURI{
 		Provider: u.Scheme,
 		Host:     u.Host,
 		URI:      path,
+		Proto:    proto,
 	}, nil
 }
 
@@ -68,9 +78,27 @@ func (p *PkgURI) String() string {
 	u := &url.URL{
 		Scheme: p.Provider,
 		Host:   p.Host,
+		Path:   "/" + p.URI,
+	}
+	query := url.Values{}
+	if p.Proto != "" && p.Proto != DefaultProto {
+		query.Add("proto", p.Proto)
+	}
+	u.RawQuery = query.Encode()
+	return u.String()
+}
+
+// URL produces accessible url with the specified protocol.
+func (p *PkgURI) URL() *url.URL {
+	u := &url.URL{
+		Scheme: p.Proto,
+		Host:   p.Host,
 		Path:   p.URI,
 	}
-	return u.String()
+	if u.Scheme == "" {
+		u.Scheme = DefaultProto
+	}
+	return u
 }
 
 type Marshaler interface {

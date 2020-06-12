@@ -17,6 +17,7 @@ func TestParse(t *testing.T) {
 				Provider: "pvd",
 				Host:     "provider.com",
 				URI:      "owner/repo",
+				Proto:    DefaultProto,
 			},
 		},
 		{
@@ -25,6 +26,7 @@ func TestParse(t *testing.T) {
 				Provider: "gitlab",
 				Host:     "gitlab.com",
 				URI:      "group/subgroup/repo",
+				Proto:    DefaultProto,
 			},
 		},
 		{
@@ -33,6 +35,7 @@ func TestParse(t *testing.T) {
 				Provider: "pvd",
 				Host:     "provider.com",
 				URI:      "owner",
+				Proto:    DefaultProto,
 			},
 		},
 		{
@@ -41,6 +44,16 @@ func TestParse(t *testing.T) {
 				Provider: "pvd",
 				Host:     "",
 				URI:      "owner",
+				Proto:    DefaultProto,
+			},
+		},
+		{
+			rawurl: "pvd://provider.com/owner/repo?proto=git",
+			expect: &PkgURI{
+				Provider: "pvd",
+				Host:     "provider.com",
+				URI:      "owner/repo",
+				Proto:    "git",
 			},
 		},
 	}
@@ -52,6 +65,8 @@ func TestParse(t *testing.T) {
 		assert.Equal(t, want.Provider, got.Provider)
 		assert.Equal(t, want.Host, got.Host)
 		assert.Equal(t, want.URI, got.URI)
+		assert.Equal(t, want.Proto, got.Proto)
+		assert.Equal(t, test.rawurl, pu.String())
 	}
 
 	_, err := Parse("pvd://provider.com")
