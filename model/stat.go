@@ -24,18 +24,22 @@ type Stat struct {
 func (s Stat) MorphKey() string  { return s.ID }
 func (s Stat) MorphName() string { return "stat" }
 
-type StatKind int
+type StatKind string
 
 const (
-	TagStat StatKind = iota
-	AliasStat
-	StarStat
-	ForkStat
-	OpenIssueStat
-	LangStat
-	FileCountStat
-	DownloadStat
-	PullStat
+	AnyStat       = StatKind("")
+	TagStat       = StatKind("tag")
+	AliasStat     = StatKind("alias")
+	StarStat      = StatKind("star")
+	ForkStat      = StatKind("fork")
+	OpenIssueStat = StatKind("open_issue")
+	LangStat      = StatKind("lang")
+	FileCountStat = StatKind("file_count")
+	DownloadStat  = StatKind("download")
+	PullStat      = StatKind("pull")
+	WatcherStat   = StatKind("watcher")
+	StatusStat    = StatKind("status")
+	LicenseStat   = StatKind("license")
 )
 
 type StatValueType int

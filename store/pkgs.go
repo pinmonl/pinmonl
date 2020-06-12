@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -75,30 +76,26 @@ func (p *Pkgs) Find(ctx context.Context, id string) (*model.Pkg, error) {
 		Where("id = ?", id)
 	row := qb.QueryRow()
 	pkg, err := p.scan(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
 	return pkg, nil
 }
 
-func (p *Pkgs) FindURI(ctx context.Context, uri string) (*model.Pkg, error) {
-	pu, err := pkguri.Parse(uri)
-	if err != nil {
-		return nil, err
-	}
-	match := model.Pkg{}
-	err = match.UnmarshalPkgURI(pu)
-	if err != nil {
-		return nil, err
-	}
-
+func (p *Pkgs) FindURI(ctx context.Context, pu *pkguri.PkgURI) (*model.Pkg, error) {
 	qb := p.RunnableBuilder(ctx).
 		Select(p.columns()...).From(p.table()).
-		Where("provider = ?", match.Provider).
-		Where("provider_host = ?", match.ProviderHost).
-		Where("provider_uri = ?", match.ProviderURI)
+		Where("provider = ?", pu.Provider).
+		Where("provider_host = ?", pu.Host).
+		Where("provider_uri = ?", pu.URI)
 	row := qb.QueryRow()
 	pkg, err := p.scan(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}

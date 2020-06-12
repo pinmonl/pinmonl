@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS stats (
   pkg_id       VARCHAR(50),
   parent_id    VARCHAR(50),
   recorded_at  TIMESTAMP,
-  kind         INTEGER,
+  kind         VARCHAR(50),
   value        VARCHAR(250),
   value_type   INTEGER,
   checksum     VARCHAR(500),
