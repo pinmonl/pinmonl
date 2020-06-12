@@ -89,6 +89,26 @@ func (t *Tags) Find(ctx context.Context, id string) (*model.Tag, error) {
 	return tag, nil
 }
 
+func (t *Tags) FindOrCreate(ctx context.Context, data *model.Tag) (*model.Tag, error) {
+	found, err := t.List(ctx, &TagOpts{
+		UserID: data.UserID,
+		Name:   data.Name,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(found) > 0 {
+		return found[0], nil
+	}
+
+	tag := *data
+	err = t.Create(ctx, &tag)
+	if err != nil {
+		return nil, err
+	}
+	return &tag, nil
+}
+
 func (t *Tags) columns() []string {
 	return []string{
 		"id",

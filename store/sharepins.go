@@ -85,6 +85,26 @@ func (s *Sharepins) Find(ctx context.Context, id string) (*model.Sharepin, error
 	return sharepin, nil
 }
 
+func (s *Sharepins) FindOrCreate(ctx context.Context, data *model.Sharepin) (*model.Sharepin, error) {
+	found, err := s.List(ctx, &SharepinOpts{
+		ShareIDs: []string{data.ShareID},
+		PinlIDs:  []string{data.PinlID},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(found) > 0 {
+		return found[0], nil
+	}
+
+	sharepin := *data
+	err = s.Create(ctx, &sharepin)
+	if err != nil {
+		return nil, err
+	}
+	return &sharepin, nil
+}
+
 func (s *Sharepins) columns() []string {
 	return []string{
 		"id",

@@ -89,6 +89,26 @@ func (s *Sharetags) Find(ctx context.Context, id string) (*model.Sharetag, error
 	return sharetag, nil
 }
 
+func (s *Sharetags) FindOrCreate(ctx context.Context, data *model.Sharetag) (*model.Sharetag, error) {
+	found, err := s.List(ctx, &SharetagOpts{
+		ShareIDs: []string{data.ShareID},
+		TagIDs:   []string{data.TagID},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(found) > 0 {
+		return found[0], nil
+	}
+
+	sharetag := *data
+	err = s.Create(ctx, &sharetag)
+	if err != nil {
+		return nil, err
+	}
+	return &sharetag, nil
+}
+
 func (s *Sharetags) columns() []string {
 	return []string{
 		"id",

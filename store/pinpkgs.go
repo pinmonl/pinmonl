@@ -84,6 +84,26 @@ func (p *Pinpkgs) Find(ctx context.Context, id string) (*model.Pinpkg, error) {
 	return pinpkg, nil
 }
 
+func (p *Pinpkgs) FindOrCreate(ctx context.Context, data *model.Pinpkg) (*model.Pinpkg, error) {
+	found, err := p.List(ctx, &PinpkgOpts{
+		PinlIDs: []string{data.PinlID},
+		PkgIDs:  []string{data.PkgID},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(found) > 0 {
+		return found[0], nil
+	}
+
+	pinpkg := *data
+	err = p.Create(ctx, &pinpkg)
+	if err != nil {
+		return nil, err
+	}
+	return &pinpkg, nil
+}
+
 func (p *Pinpkgs) columns() []string {
 	return []string{
 		"id",

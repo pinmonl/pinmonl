@@ -18,6 +18,7 @@ type TaggableOpts struct {
 	ListOpts
 	TagIDs     []string
 	Targets    model.MorphableList
+	TargetIDs  []string
 	TargetName string
 }
 
@@ -86,6 +87,27 @@ func (t *Taggables) Find(ctx context.Context, id string) (*model.Taggable, error
 	return taggable, nil
 }
 
+func (t *Taggables) FindOrCreate(ctx context.Context, data *model.Taggable) (*model.Taggable, error) {
+	found, err := t.List(ctx, &TaggableOpts{
+		TagIDs:     []string{data.TagID},
+		TargetIDs:  []string{data.TaggableID},
+		TargetName: data.TaggableName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(found) > 0 {
+		return found[0], nil
+	}
+
+	taggable := *data
+	err = t.Create(ctx, &taggable)
+	if err != nil {
+		return nil, err
+	}
+	return &taggable, nil
+}
+
 func (t *Taggables) columns() []string {
 	return []string{
 		"id",
@@ -105,12 +127,14 @@ func (t *Taggables) bindOpts(b squirrel.SelectBuilder, opts *TaggableOpts) squir
 	}
 
 	if len(opts.Targets) > 0 && !opts.Targets.IsMixed() {
-		b = b.Where("target_name = ?", opts.Targets.MorphName()).
-			Where(squirrel.Eq{"target_id": opts.Targets.MorphKeys()})
+		opts.TargetName = opts.Targets.MorphName()
+		opts.TargetIDs = opts.Targets.MorphKeys()
 	}
-
 	if opts.TargetName != "" {
-		b = b.Where("target_name = ?", opts.TargetName)
+		b = b.Where("taggable_name = ?", opts.TargetName)
+	}
+	if len(opts.TargetIDs) > 0 {
+		b = b.Where(squirrel.Eq{"taggable_id": opts.TargetIDs})
 	}
 
 	return b

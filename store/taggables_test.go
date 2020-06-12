@@ -62,7 +62,7 @@ func testTaggablesList(ctx context.Context, taggables *Taggables, mock sqlmock.S
 			&model.Pinl{ID: "pinl-id-2"},
 			&model.Pinl{ID: "pinl-id-3"},
 		}}
-		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE target_name = ? AND target_id IN (?,?,?)"), prefix)).
+		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE taggable_name = ? AND taggable_id IN (?,?,?)"), prefix)).
 			WithArgs(
 				opts.Targets[0].MorphName(),
 				opts.Targets[0].MorphKey(),
@@ -129,7 +129,7 @@ func testTaggablesListWithTags(ctx context.Context, taggables *Taggables, mock s
 			&model.Pinl{ID: "pinl-id-2"},
 			&model.Pinl{ID: "pinl-id-3"},
 		}}
-		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE target_name = ? AND target_id IN (?,?,?)"), prefix)).
+		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE taggable_name = ? AND taggable_id IN (?,?,?)"), prefix)).
 			WithArgs(
 				opts.Targets[0].MorphName(),
 				opts.Targets[0].MorphKey(),
