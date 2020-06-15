@@ -22,7 +22,7 @@ func NewImages(s *Store) *Images {
 	return &Images{s}
 }
 
-func (i *Images) table() string {
+func (i Images) table() string {
 	return "images"
 }
 
@@ -83,7 +83,7 @@ func (i *Images) Find(ctx context.Context, id string) (*model.Image, error) {
 	return image, nil
 }
 
-func (i *Images) columns() []string {
+func (i Images) columns() []string {
 	return []string{
 		"id",
 		"target_id",
@@ -97,7 +97,7 @@ func (i *Images) columns() []string {
 	}
 }
 
-func (i *Images) bindOpts(b squirrel.SelectBuilder, opts *ImageOpts) squirrel.SelectBuilder {
+func (i Images) bindOpts(b squirrel.SelectBuilder, opts *ImageOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
@@ -110,7 +110,7 @@ func (i *Images) bindOpts(b squirrel.SelectBuilder, opts *ImageOpts) squirrel.Se
 	return b
 }
 
-func (i *Images) scan(row database.RowScanner) (*model.Image, error) {
+func (i Images) scan(row database.RowScanner) (*model.Image, error) {
 	var image model.Image
 	err := row.Scan(
 		&image.ID,

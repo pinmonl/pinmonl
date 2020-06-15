@@ -28,7 +28,7 @@ func NewSharetags(s *Store) *Sharetags {
 	return &Sharetags{s}
 }
 
-func (s *Sharetags) table() string {
+func (s Sharetags) table() string {
 	return "sharetags"
 }
 
@@ -109,7 +109,7 @@ func (s *Sharetags) FindOrCreate(ctx context.Context, data *model.Sharetag) (*mo
 	return &sharetag, nil
 }
 
-func (s *Sharetags) columns() []string {
+func (s Sharetags) columns() []string {
 	return []string{
 		"id",
 		"share_id",
@@ -122,7 +122,7 @@ func (s *Sharetags) columns() []string {
 	}
 }
 
-func (s *Sharetags) bindOpts(b squirrel.SelectBuilder, opts *SharetagOpts) squirrel.SelectBuilder {
+func (s Sharetags) bindOpts(b squirrel.SelectBuilder, opts *SharetagOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
@@ -158,7 +158,7 @@ func (s *Sharetags) bindOpts(b squirrel.SelectBuilder, opts *SharetagOpts) squir
 	return b
 }
 
-func (s *Sharetags) scan(row database.RowScanner) (*model.Sharetag, error) {
+func (s Sharetags) scan(row database.RowScanner) (*model.Sharetag, error) {
 	var sharetag model.Sharetag
 	err := row.Scan(
 		&sharetag.ID,

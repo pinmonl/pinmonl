@@ -22,7 +22,7 @@ func NewMonls(s *Store) *Monls {
 	return &Monls{s}
 }
 
-func (m *Monls) table() string {
+func (m Monls) table() string {
 	return "monls"
 }
 
@@ -83,7 +83,7 @@ func (m *Monls) Find(ctx context.Context, id string) (*model.Monl, error) {
 	return monl, nil
 }
 
-func (m *Monls) columns() []string {
+func (m Monls) columns() []string {
 	return []string{
 		"id",
 		"url",
@@ -92,7 +92,7 @@ func (m *Monls) columns() []string {
 	}
 }
 
-func (m *Monls) bindOpts(b squirrel.SelectBuilder, opts *MonlOpts) squirrel.SelectBuilder {
+func (m Monls) bindOpts(b squirrel.SelectBuilder, opts *MonlOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
@@ -104,7 +104,7 @@ func (m *Monls) bindOpts(b squirrel.SelectBuilder, opts *MonlOpts) squirrel.Sele
 	return b
 }
 
-func (m *Monls) scan(row database.RowScanner) (*model.Monl, error) {
+func (m Monls) scan(row database.RowScanner) (*model.Monl, error) {
 	var monl model.Monl
 	err := row.Scan(
 		&monl.ID,

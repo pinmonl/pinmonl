@@ -23,7 +23,7 @@ func NewPinpkgs(s *Store) *Pinpkgs {
 	return &Pinpkgs{s}
 }
 
-func (p *Pinpkgs) table() string {
+func (p Pinpkgs) table() string {
 	return "pinpkgs"
 }
 
@@ -104,7 +104,7 @@ func (p *Pinpkgs) FindOrCreate(ctx context.Context, data *model.Pinpkg) (*model.
 	return &pinpkg, nil
 }
 
-func (p *Pinpkgs) columns() []string {
+func (p Pinpkgs) columns() []string {
 	return []string{
 		"id",
 		"pinl_id",
@@ -112,7 +112,7 @@ func (p *Pinpkgs) columns() []string {
 	}
 }
 
-func (p *Pinpkgs) bindOpts(b squirrel.SelectBuilder, opts *PinpkgOpts) squirrel.SelectBuilder {
+func (p Pinpkgs) bindOpts(b squirrel.SelectBuilder, opts *PinpkgOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
@@ -128,7 +128,7 @@ func (p *Pinpkgs) bindOpts(b squirrel.SelectBuilder, opts *PinpkgOpts) squirrel.
 	return b
 }
 
-func (p *Pinpkgs) scan(row database.RowScanner) (*model.Pinpkg, error) {
+func (p Pinpkgs) scan(row database.RowScanner) (*model.Pinpkg, error) {
 	var pinpkg model.Pinpkg
 	err := row.Scan(
 		&pinpkg.ID,

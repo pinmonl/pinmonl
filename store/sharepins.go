@@ -25,7 +25,7 @@ func NewSharepins(s *Store) *Sharepins {
 	return &Sharepins{s}
 }
 
-func (s *Sharepins) table() string {
+func (s Sharepins) table() string {
 	return "sharepins"
 }
 
@@ -105,7 +105,7 @@ func (s *Sharepins) FindOrCreate(ctx context.Context, data *model.Sharepin) (*mo
 	return &sharepin, nil
 }
 
-func (s *Sharepins) columns() []string {
+func (s Sharepins) columns() []string {
 	return []string{
 		"id",
 		"share_id",
@@ -114,7 +114,7 @@ func (s *Sharepins) columns() []string {
 	}
 }
 
-func (s *Sharepins) bindOpts(b squirrel.SelectBuilder, opts *SharepinOpts) squirrel.SelectBuilder {
+func (s Sharepins) bindOpts(b squirrel.SelectBuilder, opts *SharepinOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
@@ -136,7 +136,7 @@ func (s *Sharepins) bindOpts(b squirrel.SelectBuilder, opts *SharepinOpts) squir
 	return b
 }
 
-func (s *Sharepins) scan(row database.RowScanner) (*model.Sharepin, error) {
+func (s Sharepins) scan(row database.RowScanner) (*model.Sharepin, error) {
 	var sharepin model.Sharepin
 	err := row.Scan(
 		&sharepin.ID,

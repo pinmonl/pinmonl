@@ -28,7 +28,7 @@ func NewTags(s *Store) *Tags {
 	return &Tags{s}
 }
 
-func (t *Tags) table() string {
+func (t Tags) table() string {
 	return "tags"
 }
 
@@ -109,7 +109,7 @@ func (t *Tags) FindOrCreate(ctx context.Context, data *model.Tag) (*model.Tag, e
 	return &tag, nil
 }
 
-func (t *Tags) columns() []string {
+func (t Tags) columns() []string {
 	return []string{
 		"id",
 		"name",
@@ -124,7 +124,7 @@ func (t *Tags) columns() []string {
 	}
 }
 
-func (t *Tags) bindOpts(b squirrel.SelectBuilder, opts *TagOpts) squirrel.SelectBuilder {
+func (t Tags) bindOpts(b squirrel.SelectBuilder, opts *TagOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
@@ -155,7 +155,7 @@ func (t *Tags) bindOpts(b squirrel.SelectBuilder, opts *TagOpts) squirrel.Select
 	return b
 }
 
-func (t *Tags) scan(row database.RowScanner) (*model.Tag, error) {
+func (t Tags) scan(row database.RowScanner) (*model.Tag, error) {
 	var tag model.Tag
 	err := row.Scan(
 		&tag.ID,

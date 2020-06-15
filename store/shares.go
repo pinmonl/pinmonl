@@ -26,7 +26,7 @@ func NewShares(s *Store) *Shares {
 	return &Shares{s}
 }
 
-func (s *Shares) table() string {
+func (s Shares) table() string {
 	return "shares"
 }
 
@@ -103,7 +103,7 @@ func (s *Shares) FindSlug(ctx context.Context, userID, slug string) (*model.Shar
 	return share, nil
 }
 
-func (s *Shares) columns() []string {
+func (s Shares) columns() []string {
 	return []string{
 		"id",
 		"user_id",
@@ -117,7 +117,7 @@ func (s *Shares) columns() []string {
 	}
 }
 
-func (s *Shares) bindOpts(b squirrel.SelectBuilder, opts *ShareOpts) squirrel.SelectBuilder {
+func (s Shares) bindOpts(b squirrel.SelectBuilder, opts *ShareOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
@@ -142,7 +142,7 @@ func (s *Shares) bindOpts(b squirrel.SelectBuilder, opts *ShareOpts) squirrel.Se
 	return b
 }
 
-func (s *Shares) scan(row database.RowScanner) (*model.Share, error) {
+func (s Shares) scan(row database.RowScanner) (*model.Share, error) {
 	var share model.Share
 	err := row.Scan(
 		&share.ID,

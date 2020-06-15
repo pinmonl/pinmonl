@@ -26,7 +26,7 @@ func NewStats(s *Store) *Stats {
 	return &Stats{s}
 }
 
-func (s *Stats) table() string {
+func (s Stats) table() string {
 	return "stats"
 }
 
@@ -107,7 +107,7 @@ func (s *Stats) FindMany(ctx context.Context, ids []string) (model.StatList, err
 	return list, nil
 }
 
-func (s *Stats) columns() []string {
+func (s Stats) columns() []string {
 	return []string{
 		"id",
 		"pkg_id",
@@ -123,7 +123,7 @@ func (s *Stats) columns() []string {
 	}
 }
 
-func (s *Stats) bindOpts(b squirrel.SelectBuilder, opts *StatOpts) squirrel.SelectBuilder {
+func (s Stats) bindOpts(b squirrel.SelectBuilder, opts *StatOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
@@ -149,7 +149,7 @@ func (s *Stats) bindOpts(b squirrel.SelectBuilder, opts *StatOpts) squirrel.Sele
 	return b
 }
 
-func (s *Stats) scan(row database.RowScanner) (*model.Stat, error) {
+func (s Stats) scan(row database.RowScanner) (*model.Stat, error) {
 	var stat model.Stat
 	err := row.Scan(
 		&stat.ID,

@@ -25,7 +25,7 @@ func NewUsers(s *Store) *Users {
 	return &Users{s}
 }
 
-func (u *Users) table() string {
+func (u Users) table() string {
 	return "users"
 }
 
@@ -102,7 +102,7 @@ func (u *Users) FindLogin(ctx context.Context, login string) (*model.User, error
 	return user, nil
 }
 
-func (u *Users) bindOpts(b squirrel.SelectBuilder, opts *UserOpts) squirrel.SelectBuilder {
+func (u Users) bindOpts(b squirrel.SelectBuilder, opts *UserOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
@@ -126,7 +126,7 @@ func (u *Users) bindOpts(b squirrel.SelectBuilder, opts *UserOpts) squirrel.Sele
 	return b
 }
 
-func (u *Users) columns() []string {
+func (u Users) columns() []string {
 	return []string{
 		"id",
 		"login",
@@ -142,7 +142,7 @@ func (u *Users) columns() []string {
 	}
 }
 
-func (u *Users) scan(row database.RowScanner) (*model.User, error) {
+func (u Users) scan(row database.RowScanner) (*model.User, error) {
 	var user model.User
 	err := row.Scan(
 		&user.ID,

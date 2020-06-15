@@ -25,7 +25,7 @@ func NewPkgs(s *Store) *Pkgs {
 	return &Pkgs{s}
 }
 
-func (p *Pkgs) table() string {
+func (p Pkgs) table() string {
 	return "pkgs"
 }
 
@@ -102,7 +102,7 @@ func (p *Pkgs) FindURI(ctx context.Context, pu *pkguri.PkgURI) (*model.Pkg, erro
 	return pkg, nil
 }
 
-func (p *Pkgs) columns() []string {
+func (p Pkgs) columns() []string {
 	return []string{
 		"id",
 		"url",
@@ -114,7 +114,7 @@ func (p *Pkgs) columns() []string {
 	}
 }
 
-func (p *Pkgs) bindOpts(b squirrel.SelectBuilder, opts *PkgOpts) squirrel.SelectBuilder {
+func (p Pkgs) bindOpts(b squirrel.SelectBuilder, opts *PkgOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
@@ -134,7 +134,7 @@ func (p *Pkgs) bindOpts(b squirrel.SelectBuilder, opts *PkgOpts) squirrel.Select
 	return b
 }
 
-func (p *Pkgs) scan(row database.RowScanner) (*model.Pkg, error) {
+func (p Pkgs) scan(row database.RowScanner) (*model.Pkg, error) {
 	var pkg model.Pkg
 	err := row.Scan(
 		&pkg.ID,

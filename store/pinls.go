@@ -24,7 +24,7 @@ func NewPinls(s *Store) *Pinls {
 	return &Pinls{s}
 }
 
-func (p *Pinls) table() string {
+func (p Pinls) table() string {
 	return "pinls"
 }
 
@@ -85,7 +85,7 @@ func (p *Pinls) Find(ctx context.Context, id string) (*model.Pinl, error) {
 	return pinl, nil
 }
 
-func (p *Pinls) columns() []string {
+func (p Pinls) columns() []string {
 	return []string{
 		"id",
 		"user_id",
@@ -100,7 +100,7 @@ func (p *Pinls) columns() []string {
 	}
 }
 
-func (p *Pinls) bindOpts(b squirrel.SelectBuilder, opts *PinlOpts) squirrel.SelectBuilder {
+func (p Pinls) bindOpts(b squirrel.SelectBuilder, opts *PinlOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
@@ -119,7 +119,7 @@ func (p *Pinls) bindOpts(b squirrel.SelectBuilder, opts *PinlOpts) squirrel.Sele
 	return b
 }
 
-func (p *Pinls) scan(row database.RowScanner) (*model.Pinl, error) {
+func (p Pinls) scan(row database.RowScanner) (*model.Pinl, error) {
 	var pinl model.Pinl
 	err := row.Scan(
 		&pinl.ID,

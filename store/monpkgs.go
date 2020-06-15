@@ -23,7 +23,7 @@ func NewMonpkgs(s *Store) *Monpkgs {
 	return &Monpkgs{s}
 }
 
-func (m *Monpkgs) table() string {
+func (m Monpkgs) table() string {
 	return "monpkgs"
 }
 
@@ -104,7 +104,7 @@ func (m *Monpkgs) FindOrCreate(ctx context.Context, data *model.Monpkg) (*model.
 	return &monpkg, nil
 }
 
-func (m *Monpkgs) columns() []string {
+func (m Monpkgs) columns() []string {
 	return []string{
 		"id",
 		"monl_id",
@@ -113,7 +113,7 @@ func (m *Monpkgs) columns() []string {
 	}
 }
 
-func (m *Monpkgs) bindOpts(b squirrel.SelectBuilder, opts *MonpkgOpts) squirrel.SelectBuilder {
+func (m Monpkgs) bindOpts(b squirrel.SelectBuilder, opts *MonpkgOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
@@ -129,7 +129,7 @@ func (m *Monpkgs) bindOpts(b squirrel.SelectBuilder, opts *MonpkgOpts) squirrel.
 	return b
 }
 
-func (m *Monpkgs) scan(row database.RowScanner) (*model.Monpkg, error) {
+func (m Monpkgs) scan(row database.RowScanner) (*model.Monpkg, error) {
 	var monpkg model.Monpkg
 	err := row.Scan(
 		&monpkg.ID,
