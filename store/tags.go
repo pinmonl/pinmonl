@@ -46,7 +46,7 @@ func (t *Tags) List(ctx context.Context, opts *TagOpts) (model.TagList, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Tag
+	list := make([]*model.Tag, 0)
 	for rows.Next() {
 		tag, err := t.scan(rows)
 		if err != nil {

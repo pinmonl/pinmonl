@@ -43,7 +43,7 @@ func (s *Sharepins) List(ctx context.Context, opts *SharepinOpts) (model.Sharepi
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Sharepin
+	list := make([]*model.Sharepin, 0)
 	for rows.Next() {
 		sharepin, err := s.scan(rows)
 		if err != nil {

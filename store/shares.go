@@ -44,7 +44,7 @@ func (s *Shares) List(ctx context.Context, opts *ShareOpts) (model.ShareList, er
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Share
+	list := make([]*model.Share, 0)
 	for rows.Next() {
 		share, err := s.scan(rows)
 		if err != nil {

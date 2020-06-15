@@ -38,7 +38,7 @@ func (p *Pkg) UnmarshalPkgURI(pu *pkguri.PkgURI) error {
 type PkgList []*Pkg
 
 func (pl PkgList) Keys() []string {
-	var keys []string
+	keys := make([]string, 0)
 	for _, p := range pl {
 		keys = append(keys, p.ID)
 	}

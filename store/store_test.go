@@ -17,7 +17,7 @@ func TestPaginator(t *testing.T) {
 		baseQuery = "SELECT * FROM table"
 	)
 
-	var tests = []struct {
+	tests := []struct {
 		pt    Paginator
 		query string
 	}{

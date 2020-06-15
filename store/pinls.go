@@ -42,7 +42,7 @@ func (p *Pinls) List(ctx context.Context, opts *PinlOpts) (model.PinlList, error
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Pinl
+	list := make([]*model.Pinl, 0)
 	for rows.Next() {
 		pinl, err := p.scan(rows)
 		if err != nil {

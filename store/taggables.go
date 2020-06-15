@@ -44,7 +44,7 @@ func (t *Taggables) List(ctx context.Context, opts *TaggableOpts) (model.Taggabl
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Taggable
+	list := make([]*model.Taggable, 0)
 	for rows.Next() {
 		taggable, err := t.scan(rows)
 		if err != nil {
@@ -174,7 +174,7 @@ func (t *Taggables) ListWithTags(ctx context.Context, opts *TaggableOpts) (model
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Taggable
+	list := make([]*model.Taggable, 0)
 	for rows.Next() {
 		var (
 			mtg model.Taggable

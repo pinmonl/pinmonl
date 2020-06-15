@@ -21,7 +21,7 @@ func (p Pinl) MorphName() string { return "pinl" }
 type PinlList []*Pinl
 
 func (pl PinlList) Keys() []string {
-	var keys []string
+	keys := make([]string, 0)
 	for _, p := range pl {
 		keys = append(keys, p.ID)
 	}

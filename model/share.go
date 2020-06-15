@@ -20,7 +20,7 @@ func (s Share) MorphName() string { return "share" }
 type ShareList []*Share
 
 func (sl ShareList) Keys() []string {
-	var keys []string
+	keys := make([]string, 0)
 	for _, s := range sl {
 		keys = append(keys, s.ID)
 	}

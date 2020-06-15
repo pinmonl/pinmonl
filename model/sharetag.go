@@ -34,7 +34,7 @@ func IsValidSharetagKind(k SharetagKind) bool {
 type SharetagList []*Sharetag
 
 func (sl SharetagList) Keys() []string {
-	var keys []string
+	keys := make([]string, 0)
 	for _, s := range sl {
 		keys = append(keys, s.ID)
 	}

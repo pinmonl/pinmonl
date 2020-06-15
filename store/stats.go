@@ -44,7 +44,7 @@ func (s *Stats) List(ctx context.Context, opts *StatOpts) (model.StatList, error
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Stat
+	list := make([]*model.Stat, 0)
 	for rows.Next() {
 		stat, err := s.scan(rows)
 		if err != nil {
@@ -96,7 +96,7 @@ func (s *Stats) FindMany(ctx context.Context, ids []string) (model.StatList, err
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Stat
+	list := make([]*model.Stat, 0)
 	for rows.Next() {
 		stat, err := s.scan(rows)
 		if err != nil {

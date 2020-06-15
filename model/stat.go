@@ -52,7 +52,7 @@ const (
 type StatList []*Stat
 
 func (sl StatList) Keys() []string {
-	var keys []string
+	keys := make([]string, 0)
 	for _, s := range sl {
 		keys = append(keys, s.ID)
 	}
@@ -60,7 +60,7 @@ func (sl StatList) Keys() []string {
 }
 
 func (sl StatList) GetKind(k StatKind) StatList {
-	var list []*Stat
+	list := make([]*Stat, 0)
 	for _, s := range sl {
 		if s.Kind == k {
 			list = append(list, s)
@@ -70,7 +70,7 @@ func (sl StatList) GetKind(k StatKind) StatList {
 }
 
 func (sl StatList) GetLatest() StatList {
-	var list []*Stat
+	list := make([]*Stat, 0)
 	for _, s := range sl {
 		if s.IsLatest {
 			list = append(list, s)
@@ -80,7 +80,7 @@ func (sl StatList) GetLatest() StatList {
 }
 
 func (sl StatList) GetPkgID(pkgID string) StatList {
-	var list []*Stat
+	list := make([]*Stat, 0)
 	for _, s := range sl {
 		if s.PkgID == pkgID {
 			list = append(list, s)
@@ -90,7 +90,7 @@ func (sl StatList) GetPkgID(pkgID string) StatList {
 }
 
 func (sl StatList) GetParentID(parentID string) StatList {
-	var list []*Stat
+	list := make([]*Stat, 0)
 	for _, s := range sl {
 		if s.ParentID == parentID {
 			list = append(list, s)
@@ -100,7 +100,7 @@ func (sl StatList) GetParentID(parentID string) StatList {
 }
 
 func (sl StatList) GetValue(value string) StatList {
-	var list []*Stat
+	list := make([]*Stat, 0)
 	for _, s := range sl {
 		if s.Value == value {
 			list = append(list, s)

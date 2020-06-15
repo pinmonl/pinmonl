@@ -40,7 +40,7 @@ func (m *Monls) List(ctx context.Context, opts *MonlOpts) (model.MonlList, error
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Monl
+	list := make([]*model.Monl, 0)
 	for rows.Next() {
 		monl, err := m.scan(rows)
 		if err != nil {

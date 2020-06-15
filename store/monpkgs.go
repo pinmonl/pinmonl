@@ -41,7 +41,7 @@ func (m *Monpkgs) List(ctx context.Context, opts *MonpkgOpts) (model.MonpkgList,
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Monpkg
+	list := make([]*model.Monpkg, 0)
 	for rows.Next() {
 		monpkg, err := m.scan(rows)
 		if err != nil {

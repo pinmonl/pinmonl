@@ -37,7 +37,7 @@ const (
 type UserList []*User
 
 func (ul UserList) Keys() []string {
-	var keys []string
+	keys := make([]string, 0)
 	for _, u := range ul {
 		keys = append(keys, u.ID)
 	}

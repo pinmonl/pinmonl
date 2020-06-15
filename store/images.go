@@ -40,7 +40,7 @@ func (i *Images) List(ctx context.Context, opts *ImageOpts) (model.ImageList, er
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Image
+	list := make([]*model.Image, 0)
 	for rows.Next() {
 		image, err := i.scan(rows)
 		if err != nil {

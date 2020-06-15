@@ -23,7 +23,7 @@ func (ml MorphableList) MorphName() string {
 }
 
 func (ml MorphableList) MorphKeys() []string {
-	var keys []string
+	keys := make([]string, 0)
 	for _, m := range ml {
 		keys = append(keys, m.MorphKey())
 	}

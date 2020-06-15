@@ -43,7 +43,7 @@ func (u *Users) List(ctx context.Context, opts *UserOpts) (model.UserList, error
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.User
+	list := make([]*model.User, 0)
 	for rows.Next() {
 		user, err := u.scan(rows)
 		if err != nil {

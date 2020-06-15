@@ -41,7 +41,7 @@ func (p *Pinpkgs) List(ctx context.Context, opts *PinpkgOpts) (model.PinpkgList,
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Pinpkg
+	list := make([]*model.Pinpkg, 0)
 	for rows.Next() {
 		pinpkg, err := p.scan(rows)
 		if err != nil {

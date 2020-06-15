@@ -23,7 +23,7 @@ func (t Tag) MorphName() string { return "tag" }
 type TagList []*Tag
 
 func (tl TagList) Keys() []string {
-	var keys []string
+	keys := make([]string, 0)
 	for _, t := range tl {
 		keys = append(keys, t.ID)
 	}

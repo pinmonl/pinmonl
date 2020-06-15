@@ -46,7 +46,7 @@ func (s *Sharetags) List(ctx context.Context, opts *SharetagOpts) (model.Shareta
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Sharetag
+	list := make([]*model.Sharetag, 0)
 	for rows.Next() {
 		sharetag, err := s.scan(rows)
 		if err != nil {

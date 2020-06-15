@@ -43,7 +43,7 @@ func (p *Pkgs) List(ctx context.Context, opts *PkgOpts) (model.PkgList, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var list []*model.Pkg
+	list := make([]*model.Pkg, 0)
 	for rows.Next() {
 		pkg, err := p.scan(rows)
 		if err != nil {
