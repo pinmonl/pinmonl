@@ -128,23 +128,22 @@ func (u Users) bindOpts(b squirrel.SelectBuilder, opts *UserOpts) squirrel.Selec
 
 func (u Users) columns() []string {
 	return []string{
-		"id",
-		"login",
-		"password",
-		"name",
-		"image_id",
-		"hash",
-		"role",
-		"status",
-		"last_seen",
-		"created_at",
-		"updated_at",
+		u.table() + ".id",
+		u.table() + ".login",
+		u.table() + ".password",
+		u.table() + ".name",
+		u.table() + ".image_id",
+		u.table() + ".hash",
+		u.table() + ".role",
+		u.table() + ".status",
+		u.table() + ".last_seen",
+		u.table() + ".created_at",
+		u.table() + ".updated_at",
 	}
 }
 
-func (u Users) scan(row database.RowScanner) (*model.User, error) {
-	var user model.User
-	err := row.Scan(
+func (u Users) scanColumns(user *model.User) []interface{} {
+	return []interface{}{
 		&user.ID,
 		&user.Login,
 		&user.Password,
@@ -155,7 +154,13 @@ func (u Users) scan(row database.RowScanner) (*model.User, error) {
 		&user.Status,
 		&user.LastSeen,
 		&user.CreatedAt,
-		&user.UpdatedAt)
+		&user.UpdatedAt,
+	}
+}
+
+func (u Users) scan(row database.RowScanner) (*model.User, error) {
+	var user model.User
+	err := row.Scan(u.scanColumns(&user)...)
 	if err != nil {
 		return nil, err
 	}

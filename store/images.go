@@ -83,20 +83,6 @@ func (i *Images) Find(ctx context.Context, id string) (*model.Image, error) {
 	return image, nil
 }
 
-func (i Images) columns() []string {
-	return []string{
-		"id",
-		"target_id",
-		"target_name",
-		"content",
-		"description",
-		"size",
-		"content_type",
-		"created_at",
-		"updated_at",
-	}
-}
-
 func (i Images) bindOpts(b squirrel.SelectBuilder, opts *ImageOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -110,9 +96,22 @@ func (i Images) bindOpts(b squirrel.SelectBuilder, opts *ImageOpts) squirrel.Sel
 	return b
 }
 
-func (i Images) scan(row database.RowScanner) (*model.Image, error) {
-	var image model.Image
-	err := row.Scan(
+func (i Images) columns() []string {
+	return []string{
+		i.table() + ".id",
+		i.table() + ".target_id",
+		i.table() + ".target_name",
+		i.table() + ".content",
+		i.table() + ".description",
+		i.table() + ".size",
+		i.table() + ".content_type",
+		i.table() + ".created_at",
+		i.table() + ".updated_at",
+	}
+}
+
+func (i Images) scanColumns(image *model.Image) []interface{} {
+	return []interface{}{
 		&image.ID,
 		&image.TargetID,
 		&image.TargetName,
@@ -121,7 +120,13 @@ func (i Images) scan(row database.RowScanner) (*model.Image, error) {
 		&image.Size,
 		&image.ContentType,
 		&image.CreatedAt,
-		&image.UpdatedAt)
+		&image.UpdatedAt,
+	}
+}
+
+func (i Images) scan(row database.RowScanner) (*model.Image, error) {
+	var image model.Image
+	err := row.Scan(i.scanColumns(&image)...)
 	if err != nil {
 		return nil, err
 	}

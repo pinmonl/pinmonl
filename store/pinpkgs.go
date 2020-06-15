@@ -104,14 +104,6 @@ func (p *Pinpkgs) FindOrCreate(ctx context.Context, data *model.Pinpkg) (*model.
 	return &pinpkg, nil
 }
 
-func (p Pinpkgs) columns() []string {
-	return []string{
-		"id",
-		"pinl_id",
-		"pkg_id",
-	}
-}
-
 func (p Pinpkgs) bindOpts(b squirrel.SelectBuilder, opts *PinpkgOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -128,12 +120,25 @@ func (p Pinpkgs) bindOpts(b squirrel.SelectBuilder, opts *PinpkgOpts) squirrel.S
 	return b
 }
 
-func (p Pinpkgs) scan(row database.RowScanner) (*model.Pinpkg, error) {
-	var pinpkg model.Pinpkg
-	err := row.Scan(
+func (p Pinpkgs) columns() []string {
+	return []string{
+		p.table() + ".id",
+		p.table() + ".pinl_id",
+		p.table() + ".pkg_id",
+	}
+}
+
+func (p Pinpkgs) scanColumns(pinpkg *model.Pinpkg) []interface{} {
+	return []interface{}{
 		&pinpkg.ID,
 		&pinpkg.PinlID,
-		&pinpkg.PkgID)
+		&pinpkg.PkgID,
+	}
+}
+
+func (p Pinpkgs) scan(row database.RowScanner) (*model.Pinpkg, error) {
+	var pinpkg model.Pinpkg
+	err := row.Scan(p.scanColumns(&pinpkg)...)
 	if err != nil {
 		return nil, err
 	}

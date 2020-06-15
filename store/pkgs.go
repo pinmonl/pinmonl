@@ -102,18 +102,6 @@ func (p *Pkgs) FindURI(ctx context.Context, pu *pkguri.PkgURI) (*model.Pkg, erro
 	return pkg, nil
 }
 
-func (p Pkgs) columns() []string {
-	return []string{
-		"id",
-		"url",
-		"provider",
-		"provider_host",
-		"provider_uri",
-		"created_at",
-		"updated_at",
-	}
-}
-
 func (p Pkgs) bindOpts(b squirrel.SelectBuilder, opts *PkgOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -134,16 +122,33 @@ func (p Pkgs) bindOpts(b squirrel.SelectBuilder, opts *PkgOpts) squirrel.SelectB
 	return b
 }
 
-func (p Pkgs) scan(row database.RowScanner) (*model.Pkg, error) {
-	var pkg model.Pkg
-	err := row.Scan(
+func (p Pkgs) columns() []string {
+	return []string{
+		p.table() + ".id",
+		p.table() + ".url",
+		p.table() + ".provider",
+		p.table() + ".provider_host",
+		p.table() + ".provider_uri",
+		p.table() + ".created_at",
+		p.table() + ".updated_at",
+	}
+}
+
+func (p Pkgs) scanColumns(pkg *model.Pkg) []interface{} {
+	return []interface{}{
 		&pkg.ID,
 		&pkg.URL,
 		&pkg.Provider,
 		&pkg.ProviderHost,
 		&pkg.ProviderURI,
 		&pkg.CreatedAt,
-		&pkg.UpdatedAt)
+		&pkg.UpdatedAt,
+	}
+}
+
+func (p Pkgs) scan(row database.RowScanner) (*model.Pkg, error) {
+	var pkg model.Pkg
+	err := row.Scan(p.scanColumns(&pkg)...)
 	if err != nil {
 		return nil, err
 	}

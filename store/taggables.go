@@ -110,24 +110,6 @@ func (t *Taggables) FindOrCreate(ctx context.Context, data *model.Taggable) (*mo
 	return &taggable, nil
 }
 
-func (t Taggables) columns() []string {
-	return []string{
-		t.table() + ".id",
-		t.table() + ".tag_id",
-		t.table() + ".target_id",
-		t.table() + ".target_name",
-	}
-}
-
-func (t Taggables) scanColumns(taggable *model.Taggable) []interface{} {
-	return []interface{}{
-		&taggable.ID,
-		&taggable.TagID,
-		&taggable.TargetID,
-		&taggable.TargetName,
-	}
-}
-
 func (t Taggables) bindOpts(b squirrel.SelectBuilder, opts *TaggableOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -149,6 +131,24 @@ func (t Taggables) bindOpts(b squirrel.SelectBuilder, opts *TaggableOpts) squirr
 	}
 
 	return b
+}
+
+func (t Taggables) columns() []string {
+	return []string{
+		t.table() + ".id",
+		t.table() + ".tag_id",
+		t.table() + ".target_id",
+		t.table() + ".target_name",
+	}
+}
+
+func (t Taggables) scanColumns(taggable *model.Taggable) []interface{} {
+	return []interface{}{
+		&taggable.ID,
+		&taggable.TagID,
+		&taggable.TargetID,
+		&taggable.TargetName,
+	}
 }
 
 func (t Taggables) scan(row database.RowScanner) (*model.Taggable, error) {

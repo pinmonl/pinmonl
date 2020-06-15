@@ -104,15 +104,6 @@ func (m *Monpkgs) FindOrCreate(ctx context.Context, data *model.Monpkg) (*model.
 	return &monpkg, nil
 }
 
-func (m Monpkgs) columns() []string {
-	return []string{
-		"id",
-		"monl_id",
-		"pkg_id",
-		"kind",
-	}
-}
-
 func (m Monpkgs) bindOpts(b squirrel.SelectBuilder, opts *MonpkgOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -129,13 +120,27 @@ func (m Monpkgs) bindOpts(b squirrel.SelectBuilder, opts *MonpkgOpts) squirrel.S
 	return b
 }
 
-func (m Monpkgs) scan(row database.RowScanner) (*model.Monpkg, error) {
-	var monpkg model.Monpkg
-	err := row.Scan(
+func (m Monpkgs) columns() []string {
+	return []string{
+		m.table() + ".id",
+		m.table() + ".monl_id",
+		m.table() + ".pkg_id",
+		m.table() + ".kind",
+	}
+}
+
+func (m Monpkgs) scanColumns(monpkg *model.Monpkg) []interface{} {
+	return []interface{}{
 		&monpkg.ID,
 		&monpkg.MonlID,
 		&monpkg.PkgID,
-		&monpkg.Kind)
+		&monpkg.Kind,
+	}
+}
+
+func (m Monpkgs) scan(row database.RowScanner) (*model.Monpkg, error) {
+	var monpkg model.Monpkg
+	err := row.Scan(m.scanColumns(&monpkg)...)
 	if err != nil {
 		return nil, err
 	}

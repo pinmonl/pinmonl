@@ -23,6 +23,8 @@ type SharepinOpts struct {
 
 	PinlQuery string
 	joinPinls bool
+
+	TagIDs []string
 }
 
 func NewSharepins(s *Store) *Sharepins {
@@ -144,24 +146,6 @@ func (s *Sharepins) ListWithPinl(ctx context.Context, opts *SharepinOpts) (model
 	return list, nil
 }
 
-func (s Sharepins) columns() []string {
-	return []string{
-		s.table() + ".id",
-		s.table() + ".share_id",
-		s.table() + ".pinl_id",
-		s.table() + ".status",
-	}
-}
-
-func (s Sharepins) scanColumns(sharepin *model.Sharepin) []interface{} {
-	return []interface{}{
-		&sharepin.ID,
-		&sharepin.ShareID,
-		&sharepin.PinlID,
-		&sharepin.Status,
-	}
-}
-
 func (s Sharepins) bindOpts(b squirrel.SelectBuilder, opts *SharepinOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -191,11 +175,42 @@ func (s Sharepins) bindOpts(b squirrel.SelectBuilder, opts *SharepinOpts) squirr
 		})
 	}
 
+	if len(opts.TagIDs) > 0 {
+		sq := s.Builder().Select("1").
+			From(Taggables{}.table()).
+			Where("target_id = "+s.table()+".pinl_id").
+			Where("target_name = ?", model.Pinl{}.MorphName()).
+			Where(squirrel.Eq{"tag_id": opts.TagIDs}).
+			GroupBy("target_id").
+			Having("COUNT( DISTINCT tag_id ) >= ?", len(opts.TagIDs)).
+			Prefix("EXISTS (").
+			Suffix(")")
+		b = b.Where(sq)
+	}
+
 	if opts.joinPinls {
 		b = b.LeftJoin(fmt.Sprintf("%s ON %[1]s.id = %s.pinl_id", Pinls{}.table(), s.table()))
 	}
 
 	return b
+}
+
+func (s Sharepins) columns() []string {
+	return []string{
+		s.table() + ".id",
+		s.table() + ".share_id",
+		s.table() + ".pinl_id",
+		s.table() + ".status",
+	}
+}
+
+func (s Sharepins) scanColumns(sharepin *model.Sharepin) []interface{} {
+	return []interface{}{
+		&sharepin.ID,
+		&sharepin.ShareID,
+		&sharepin.PinlID,
+		&sharepin.Status,
+	}
 }
 
 func (s Sharepins) scan(row database.RowScanner) (*model.Sharepin, error) {

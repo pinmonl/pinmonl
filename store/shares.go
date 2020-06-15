@@ -103,20 +103,6 @@ func (s *Shares) FindSlug(ctx context.Context, userID, slug string) (*model.Shar
 	return share, nil
 }
 
-func (s Shares) columns() []string {
-	return []string{
-		"id",
-		"user_id",
-		"slug",
-		"name",
-		"description",
-		"image_id",
-		"status",
-		"created_at",
-		"updated_at",
-	}
-}
-
 func (s Shares) bindOpts(b squirrel.SelectBuilder, opts *ShareOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -142,9 +128,22 @@ func (s Shares) bindOpts(b squirrel.SelectBuilder, opts *ShareOpts) squirrel.Sel
 	return b
 }
 
-func (s Shares) scan(row database.RowScanner) (*model.Share, error) {
-	var share model.Share
-	err := row.Scan(
+func (s Shares) columns() []string {
+	return []string{
+		s.table() + ".id",
+		s.table() + ".user_id",
+		s.table() + ".slug",
+		s.table() + ".name",
+		s.table() + ".description",
+		s.table() + ".image_id",
+		s.table() + ".status",
+		s.table() + ".created_at",
+		s.table() + ".updated_at",
+	}
+}
+
+func (s Shares) scanColumns(share *model.Share) []interface{} {
+	return []interface{}{
 		&share.ID,
 		&share.UserID,
 		&share.Slug,
@@ -153,7 +152,13 @@ func (s Shares) scan(row database.RowScanner) (*model.Share, error) {
 		&share.ImageID,
 		&share.Status,
 		&share.CreatedAt,
-		&share.UpdatedAt)
+		&share.UpdatedAt,
+	}
+}
+
+func (s Shares) scan(row database.RowScanner) (*model.Share, error) {
+	var share model.Share
+	err := row.Scan(s.scanColumns(&share)...)
 	if err != nil {
 		return nil, err
 	}

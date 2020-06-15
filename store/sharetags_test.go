@@ -50,7 +50,7 @@ func testSharetagsList(ctx context.Context, sharetags *Sharetags, mock sqlmock.S
 
 		// Test filter by kind.
 		opts = &SharetagOpts{Kind: field.NewNullValue(model.SharetagMust)}
-		mock.ExpectQuery(fmt.Sprintf("%s WHERE kind = ?", prefix)).
+		mock.ExpectQuery(fmt.Sprintf("%s WHERE sharetags.kind = ?", prefix)).
 			WithArgs(opts.Kind.Value()).
 			WillReturnRows(sqlmock.NewRows(sharetags.columns()))
 		_, err = sharetags.List(ctx, opts)

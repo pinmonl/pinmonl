@@ -83,15 +83,6 @@ func (m *Monls) Find(ctx context.Context, id string) (*model.Monl, error) {
 	return monl, nil
 }
 
-func (m Monls) columns() []string {
-	return []string{
-		"id",
-		"url",
-		"created_at",
-		"updated_at",
-	}
-}
-
 func (m Monls) bindOpts(b squirrel.SelectBuilder, opts *MonlOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -104,13 +95,27 @@ func (m Monls) bindOpts(b squirrel.SelectBuilder, opts *MonlOpts) squirrel.Selec
 	return b
 }
 
-func (m Monls) scan(row database.RowScanner) (*model.Monl, error) {
-	var monl model.Monl
-	err := row.Scan(
+func (m Monls) columns() []string {
+	return []string{
+		m.table() + ".id",
+		m.table() + ".url",
+		m.table() + ".created_at",
+		m.table() + ".updated_at",
+	}
+}
+
+func (m Monls) scanColumns(monl *model.Monl) []interface{} {
+	return []interface{}{
 		&monl.ID,
 		&monl.URL,
 		&monl.CreatedAt,
-		&monl.UpdatedAt)
+		&monl.UpdatedAt,
+	}
+}
+
+func (m Monls) scan(row database.RowScanner) (*model.Monl, error) {
+	var monl model.Monl
+	err := row.Scan(m.scanColumns(&monl)...)
 	if err != nil {
 		return nil, err
 	}

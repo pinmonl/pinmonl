@@ -149,32 +149,6 @@ func (s *Sharetags) ListWithTag(ctx context.Context, opts *SharetagOpts) (model.
 	return list, nil
 }
 
-func (s Sharetags) columns() []string {
-	return []string{
-		s.table() + ".id",
-		s.table() + ".share_id",
-		s.table() + ".tag_id",
-		s.table() + ".kind",
-		s.table() + ".parent_id",
-		s.table() + ".level",
-		s.table() + ".status",
-		s.table() + ".has_children",
-	}
-}
-
-func (s Sharetags) scanColumns(sharetag *model.Sharetag) []interface{} {
-	return []interface{}{
-		&sharetag.ID,
-		&sharetag.ShareID,
-		&sharetag.TagID,
-		&sharetag.Kind,
-		&sharetag.ParentID,
-		&sharetag.Level,
-		&sharetag.Status,
-		&sharetag.HasChildren,
-	}
-}
-
 func (s Sharetags) bindOpts(b squirrel.SelectBuilder, opts *SharetagOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -223,6 +197,32 @@ func (s Sharetags) bindOpts(b squirrel.SelectBuilder, opts *SharetagOpts) squirr
 	}
 
 	return b
+}
+
+func (s Sharetags) columns() []string {
+	return []string{
+		s.table() + ".id",
+		s.table() + ".share_id",
+		s.table() + ".tag_id",
+		s.table() + ".kind",
+		s.table() + ".parent_id",
+		s.table() + ".level",
+		s.table() + ".status",
+		s.table() + ".has_children",
+	}
+}
+
+func (s Sharetags) scanColumns(sharetag *model.Sharetag) []interface{} {
+	return []interface{}{
+		&sharetag.ID,
+		&sharetag.ShareID,
+		&sharetag.TagID,
+		&sharetag.Kind,
+		&sharetag.ParentID,
+		&sharetag.Level,
+		&sharetag.Status,
+		&sharetag.HasChildren,
+	}
 }
 
 func (s Sharetags) scan(row database.RowScanner) (*model.Sharetag, error) {

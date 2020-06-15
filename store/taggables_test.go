@@ -50,7 +50,7 @@ func testTaggablesList(ctx context.Context, taggables *Taggables, mock sqlmock.S
 
 		// Test filter by tags.
 		opts = &TaggableOpts{TagIDs: []string{"tag-id-1", "tag-id-2", "tag-id-3"}}
-		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE tag_id IN (?,?,?)"), prefix)).
+		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE taggables.tag_id IN (?,?,?)"), prefix)).
 			WithArgs(opts.TagIDs[0], opts.TagIDs[1], opts.TagIDs[2]).
 			WillReturnRows(sqlmock.NewRows(taggables.columns()))
 		_, err = taggables.List(ctx, opts)
@@ -62,7 +62,7 @@ func testTaggablesList(ctx context.Context, taggables *Taggables, mock sqlmock.S
 			&model.Pinl{ID: "pinl-id-2"},
 			&model.Pinl{ID: "pinl-id-3"},
 		}}
-		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE target_name = ? AND target_id IN (?,?,?)"), prefix)).
+		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE taggables.target_name = ? AND taggables.target_id IN (?,?,?)"), prefix)).
 			WithArgs(
 				opts.Targets[0].MorphName(),
 				opts.Targets[0].MorphKey(),
@@ -129,13 +129,13 @@ func testTaggablesListWithTags(ctx context.Context, taggables *Taggables, mock s
 			&model.Pinl{ID: "pinl-id-2"},
 			&model.Pinl{ID: "pinl-id-3"},
 		}}
-		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE target_name = ? AND target_id IN (?,?,?)"), prefix)).
+		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE taggables.target_name = ? AND taggables.target_id IN (?,?,?)"), prefix)).
 			WithArgs(
 				opts.Targets[0].MorphName(),
 				opts.Targets[0].MorphKey(),
 				opts.Targets[1].MorphKey(),
 				opts.Targets[2].MorphKey()).
-			WillReturnRows(sqlmock.NewRows(append((&Tags{}).columns(), "target_id")))
+			WillReturnRows(sqlmock.NewRows(append(Tags{}.columns(), "target_id")))
 		list, err = taggables.ListWithTags(ctx, opts)
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(list))

@@ -111,36 +111,6 @@ func (t *Tags) FindOrCreate(ctx context.Context, data *model.Tag) (*model.Tag, e
 	return &tag, nil
 }
 
-func (t Tags) columns() []string {
-	return []string{
-		t.table() + ".id",
-		t.table() + ".name",
-		t.table() + ".user_id",
-		t.table() + ".parent_id",
-		t.table() + ".level",
-		t.table() + ".color",
-		t.table() + ".bg_color",
-		t.table() + ".has_children",
-		t.table() + ".created_at",
-		t.table() + ".updated_at",
-	}
-}
-
-func (t Tags) scanColumns(tag *model.Tag) []interface{} {
-	return []interface{}{
-		&tag.ID,
-		&tag.Name,
-		&tag.UserID,
-		&tag.ParentID,
-		&tag.Level,
-		&tag.Color,
-		&tag.BgColor,
-		&tag.HasChildren,
-		&tag.CreatedAt,
-		&tag.UpdatedAt,
-	}
-}
-
 func (t Tags) bindOpts(b squirrel.SelectBuilder, opts *TagOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -177,6 +147,36 @@ func (t Tags) bindOpts(b squirrel.SelectBuilder, opts *TagOpts) squirrel.SelectB
 	}
 
 	return b
+}
+
+func (t Tags) columns() []string {
+	return []string{
+		t.table() + ".id",
+		t.table() + ".name",
+		t.table() + ".user_id",
+		t.table() + ".parent_id",
+		t.table() + ".level",
+		t.table() + ".color",
+		t.table() + ".bg_color",
+		t.table() + ".has_children",
+		t.table() + ".created_at",
+		t.table() + ".updated_at",
+	}
+}
+
+func (t Tags) scanColumns(tag *model.Tag) []interface{} {
+	return []interface{}{
+		&tag.ID,
+		&tag.Name,
+		&tag.UserID,
+		&tag.ParentID,
+		&tag.Level,
+		&tag.Color,
+		&tag.BgColor,
+		&tag.HasChildren,
+		&tag.CreatedAt,
+		&tag.UpdatedAt,
+	}
 }
 
 func (t Tags) scan(row database.RowScanner) (*model.Tag, error) {

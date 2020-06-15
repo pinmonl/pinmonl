@@ -107,22 +107,6 @@ func (s *Stats) FindMany(ctx context.Context, ids []string) (model.StatList, err
 	return list, nil
 }
 
-func (s Stats) columns() []string {
-	return []string{
-		"id",
-		"pkg_id",
-		"parent_id",
-		"recorded_at",
-		"kind",
-		"value",
-		"value_type",
-		"checksum",
-		"weight",
-		"is_latest",
-		"has_children",
-	}
-}
-
 func (s Stats) bindOpts(b squirrel.SelectBuilder, opts *StatOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -149,9 +133,24 @@ func (s Stats) bindOpts(b squirrel.SelectBuilder, opts *StatOpts) squirrel.Selec
 	return b
 }
 
-func (s Stats) scan(row database.RowScanner) (*model.Stat, error) {
-	var stat model.Stat
-	err := row.Scan(
+func (s Stats) columns() []string {
+	return []string{
+		s.table() + ".id",
+		s.table() + ".pkg_id",
+		s.table() + ".parent_id",
+		s.table() + ".recorded_at",
+		s.table() + ".kind",
+		s.table() + ".value",
+		s.table() + ".value_type",
+		s.table() + ".checksum",
+		s.table() + ".weight",
+		s.table() + ".is_latest",
+		s.table() + ".has_children",
+	}
+}
+
+func (s Stats) scanColumns(stat *model.Stat) []interface{} {
+	return []interface{}{
 		&stat.ID,
 		&stat.PkgID,
 		&stat.ParentID,
@@ -162,7 +161,13 @@ func (s Stats) scan(row database.RowScanner) (*model.Stat, error) {
 		&stat.Checksum,
 		&stat.Weight,
 		&stat.IsLatest,
-		&stat.HasChildren)
+		&stat.HasChildren,
+	}
+}
+
+func (s Stats) scan(row database.RowScanner) (*model.Stat, error) {
+	var stat model.Stat
+	err := row.Scan(s.scanColumns(&stat)...)
 	if err != nil {
 		return nil, err
 	}

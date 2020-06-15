@@ -49,7 +49,7 @@ func testSharepinsList(ctx context.Context, sharepins *Sharepins, mock sqlmock.S
 
 		// Test filter by shares.
 		opts = &SharepinOpts{ShareIDs: []string{"share-id-1", "share-id-2"}}
-		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE share_id IN (?,?)"), prefix)).
+		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE sharepins.share_id IN (?,?)"), prefix)).
 			WithArgs(opts.ShareIDs[0], opts.ShareIDs[1]).
 			WillReturnRows(sqlmock.NewRows(sharepins.columns()))
 		_, err = sharepins.List(ctx, opts)
@@ -57,7 +57,7 @@ func testSharepinsList(ctx context.Context, sharepins *Sharepins, mock sqlmock.S
 
 		// Test filter by pinls.
 		opts = &SharepinOpts{PinlIDs: []string{"pinl-id-1", "pinl-id-2", "pinl-id-3"}}
-		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE pinl_id IN (?,?,?)"), prefix)).
+		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE sharepins.pinl_id IN (?,?,?)"), prefix)).
 			WithArgs(opts.PinlIDs[0], opts.PinlIDs[1], opts.PinlIDs[2]).
 			WillReturnRows(sqlmock.NewRows(sharepins.columns()))
 		_, err = sharepins.List(ctx, opts)

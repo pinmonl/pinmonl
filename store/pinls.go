@@ -90,36 +90,6 @@ func (p *Pinls) Find(ctx context.Context, id string) (*model.Pinl, error) {
 	return pinl, nil
 }
 
-func (p Pinls) columns() []string {
-	return []string{
-		p.table() + ".id",
-		p.table() + ".user_id",
-		p.table() + ".monl_id",
-		p.table() + ".url",
-		p.table() + ".title",
-		p.table() + ".description",
-		p.table() + ".image_id",
-		p.table() + ".status",
-		p.table() + ".created_at",
-		p.table() + ".updated_at",
-	}
-}
-
-func (p Pinls) scanColumns(pinl *model.Pinl) []interface{} {
-	return []interface{}{
-		&pinl.ID,
-		&pinl.UserID,
-		&pinl.MonlID,
-		&pinl.URL,
-		&pinl.Title,
-		&pinl.Description,
-		&pinl.ImageID,
-		&pinl.Status,
-		&pinl.CreatedAt,
-		&pinl.UpdatedAt,
-	}
-}
-
 func (p Pinls) bindOpts(b squirrel.SelectBuilder, opts *PinlOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -159,6 +129,36 @@ func (p Pinls) bindOpts(b squirrel.SelectBuilder, opts *PinlOpts) squirrel.Selec
 	}
 
 	return b
+}
+
+func (p Pinls) columns() []string {
+	return []string{
+		p.table() + ".id",
+		p.table() + ".user_id",
+		p.table() + ".monl_id",
+		p.table() + ".url",
+		p.table() + ".title",
+		p.table() + ".description",
+		p.table() + ".image_id",
+		p.table() + ".status",
+		p.table() + ".created_at",
+		p.table() + ".updated_at",
+	}
+}
+
+func (p Pinls) scanColumns(pinl *model.Pinl) []interface{} {
+	return []interface{}{
+		&pinl.ID,
+		&pinl.UserID,
+		&pinl.MonlID,
+		&pinl.URL,
+		&pinl.Title,
+		&pinl.Description,
+		&pinl.ImageID,
+		&pinl.Status,
+		&pinl.CreatedAt,
+		&pinl.UpdatedAt,
+	}
 }
 
 func (p Pinls) scan(row database.RowScanner) (*model.Pinl, error) {
