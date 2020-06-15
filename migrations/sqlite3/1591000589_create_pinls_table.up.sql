@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS pinls (
   title       VARCHAR(250),
   description TEXT,
   image_id    VARCHAR(50),
+  status      INTEGER,
   created_at  TIMESTAMP,
   updated_at  TIMESTAMP
 );

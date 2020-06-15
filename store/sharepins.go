@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -19,6 +20,9 @@ type SharepinOpts struct {
 	ShareIDs []string
 	PinlIDs  []string
 	Status   field.NullValue
+
+	PinlQuery string
+	joinPinls bool
 }
 
 func NewSharepins(s *Store) *Sharepins {
@@ -105,12 +109,56 @@ func (s *Sharepins) FindOrCreate(ctx context.Context, data *model.Sharepin) (*mo
 	return &sharepin, nil
 }
 
+func (s *Sharepins) ListWithPinl(ctx context.Context, opts *SharepinOpts) (model.SharepinList, error) {
+	if opts == nil {
+		opts = &SharepinOpts{}
+	}
+	opts = opts.JoinPinls()
+
+	qb := s.RunnableBuilder(ctx).
+		Select(s.columns()...).
+		Columns(Pinls{}.columns()...).
+		From(s.table())
+	qb = s.bindOpts(qb, opts)
+	qb = addPagination(qb, opts)
+	rows, err := qb.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	list := make([]*model.Sharepin, 0)
+	for rows.Next() {
+		var (
+			msp model.Sharepin
+			mp  model.Pinl
+		)
+		scanCols := append(s.scanColumns(&msp), Pinls{}.scanColumns(&mp)...)
+		err := rows.Scan(scanCols...)
+		if err != nil {
+			return nil, err
+		}
+		msp.Pinl = &mp
+		list = append(list, &msp)
+	}
+	return list, nil
+}
+
 func (s Sharepins) columns() []string {
 	return []string{
-		"id",
-		"share_id",
-		"pinl_id",
-		"status",
+		s.table() + ".id",
+		s.table() + ".share_id",
+		s.table() + ".pinl_id",
+		s.table() + ".status",
+	}
+}
+
+func (s Sharepins) scanColumns(sharepin *model.Sharepin) []interface{} {
+	return []interface{}{
+		&sharepin.ID,
+		&sharepin.ShareID,
+		&sharepin.PinlID,
+		&sharepin.Status,
 	}
 }
 
@@ -120,17 +168,31 @@ func (s Sharepins) bindOpts(b squirrel.SelectBuilder, opts *SharepinOpts) squirr
 	}
 
 	if len(opts.ShareIDs) > 0 {
-		b = b.Where(squirrel.Eq{"share_id": opts.ShareIDs})
+		b = b.Where(squirrel.Eq{s.table() + ".share_id": opts.ShareIDs})
 	}
 
 	if len(opts.PinlIDs) > 0 {
-		b = b.Where(squirrel.Eq{"pinl_id": opts.PinlIDs})
+		b = b.Where(squirrel.Eq{s.table() + ".pinl_id": opts.PinlIDs})
 	}
 
 	if opts.Status.Valid {
-		if s, ok := opts.Status.Value().(model.Status); ok {
-			b = b.Where("status = ?", s)
+		if sv, ok := opts.Status.Value().(model.Status); ok {
+			b = b.Where(s.table()+".status = ?", sv)
 		}
+	}
+
+	if opts.PinlQuery != "" {
+		opts = opts.JoinPinls()
+		pinls := Pinls{}.table()
+		b = b.Where(squirrel.Or{
+			squirrel.Expr(pinls+".title like ?", "%"+opts.PinlQuery+"%"),
+			squirrel.Expr(pinls+".description like ?", "%"+opts.PinlQuery+"%"),
+			squirrel.Expr(pinls+".url like ?", "%"+opts.PinlQuery+"%"),
+		})
+	}
+
+	if opts.joinPinls {
+		b = b.LeftJoin(fmt.Sprintf("%s ON %[1]s.id = %s.pinl_id", Pinls{}.table(), s.table()))
 	}
 
 	return b
@@ -138,11 +200,7 @@ func (s Sharepins) bindOpts(b squirrel.SelectBuilder, opts *SharepinOpts) squirr
 
 func (s Sharepins) scan(row database.RowScanner) (*model.Sharepin, error) {
 	var sharepin model.Sharepin
-	err := row.Scan(
-		&sharepin.ID,
-		&sharepin.ShareID,
-		&sharepin.PinlID,
-		&sharepin.Status)
+	err := row.Scan(s.scanColumns(&sharepin)...)
 	if err != nil {
 		return nil, err
 	}
@@ -199,4 +257,10 @@ func (s *Sharepins) Delete(ctx context.Context, id string) (int64, error) {
 		return 0, err
 	}
 	return res.RowsAffected()
+}
+
+func (o *SharepinOpts) JoinPinls() *SharepinOpts {
+	o2 := *o
+	o2.joinPinls = true
+	return &o2
 }

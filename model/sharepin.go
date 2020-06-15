@@ -12,10 +12,10 @@ type Sharepin struct {
 
 type SharepinList []*Sharepin
 
-func (sl SharepinList) PinlKeys() []string {
-	keys := make([]string, len(sl))
-	for i, s := range sl {
-		keys[i] = s.PinlID
+func (sl SharepinList) Pinls() PinlList {
+	pinls := make([]*Pinl, len(sl))
+	for i := range sl {
+		pinls[i] = sl[i].Pinl
 	}
-	return keys
+	return pinls
 }

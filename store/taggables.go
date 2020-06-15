@@ -20,6 +20,8 @@ type TaggableOpts struct {
 	Targets    model.MorphableList
 	TargetIDs  []string
 	TargetName string
+
+	joinTags bool
 }
 
 func NewTaggables(s *Store) *Taggables {
@@ -90,8 +92,8 @@ func (t *Taggables) Find(ctx context.Context, id string) (*model.Taggable, error
 func (t *Taggables) FindOrCreate(ctx context.Context, data *model.Taggable) (*model.Taggable, error) {
 	found, err := t.List(ctx, &TaggableOpts{
 		TagIDs:     []string{data.TagID},
-		TargetIDs:  []string{data.TaggableID},
-		TargetName: data.TaggableName,
+		TargetIDs:  []string{data.TargetID},
+		TargetName: data.TargetName,
 	})
 	if err != nil {
 		return nil, err
@@ -110,10 +112,19 @@ func (t *Taggables) FindOrCreate(ctx context.Context, data *model.Taggable) (*mo
 
 func (t Taggables) columns() []string {
 	return []string{
-		"id",
-		"tag_id",
-		"taggable_id",
-		"taggable_name",
+		t.table() + ".id",
+		t.table() + ".tag_id",
+		t.table() + ".target_id",
+		t.table() + ".target_name",
+	}
+}
+
+func (t Taggables) scanColumns(taggable *model.Taggable) []interface{} {
+	return []interface{}{
+		&taggable.ID,
+		&taggable.TagID,
+		&taggable.TargetID,
+		&taggable.TargetName,
 	}
 }
 
@@ -123,7 +134,7 @@ func (t Taggables) bindOpts(b squirrel.SelectBuilder, opts *TaggableOpts) squirr
 	}
 
 	if len(opts.TagIDs) > 0 {
-		b = b.Where(squirrel.Eq{"tag_id": opts.TagIDs})
+		b = b.Where(squirrel.Eq{t.table() + ".tag_id": opts.TagIDs})
 	}
 
 	if len(opts.Targets) > 0 && !opts.Targets.IsMixed() {
@@ -131,10 +142,10 @@ func (t Taggables) bindOpts(b squirrel.SelectBuilder, opts *TaggableOpts) squirr
 		opts.TargetIDs = opts.Targets.MorphKeys()
 	}
 	if opts.TargetName != "" {
-		b = b.Where("taggable_name = ?", opts.TargetName)
+		b = b.Where(t.table()+".target_name = ?", opts.TargetName)
 	}
 	if len(opts.TargetIDs) > 0 {
-		b = b.Where(squirrel.Eq{"taggable_id": opts.TargetIDs})
+		b = b.Where(squirrel.Eq{t.table() + ".target_id": opts.TargetIDs})
 	}
 
 	return b
@@ -142,11 +153,7 @@ func (t Taggables) bindOpts(b squirrel.SelectBuilder, opts *TaggableOpts) squirr
 
 func (t Taggables) scan(row database.RowScanner) (*model.Taggable, error) {
 	var taggable model.Taggable
-	err := row.Scan(
-		&taggable.ID,
-		&taggable.TagID,
-		&taggable.TaggableID,
-		&taggable.TaggableName)
+	err := row.Scan(t.scanColumns(&taggable)...)
 	if err != nil {
 		return nil, err
 	}
@@ -158,15 +165,11 @@ func (t *Taggables) ListWithTags(ctx context.Context, opts *TaggableOpts) (model
 		opts = &TaggableOpts{}
 	}
 
-	tags := &Tags{}
 	qb := t.RunnableBuilder(ctx).
-		Select(tags.columns()...).
-		Columns(
-			"taggables.id AS taggable_id",
-			"taggable_id",
-			"taggable_name").
+		Select(t.columns()...).
+		Columns(Tags{}.columns()...).
 		From(t.table()).
-		LeftJoin(fmt.Sprintf("%s ON %[1]s.id = %s.tag_id", tags.table(), t.table()))
+		LeftJoin(fmt.Sprintf("%s ON %[1]s.id = %s.tag_id", Tags{}.table(), t.table()))
 	qb = t.bindOpts(qb, opts)
 	qb = addPagination(qb, opts)
 	rows, err := qb.Query()
@@ -180,28 +183,68 @@ func (t *Taggables) ListWithTags(ctx context.Context, opts *TaggableOpts) (model
 			mtg model.Taggable
 			mt  model.Tag
 		)
-		err := rows.Scan(
-			&mt.ID,
-			&mt.Name,
-			&mt.UserID,
-			&mt.ParentID,
-			&mt.Level,
-			&mt.Color,
-			&mt.BgColor,
-			&mt.HasChildren,
-			&mt.CreatedAt,
-			&mt.UpdatedAt,
-			&mtg.ID,
-			&mtg.TaggableID,
-			&mtg.TaggableName)
+		scanCols := append(t.scanColumns(&mtg), Tags{}.scanColumns(&mt)...)
+		err := rows.Scan(scanCols...)
 		if err != nil {
 			return nil, err
 		}
-		mtg.TagID = mt.ID
 		mtg.Tag = &mt
 		list = append(list, &mtg)
 	}
 	return list, nil
+}
+
+func (t *Taggables) listWithTarget(
+	ctx context.Context,
+	columns []string,
+	tableName, targetName string,
+	opts *TaggableOpts,
+	rowScan func(row database.RowScanner) (*model.Taggable, error),
+) (model.TaggableList, error) {
+	if opts == nil {
+		opts = &TaggableOpts{}
+	}
+
+	qb := t.RunnableBuilder(ctx).
+		Select(t.columns()...).
+		Columns(columns...).
+		From(t.table()).
+		LeftJoin(fmt.Sprintf("%s ON %[1]s.id = %s.target_id", tableName, t.table())).
+		Where(t.table()+".target_name = ?", targetName)
+	qb = t.bindOpts(qb, opts)
+	qb = addPagination(qb, opts)
+	rows, err := qb.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list := make([]*model.Taggable, 0)
+	for rows.Next() {
+		taggable, err := rowScan(rows)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, taggable)
+	}
+	return list, nil
+}
+
+func (t *Taggables) ListWithPinl(ctx context.Context, opts *TaggableOpts) (model.TaggableList, error) {
+	scanner := func(row database.RowScanner) (*model.Taggable, error) {
+		var (
+			mtg model.Taggable
+			mp  model.Pinl
+		)
+		scanCols := append(t.scanColumns(&mtg), Pinls{}.scanColumns(&mp)...)
+		err := row.Scan(scanCols...)
+		if err != nil {
+			return nil, err
+		}
+		mtg.Pinl = &mp
+		return &mtg, nil
+	}
+
+	return t.listWithTarget(ctx, Pinls{}.columns(), Pinls{}.table(), model.Pinl{}.MorphName(), opts, scanner)
 }
 
 func (t *Taggables) Create(ctx context.Context, taggable *model.Taggable) error {
@@ -213,13 +256,13 @@ func (t *Taggables) Create(ctx context.Context, taggable *model.Taggable) error 
 		Columns(
 			"id",
 			"tag_id",
-			"taggable_id",
-			"taggable_name").
+			"target_id",
+			"target_name").
 		Values(
 			taggable2.ID,
 			taggable2.TagID,
-			taggable2.TaggableID,
-			taggable2.TaggableName)
+			taggable2.TargetID,
+			taggable2.TargetName)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -234,8 +277,8 @@ func (t *Taggables) Update(ctx context.Context, taggable *model.Taggable) error 
 	qb := t.RunnableBuilder(ctx).
 		Update(t.table()).
 		Set("tag_id", taggable2.TagID).
-		Set("taggable_id", taggable2.TaggableID).
-		Set("taggable_name", taggable2.TaggableName).
+		Set("target_id", taggable2.TargetID).
+		Set("target_name", taggable2.TargetName).
 		Where("id = ?", taggable2.ID)
 	_, err := qb.Exec()
 	if err != nil {
@@ -259,11 +302,17 @@ func (t *Taggables) Delete(ctx context.Context, id string) (int64, error) {
 func (t *Taggables) DeleteByTaggable(ctx context.Context, target model.Morphable) (int64, error) {
 	qb := t.RunnableBuilder(ctx).
 		Delete(t.table()).
-		Where("taggable_name = ?", target.MorphName()).
-		Where("taggable_id = ?", target.MorphKey())
+		Where("target_name = ?", target.MorphName()).
+		Where("target_id = ?", target.MorphKey())
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err
 	}
 	return res.RowsAffected()
+}
+
+func (o *TaggableOpts) JoinTags() *TaggableOpts {
+	o2 := *o
+	o2.joinTags = true
+	return &o2
 }

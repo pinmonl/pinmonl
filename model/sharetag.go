@@ -40,3 +40,24 @@ func (sl SharetagList) Keys() []string {
 	}
 	return keys
 }
+
+func (sl SharetagList) Tags() TagList {
+	tags := make([]*Tag, len(sl))
+	for i := range sl {
+		tags[i] = sl[i].Tag
+	}
+	return tags
+}
+
+func (sl SharetagList) ViewTags() TagList {
+	tags := make([]*Tag, len(sl))
+	for i := range sl {
+		st := sl[i]
+		tag := st.Tag
+		tag.ParentID = st.ParentID
+		tag.Level = st.Level
+		tag.HasChildren = st.HasChildren
+		tags[i] = tag
+	}
+	return tags
+}

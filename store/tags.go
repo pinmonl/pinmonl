@@ -16,9 +16,11 @@ type Tags struct {
 
 type TagOpts struct {
 	ListOpts
+	IDs         []string
 	UserID      string
 	UserIDs     []string
 	Name        string
+	Names       []string
 	NamePattern string
 	ParentIDs   []string
 	Level       field.NullInt64
@@ -111,22 +113,41 @@ func (t *Tags) FindOrCreate(ctx context.Context, data *model.Tag) (*model.Tag, e
 
 func (t Tags) columns() []string {
 	return []string{
-		"id",
-		"name",
-		"user_id",
-		"parent_id",
-		"level",
-		"color",
-		"bg_color",
-		"has_children",
-		"created_at",
-		"updated_at",
+		t.table() + ".id",
+		t.table() + ".name",
+		t.table() + ".user_id",
+		t.table() + ".parent_id",
+		t.table() + ".level",
+		t.table() + ".color",
+		t.table() + ".bg_color",
+		t.table() + ".has_children",
+		t.table() + ".created_at",
+		t.table() + ".updated_at",
+	}
+}
+
+func (t Tags) scanColumns(tag *model.Tag) []interface{} {
+	return []interface{}{
+		&tag.ID,
+		&tag.Name,
+		&tag.UserID,
+		&tag.ParentID,
+		&tag.Level,
+		&tag.Color,
+		&tag.BgColor,
+		&tag.HasChildren,
+		&tag.CreatedAt,
+		&tag.UpdatedAt,
 	}
 }
 
 func (t Tags) bindOpts(b squirrel.SelectBuilder, opts *TagOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
+	}
+
+	if len(opts.IDs) > 0 {
+		b = b.Where(squirrel.Eq{"id": opts.IDs})
 	}
 
 	if opts.UserID != "" {
@@ -137,7 +158,10 @@ func (t Tags) bindOpts(b squirrel.SelectBuilder, opts *TagOpts) squirrel.SelectB
 	}
 
 	if opts.Name != "" {
-		b = b.Where("name = ?", opts.Name)
+		opts.Names = append(opts.Names, opts.Name)
+	}
+	if len(opts.Names) > 0 {
+		b = b.Where(squirrel.Eq{"name": opts.Names})
 	}
 
 	if opts.NamePattern != "" {
@@ -157,17 +181,7 @@ func (t Tags) bindOpts(b squirrel.SelectBuilder, opts *TagOpts) squirrel.SelectB
 
 func (t Tags) scan(row database.RowScanner) (*model.Tag, error) {
 	var tag model.Tag
-	err := row.Scan(
-		&tag.ID,
-		&tag.Name,
-		&tag.UserID,
-		&tag.ParentID,
-		&tag.Level,
-		&tag.Color,
-		&tag.BgColor,
-		&tag.HasChildren,
-		&tag.CreatedAt,
-		&tag.UpdatedAt)
+	err := row.Scan(t.scanColumns(&tag)...)
 	if err != nil {
 		return nil, err
 	}

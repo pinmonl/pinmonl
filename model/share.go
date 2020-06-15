@@ -12,6 +12,8 @@ type Share struct {
 	Status      Status     `json:"status"`
 	CreatedAt   field.Time `json:"createdAt"`
 	UpdatedAt   field.Time `json:"updatedAt"`
+
+	User *User `json:"user,omitempty"`
 }
 
 func (s Share) MorphKey() string  { return s.ID }

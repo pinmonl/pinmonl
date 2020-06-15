@@ -13,6 +13,8 @@ type Pinl struct {
 	Status      Status     `json:"status"`
 	CreatedAt   field.Time `json:"createdAt"`
 	UpdatedAt   field.Time `json:"updatedAt"`
+
+	TagNames *[]string `json:"tags,omitempty"`
 }
 
 func (p Pinl) MorphKey() string  { return p.ID }

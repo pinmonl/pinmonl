@@ -62,7 +62,7 @@ func testTaggablesList(ctx context.Context, taggables *Taggables, mock sqlmock.S
 			&model.Pinl{ID: "pinl-id-2"},
 			&model.Pinl{ID: "pinl-id-3"},
 		}}
-		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE taggable_name = ? AND taggable_id IN (?,?,?)"), prefix)).
+		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE target_name = ? AND target_id IN (?,?,?)"), prefix)).
 			WithArgs(
 				opts.Targets[0].MorphName(),
 				opts.Targets[0].MorphKey(),
@@ -129,7 +129,7 @@ func testTaggablesListWithTags(ctx context.Context, taggables *Taggables, mock s
 			&model.Pinl{ID: "pinl-id-2"},
 			&model.Pinl{ID: "pinl-id-3"},
 		}}
-		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE taggable_name = ? AND taggable_id IN (?,?,?)"), prefix)).
+		mock.ExpectQuery(fmt.Sprintf(regexp.QuoteMeta("%s WHERE target_name = ? AND target_id IN (?,?,?)"), prefix)).
 			WithArgs(
 				opts.Targets[0].MorphName(),
 				opts.Targets[0].MorphKey(),
@@ -162,8 +162,8 @@ func expectTaggablesCreate(mock sqlmock.Sqlmock, taggable *model.Taggable) {
 		WithArgs(
 			sqlmock.AnyArg(),
 			taggable.TagID,
-			taggable.TaggableID,
-			taggable.TaggableName).
+			taggable.TargetID,
+			taggable.TargetName).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 }
 
@@ -185,8 +185,8 @@ func expectTaggablesUpdate(mock sqlmock.Sqlmock, taggable *model.Taggable) {
 	mock.ExpectExec("UPDATE taggables (.+) WHERE id = \\?").
 		WithArgs(
 			taggable.TagID,
-			taggable.TaggableID,
-			taggable.TaggableName,
+			taggable.TargetID,
+			taggable.TargetName,
 			taggable.ID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 }

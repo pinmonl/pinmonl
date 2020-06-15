@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -22,6 +23,10 @@ type SharetagOpts struct {
 	Level     field.NullInt64
 	ParentIDs []string
 	Status    field.NullValue
+
+	TagNames       []string
+	TagNamePattern string
+	joinTags       bool
 }
 
 func NewSharetags(s *Store) *Sharetags {
@@ -109,16 +114,64 @@ func (s *Sharetags) FindOrCreate(ctx context.Context, data *model.Sharetag) (*mo
 	return &sharetag, nil
 }
 
+func (s *Sharetags) ListWithTag(ctx context.Context, opts *SharetagOpts) (model.SharetagList, error) {
+	if opts == nil {
+		opts = &SharetagOpts{}
+	}
+	opts = opts.JoinTags()
+
+	qb := s.RunnableBuilder(ctx).
+		Select(s.columns()...).
+		Columns(Tags{}.columns()...).
+		From(s.table())
+	qb = s.bindOpts(qb, opts)
+	qb = addPagination(qb, opts)
+	rows, err := qb.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	list := make([]*model.Sharetag, 0)
+	for rows.Next() {
+		var (
+			mst model.Sharetag
+			mt  model.Tag
+		)
+		scanCols := append(s.scanColumns(&mst), Tags{}.scanColumns(&mt)...)
+		err := rows.Scan(scanCols...)
+		if err != nil {
+			return nil, err
+		}
+		mst.Tag = &mt
+		list = append(list, &mst)
+	}
+	return list, nil
+}
+
 func (s Sharetags) columns() []string {
 	return []string{
-		"id",
-		"share_id",
-		"tag_id",
-		"kind",
-		"parent_id",
-		"level",
-		"status",
-		"has_children",
+		s.table() + ".id",
+		s.table() + ".share_id",
+		s.table() + ".tag_id",
+		s.table() + ".kind",
+		s.table() + ".parent_id",
+		s.table() + ".level",
+		s.table() + ".status",
+		s.table() + ".has_children",
+	}
+}
+
+func (s Sharetags) scanColumns(sharetag *model.Sharetag) []interface{} {
+	return []interface{}{
+		&sharetag.ID,
+		&sharetag.ShareID,
+		&sharetag.TagID,
+		&sharetag.Kind,
+		&sharetag.ParentID,
+		&sharetag.Level,
+		&sharetag.Status,
+		&sharetag.HasChildren,
 	}
 }
 
@@ -128,31 +181,45 @@ func (s Sharetags) bindOpts(b squirrel.SelectBuilder, opts *SharetagOpts) squirr
 	}
 
 	if len(opts.ShareIDs) > 0 {
-		b = b.Where(squirrel.Eq{"share_id": opts.ShareIDs})
+		b = b.Where(squirrel.Eq{s.table() + ".share_id": opts.ShareIDs})
 	}
 
 	if len(opts.TagIDs) > 0 {
-		b = b.Where(squirrel.Eq{"tag_id": opts.TagIDs})
+		b = b.Where(squirrel.Eq{s.table() + ".tag_id": opts.TagIDs})
 	}
 
 	if opts.Kind.Valid {
 		if k, ok := opts.Kind.Value().(model.SharetagKind); ok {
-			b = b.Where("kind = ?", k)
+			b = b.Where(s.table()+".kind = ?", k)
 		}
 	}
 
 	if opts.Level.Valid {
-		b = b.Where("level = ?", opts.Level.Value())
+		b = b.Where(s.table()+".level = ?", opts.Level.Value())
 	}
 
 	if len(opts.ParentIDs) > 0 {
-		b = b.Where(squirrel.Eq{"parent_id": opts.ParentIDs})
+		b = b.Where(squirrel.Eq{s.table() + ".parent_id": opts.ParentIDs})
 	}
 
 	if opts.Status.Valid {
-		if s, ok := opts.Status.Value().(model.Status); ok {
-			b = b.Where("status = ?", s)
+		if sv, ok := opts.Status.Value().(model.Status); ok {
+			b = b.Where(s.table()+".status = ?", sv)
 		}
+	}
+
+	if len(opts.TagNames) > 0 {
+		opts = opts.JoinTags()
+		b = b.Where(squirrel.Eq{Tags{}.table() + ".name": opts.TagNames})
+	}
+
+	if opts.TagNamePattern != "" {
+		opts = opts.JoinTags()
+		b = b.Where(Tags{}.table()+".name LIKE ?", opts.TagNamePattern)
+	}
+
+	if opts.joinTags {
+		b = b.LeftJoin(fmt.Sprintf("%s ON %[1]s.id = %s.tag_id", Tags{}.table(), s.table()))
 	}
 
 	return b
@@ -160,15 +227,7 @@ func (s Sharetags) bindOpts(b squirrel.SelectBuilder, opts *SharetagOpts) squirr
 
 func (s Sharetags) scan(row database.RowScanner) (*model.Sharetag, error) {
 	var sharetag model.Sharetag
-	err := row.Scan(
-		&sharetag.ID,
-		&sharetag.ShareID,
-		&sharetag.TagID,
-		&sharetag.Kind,
-		&sharetag.ParentID,
-		&sharetag.Level,
-		&sharetag.Status,
-		&sharetag.HasChildren)
+	err := row.Scan(s.scanColumns(&sharetag)...)
 	if err != nil {
 		return nil, err
 	}
@@ -248,4 +307,10 @@ func (s *Sharetags) DeleteByShare(ctx context.Context, shareID string) (int64, e
 		return 0, err
 	}
 	return res.RowsAffected()
+}
+
+func (o *SharetagOpts) JoinTags() *SharetagOpts {
+	o2 := *o
+	o2.joinTags = true
+	return &o2
 }

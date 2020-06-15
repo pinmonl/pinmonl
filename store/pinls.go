@@ -7,6 +7,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/model/field"
 )
 
 type Pinls struct {
@@ -15,9 +16,13 @@ type Pinls struct {
 
 type PinlOpts struct {
 	ListOpts
+	IDs     []string
 	UserID  string
 	UserIDs []string
 	MonlIDs []string
+	Query   string
+	Status  field.NullValue
+	URL     string
 }
 
 func NewPinls(s *Store) *Pinls {
@@ -87,22 +92,41 @@ func (p *Pinls) Find(ctx context.Context, id string) (*model.Pinl, error) {
 
 func (p Pinls) columns() []string {
 	return []string{
-		"id",
-		"user_id",
-		"monl_id",
-		"url",
-		"title",
-		"description",
-		"image_id",
-		"status",
-		"created_at",
-		"updated_at",
+		p.table() + ".id",
+		p.table() + ".user_id",
+		p.table() + ".monl_id",
+		p.table() + ".url",
+		p.table() + ".title",
+		p.table() + ".description",
+		p.table() + ".image_id",
+		p.table() + ".status",
+		p.table() + ".created_at",
+		p.table() + ".updated_at",
+	}
+}
+
+func (p Pinls) scanColumns(pinl *model.Pinl) []interface{} {
+	return []interface{}{
+		&pinl.ID,
+		&pinl.UserID,
+		&pinl.MonlID,
+		&pinl.URL,
+		&pinl.Title,
+		&pinl.Description,
+		&pinl.ImageID,
+		&pinl.Status,
+		&pinl.CreatedAt,
+		&pinl.UpdatedAt,
 	}
 }
 
 func (p Pinls) bindOpts(b squirrel.SelectBuilder, opts *PinlOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
+	}
+
+	if len(opts.IDs) > 0 {
+		b = b.Where(squirrel.Eq{"id": opts.IDs})
 	}
 
 	if opts.UserID != "" {
@@ -116,22 +140,30 @@ func (p Pinls) bindOpts(b squirrel.SelectBuilder, opts *PinlOpts) squirrel.Selec
 		b = b.Where(squirrel.Eq{"monl_id": opts.MonlIDs})
 	}
 
+	if opts.Query != "" {
+		b = b.Where(squirrel.Or{
+			squirrel.Expr("title like ?", "%"+opts.Query+"%"),
+			squirrel.Expr("description like ?", "%"+opts.Query+"%"),
+			squirrel.Expr("url like ?", "%"+opts.Query+"%"),
+		})
+	}
+
+	if opts.Status.Valid {
+		if s, ok := opts.Status.Value().(model.Status); ok {
+			b = b.Where("status = ?", s)
+		}
+	}
+
+	if opts.URL != "" {
+		b = b.Where("url = ?", opts.URL)
+	}
+
 	return b
 }
 
 func (p Pinls) scan(row database.RowScanner) (*model.Pinl, error) {
 	var pinl model.Pinl
-	err := row.Scan(
-		&pinl.ID,
-		&pinl.UserID,
-		&pinl.MonlID,
-		&pinl.URL,
-		&pinl.Title,
-		&pinl.Description,
-		&pinl.ImageID,
-		&pinl.Status,
-		&pinl.CreatedAt,
-		&pinl.UpdatedAt)
+	err := row.Scan(p.scanColumns(&pinl)...)
 	if err != nil {
 		return nil, err
 	}
