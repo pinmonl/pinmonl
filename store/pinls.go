@@ -23,6 +23,8 @@ type PinlOpts struct {
 	Query   string
 	Status  field.NullValue
 	URL     string
+
+	TagIDs []string
 }
 
 func NewPinls(s *Store) *Pinls {
@@ -126,6 +128,19 @@ func (p Pinls) bindOpts(b squirrel.SelectBuilder, opts *PinlOpts) squirrel.Selec
 
 	if opts.URL != "" {
 		b = b.Where("url = ?", opts.URL)
+	}
+
+	if len(opts.TagIDs) > 0 {
+		sq := p.Builder().Select("1").
+			From(Taggables{}.table()).
+			Where("target_id = "+p.table()+".id").
+			Where("target_name = ?", model.Pinl{}.MorphName()).
+			Where(squirrel.Eq{"tag_id": opts.TagIDs}).
+			GroupBy("target_id").
+			Having("COUNT( DISTINCT tag_id ) >= ?", len(opts.TagIDs)).
+			Prefix("EXISTS (").
+			Suffix(")")
+		b = b.Where(sq)
 	}
 
 	return b

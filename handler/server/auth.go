@@ -1,67 +1,40 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/pinmonl/pinmonl/pkgs/generate"
 	"github.com/pinmonl/pinmonl/pkgs/passwd"
 	"github.com/pinmonl/pinmonl/pkgs/request"
 	"github.com/pinmonl/pinmonl/pkgs/response"
-	"github.com/pinmonl/pinmonl/store"
 )
 
+// Errors.
 var (
 	ErrLoginRequired  = errors.New("login and password are required")
 	ErrSignupRequired = errors.New("login, password and name are required")
 	ErrLoginUsed      = errors.New("login is used")
 )
 
+// authenticate binds request user into context.
 func (s *Server) authenticate() func(http.Handler) http.Handler {
-	return authenticate(s.TokenSecret, s.Users)
+	return request.Authenticate(s.TokenSecret, s.Users)
 }
 
-func authenticate(secret []byte, users *store.Users) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			jwtToken, err := request.ExtractJwtToken(r)
-			if err != nil {
-				response.JSON(w, err, http.StatusBadRequest)
-				return
-			}
+// authorize checks the request is from a valid user.
+func (s *Server) authorize() func(http.Handler) http.Handler {
+	return request.Authorize()
+}
 
-			var claims authClaims
-			token, err := jwt.ParseWithClaims(jwtToken, &claims, func(token *jwt.Token) (interface{}, error) {
-				return secret, nil
-			})
-			if !token.Valid {
-				response.JSON(w, err, http.StatusUnauthorized)
-				return
-			}
-			if err := claims.Valid(); err != nil {
-				response.JSON(w, err, http.StatusUnauthorized)
-			}
-
-			ctx := r.Context()
-			user, err := users.Find(ctx, claims.UserID)
-			if user == nil {
-				response.JSON(w, err, http.StatusUnauthorized)
-				return
-			}
-			if user.Hash != claims.Hash {
-				response.JSON(w, nil, http.StatusUnauthorized)
-				return
-			}
-
-			ctx = request.WithUser(ctx, user)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		}
-		return http.HandlerFunc(fn)
-	}
+// authorizeUserOnly checks the request is from a valid user
+// with normal user role.
+func (s *Server) authorizeUserOnly() func(http.Handler) http.Handler {
+	return request.Authorize(model.NormalUser)
 }
 
 type loginBody struct {
@@ -69,11 +42,13 @@ type loginBody struct {
 	Password string `json:"password"`
 }
 
+// loginHandler validates the user credentials and
+// returns an access token if succeeded.
 func (s *Server) loginHandler(w http.ResponseWriter, r *http.Request) {
 	var in loginBody
-	err := request.JSON(r, &in)
-	if err != nil {
-		response.JSON(w, err, http.StatusBadRequest)
+	err1 := request.JSON(r, &in)
+	if err1 != nil {
+		response.JSON(w, err1, http.StatusBadRequest)
 		return
 	}
 
@@ -82,33 +57,40 @@ func (s *Server) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
-	user, err := s.Users.FindLogin(ctx, in.Login)
-	if err != nil {
-		response.JSON(w, err, http.StatusBadRequest)
-		return
-	}
-	err = passwd.CompareString(user.Password, in.Password)
-	if err != nil {
-		response.JSON(w, err, http.StatusBadRequest)
-		return
-	}
+	var (
+		ctx  = r.Context()
+		user *model.User
+		code int
+		err  error
+	)
+	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
+		var err2 error
+		user, err2 = s.Users.FindLogin(ctx, in.Login)
+		if err2 != nil {
+			err, code = err2, http.StatusBadRequest
+			return false
+		}
+		err2 = passwd.CompareString(user.Password, in.Password)
+		if err2 != nil {
+			err, code = err2, http.StatusBadRequest
+			return false
+		}
 
-	user.LastSeen = field.Time(time.Now())
-	err = s.Users.Update(ctx, user)
-	if err != nil {
-		response.JSON(w, err, http.StatusInternalServerError)
-		return
-	}
+		user.LastSeen = field.Time(time.Now())
+		err2 = s.Users.Update(ctx, user)
+		if err2 != nil {
+			err, code = err2, http.StatusInternalServerError
+			return false
+		}
 
-	token, err := s.generateToken(user)
-	if err != nil {
-		response.JSON(w, err, http.StatusInternalServerError)
+		return true
+	})
+
+	if err != nil || response.IsError(code) {
+		response.JSON(w, err, code)
 		return
 	}
-	response.JSON(w, tokenResponse{
-		Token: token,
-	}, http.StatusOK)
+	s.printToken(w, user)
 }
 
 type signupBody struct {
@@ -117,11 +99,12 @@ type signupBody struct {
 	Name     string `json:"name"`
 }
 
+// signupHandler creates a user and returns with an access token.
 func (s *Server) signupHandler(w http.ResponseWriter, r *http.Request) {
 	var in signupBody
-	err := request.JSON(r, &in)
-	if err != nil {
-		response.JSON(w, err, http.StatusBadRequest)
+	err1 := request.JSON(r, &in)
+	if err1 != nil {
+		response.JSON(w, err1, http.StatusBadRequest)
 		return
 	}
 
@@ -130,71 +113,83 @@ func (s *Server) signupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
-	found, err := s.Users.FindLogin(ctx, in.Login)
-	if err == nil && found != nil {
-		response.JSON(w, ErrLoginUsed, http.StatusBadRequest)
-		return
-	}
+	var (
+		ctx  = r.Context()
+		user *model.User
+		code int
+		err  error
+	)
+	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
+		found, err2 := s.Users.FindLogin(ctx, in.Login)
+		if err2 == nil && found != nil {
+			err, code = ErrLoginUsed, http.StatusBadRequest
+			return false
+		}
 
-	user := &model.User{
-		Login:    in.Login,
-		Name:     in.Name,
-		Hash:     generate.UserHash(),
-		LastSeen: field.Time(time.Now()),
-	}
-	if pw, err := passwd.HashString(in.Password); err == nil {
-		user.Password = pw
-	} else {
-		response.JSON(w, err, http.StatusBadRequest)
-		return
-	}
-	err = s.Users.Create(ctx, user)
-	if err != nil {
-		response.JSON(w, err, http.StatusBadRequest)
-		return
-	}
+		user = &model.User{
+			Login:    in.Login,
+			Name:     in.Name,
+			Hash:     generate.UserHash(),
+			LastSeen: field.Time(time.Now()),
+		}
+		if pw, err2 := passwd.HashString(in.Password); err2 == nil {
+			user.Password = pw
+		} else {
+			err, code = err2, http.StatusBadRequest
+			return false
+		}
+		err2 = s.Users.Create(ctx, user)
+		if err2 != nil {
+			err, code = err2, http.StatusBadRequest
+			return false
+		}
 
-	response.JSON(w, user, http.StatusOK)
+		return true
+	})
+
+	if err != nil || response.IsError(code) {
+		response.JSON(w, err, code)
+		return
+	}
+	s.printToken(w, user)
 }
 
+// aliveHandler refreshes the user.LastSeen and recreates a
+// new access token.
 func (s *Server) aliveHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	user := request.UserFrom(ctx)
-	user.LastSeen = field.Time(time.Now())
-	err := s.Users.Update(ctx, user)
-	if err != nil {
-		response.JSON(w, err, http.StatusInternalServerError)
+	var (
+		ctx  = r.Context()
+		user = request.AuthedFrom(ctx)
+		code int
+		err  error
+	)
+	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
+		user.LastSeen = field.Time(time.Now())
+		err = s.Users.Update(ctx, user)
+		if err != nil {
+			err, code = err, http.StatusInternalServerError
+			return false
+		}
+		return true
+	})
+
+	if err != nil || response.IsError(code) {
+		response.JSON(w, err, code)
 		return
 	}
-
-	response.JSON(w, nil, http.StatusOK)
-}
-
-type authClaims struct {
-	jwt.StandardClaims
-	UserID string `json:"userId"`
-	Hash   string `json:"hash"`
+	s.printToken(w, user)
 }
 
 type tokenResponse struct {
 	Token string `json:"token"`
 }
 
-func (s *Server) generateToken(user *model.User) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, authClaims{
-		UserID: user.ID,
-		Hash:   user.Hash,
-		StandardClaims: jwt.StandardClaims{
-			IssuedAt:  time.Now().Unix(),
-			ExpiresAt: time.Now().Add(s.TokenExpire).Unix(),
-			Issuer:    s.TokenIssuer,
-		},
-	})
-
-	signed, err := token.SignedString(s.TokenSecret)
+func (s *Server) printToken(w http.ResponseWriter, user *model.User) error {
+	token, err := request.GenerateJwtToken(s.TokenIssuer, s.TokenExpire, s.TokenSecret, user)
 	if err != nil {
-		return "", err
+		return response.JSON(w, err, http.StatusInternalServerError)
 	}
-	return signed, nil
+	return response.JSON(w, tokenResponse{
+		Token: token,
+	}, http.StatusOK)
 }

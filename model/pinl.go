@@ -14,6 +14,7 @@ type Pinl struct {
 	CreatedAt   field.Time `json:"createdAt"`
 	UpdatedAt   field.Time `json:"updatedAt"`
 
+	Tags     *TagList  `json:"-"`
 	TagNames *[]string `json:"tags,omitempty"`
 }
 

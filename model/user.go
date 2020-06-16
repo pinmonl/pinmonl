@@ -25,6 +25,7 @@ type UserRole int
 
 const (
 	NormalUser UserRole = iota
+	MachineUser
 )
 
 type UserStatus int

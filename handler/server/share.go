@@ -43,7 +43,7 @@ func (s *Server) prepareShareHandler(w http.ResponseWriter, r *http.Request) {
 		err   error
 	)
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
-		user := request.UserFrom(ctx)
+		user := request.AuthedFrom(ctx)
 		share, err = s.Shares.FindSlug(ctx, user.ID, slug)
 		if err == nil && share != nil {
 			err = cleanupShare(ctx, s.Sharetags, s.Sharepins, s.Pinls, s.Taggables, share.ID)
@@ -163,29 +163,39 @@ func (s *Server) publishShareHandler(w http.ResponseWriter, r *http.Request) {
 
 // bindShareBySlug binds share by slug into context
 // and throws error if not found.
-func (s *Server) bindShareBySlug(paramName string) func(http.Handler) http.Handler {
+func (s *Server) bindShareBySlug() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			user := request.UserFrom(ctx)
-			slug := chi.URLParam(r, paramName)
+			user := request.AuthedFrom(ctx)
+			slug := chi.URLParam(r, "slug")
 
-			found, err := s.Shares.List(ctx, &store.ShareOpts{
-				UserID: user.ID,
-				Slug:   slug,
-			})
+			share, err := s.Shares.FindSlug(ctx, user.ID, slug)
 			if err != nil {
 				response.JSON(w, err, http.StatusInternalServerError)
 				return
 			}
-			if len(found) == 0 {
+			if share == nil {
 				response.JSON(w, nil, http.StatusNotFound)
 				return
 			}
 
-			r = r.WithContext(
-				request.WithShare(ctx, found[0]),
-			)
+			ctx = request.WithShare(ctx, share)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		}
+		return http.HandlerFunc(fn)
+	}
+}
+
+func (s *Server) shareStatusMustBe(status model.Status) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			share := request.ShareFrom(r.Context())
+			if share.Status != status {
+				response.JSON(w, nil, http.StatusNotFound)
+				return
+			}
+
 			next.ServeHTTP(w, r)
 		}
 		return http.HandlerFunc(fn)
@@ -204,7 +214,7 @@ type sharetagBody struct {
 func (s *Server) createShareTagHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx      = r.Context()
-		user     = request.UserFrom(ctx)
+		user     = request.AuthedFrom(ctx)
 		share    = request.ShareFrom(ctx)
 		sharetag *model.Sharetag
 		code     int
@@ -263,7 +273,7 @@ type sharepinBody struct {
 func (s *Server) createSharePinlHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx      = r.Context()
-		user     = request.UserFrom(ctx)
+		user     = request.AuthedFrom(ctx)
 		share    = request.ShareFrom(ctx)
 		sharepin *model.Sharepin
 		code     int
@@ -308,4 +318,35 @@ func (s *Server) createSharePinlHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	response.JSON(w, sharepin, http.StatusOK)
+}
+
+// deleteShareHandler handles share delete request.
+func (s *Server) deleteShareHandler(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx   = r.Context()
+		share = request.ShareFrom(ctx)
+		code  int
+		err   error
+	)
+	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
+		var err2 error
+		err2 = cleanupShare(ctx, s.Sharetags, s.Sharepins, s.Pinls, s.Taggables, share.ID)
+		if err2 != nil {
+			err, code = err2, http.StatusInternalServerError
+			return false
+		}
+
+		_, err2 = s.Shares.Delete(ctx, share.ID)
+		if err2 != nil {
+			err, code = err2, http.StatusInternalServerError
+			return false
+		}
+		return true
+	})
+
+	if err != nil || response.IsError(code) {
+		response.JSON(w, err, code)
+		return
+	}
+	response.JSON(w, nil, http.StatusNoContent)
 }

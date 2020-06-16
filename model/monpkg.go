@@ -13,3 +13,11 @@ type Monpkg struct {
 type MonpkgKind int
 
 type MonpkgList []*Monpkg
+
+func (ml MonpkgList) Pkgs() PkgList {
+	out := make([]*Pkg, len(ml))
+	for i := range ml {
+		out[i] = ml[i].Pkg
+	}
+	return out
+}

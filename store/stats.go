@@ -20,6 +20,8 @@ type StatOpts struct {
 	ParentIDs []string
 	Kind      field.NullValue
 	IsLatest  field.NullBool
+
+	Orders []StatOrder
 }
 
 func NewStats(s *Store) *Stats {
@@ -128,6 +130,13 @@ func (s Stats) bindOpts(b squirrel.SelectBuilder, opts *StatOpts) squirrel.Selec
 
 	if opts.IsLatest.Valid {
 		b = b.Where("is_latest = ?", opts.IsLatest.Value())
+	}
+
+	for _, order := range opts.Orders {
+		switch order {
+		case StatOrderByRecordDesc:
+			b = b.OrderBy("recorded_at DESC")
+		}
 	}
 
 	return b
@@ -246,3 +255,9 @@ func (s *Stats) Delete(ctx context.Context, id string) (int64, error) {
 	}
 	return res.RowsAffected()
 }
+
+type StatOrder int
+
+const (
+	StatOrderByRecordDesc StatOrder = iota
+)

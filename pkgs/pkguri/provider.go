@@ -58,6 +58,8 @@ func ParseProvider(rawurl string) (*PkgURI, error) {
 		return ParseFromNpmRegistry(rawurl)
 	case GithubProvider:
 		return ParseFromGithub(rawurl)
+	case GitProvider:
+		return ParseFromGit(rawurl)
 	default:
 		return Parse(rawurl)
 	}

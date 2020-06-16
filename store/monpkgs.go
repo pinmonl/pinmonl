@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -17,6 +18,8 @@ type MonpkgOpts struct {
 	ListOpts
 	MonlIDs []string
 	PkgIDs  []string
+
+	joinPkgs bool
 }
 
 func NewMonpkgs(s *Store) *Monpkgs {
@@ -104,17 +107,55 @@ func (m *Monpkgs) FindOrCreate(ctx context.Context, data *model.Monpkg) (*model.
 	return &monpkg, nil
 }
 
+func (m *Monpkgs) ListWithPkg(ctx context.Context, opts *MonpkgOpts) (model.MonpkgList, error) {
+	if opts == nil {
+		opts = &MonpkgOpts{}
+	}
+	opts = opts.JoinPkgs()
+
+	qb := m.RunnableBuilder(ctx).
+		Select(m.columns()...).
+		Columns(Pkgs{}.columns()...).
+		From(m.table())
+	qb = m.bindOpts(qb, opts)
+	qb = addPagination(qb, opts)
+	rows, err := qb.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list := make([]*model.Monpkg, 0)
+	for rows.Next() {
+		var (
+			mmp model.Monpkg
+			mp  model.Pkg
+		)
+		scanCols := append(m.scanColumns(&mmp), Pkgs{}.scanColumns(&mp)...)
+		err := rows.Scan(scanCols...)
+		if err != nil {
+			return nil, err
+		}
+		mmp.Pkg = &mp
+		list = append(list, &mmp)
+	}
+	return list, nil
+}
+
 func (m Monpkgs) bindOpts(b squirrel.SelectBuilder, opts *MonpkgOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
 	}
 
 	if len(opts.MonlIDs) > 0 {
-		b = b.Where(squirrel.Eq{"monl_id": opts.MonlIDs})
+		b = b.Where(squirrel.Eq{m.table() + ".monl_id": opts.MonlIDs})
 	}
 
 	if len(opts.PkgIDs) > 0 {
-		b = b.Where(squirrel.Eq{"pkg_id": opts.PkgIDs})
+		b = b.Where(squirrel.Eq{m.table() + ".pkg_id": opts.PkgIDs})
+	}
+
+	if opts.joinPkgs {
+		b = b.LeftJoin(fmt.Sprintf("%s ON %[1]s.id = %s.pkg_id", Pkgs{}.table(), m.table()))
 	}
 
 	return b
@@ -197,4 +238,10 @@ func (m *Monpkgs) Delete(ctx context.Context, id string) (int64, error) {
 		return 0, err
 	}
 	return res.RowsAffected()
+}
+
+func (o *MonpkgOpts) JoinPkgs() *MonpkgOpts {
+	o2 := *o
+	o2.joinPkgs = true
+	return &o2
 }

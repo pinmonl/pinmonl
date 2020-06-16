@@ -67,8 +67,10 @@ func (d *DB) TxFunc(ctx context.Context, fn func(context.Context) bool) error {
 }
 
 func (d *DB) Begin() (*Tx, error) {
+	d.Lock()
 	tx, err := d.DB.Begin()
 	if err != nil {
+		d.Unlock()
 		return nil, err
 	}
 	return &Tx{
@@ -138,17 +140,25 @@ type Tx struct {
 	Locker
 }
 
-func (t *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	t.Lock()
-	rows, err := t.Tx.Query(query, args...)
+func (t *Tx) Commit() error {
+	err := t.Tx.Commit()
 	t.Unlock()
+	return err
+}
+
+func (t *Tx) Rollback() error {
+	err := t.Tx.Rollback()
+	t.Unlock()
+	return err
+}
+
+func (t *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	rows, err := t.Tx.Query(query, args...)
 	return rows, err
 }
 
 func (t *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
-	t.Lock()
 	res, err := t.Tx.Exec(query, args...)
-	t.Unlock()
 	return res, err
 }
 
