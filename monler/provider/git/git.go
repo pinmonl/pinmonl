@@ -127,6 +127,7 @@ func (r *Repo) analyze() (*Report, error) {
 				RecordedAt: field.Time(tag.Tagger.When),
 				Kind:       model.TagStat,
 				Value:      tag.Name,
+				Checksum:   tag.Hash.String(),
 			})
 			return nil
 		}
@@ -137,6 +138,7 @@ func (r *Repo) analyze() (*Report, error) {
 				RecordedAt: field.Time(commit.Committer.When),
 				Kind:       model.TagStat,
 				Value:      strings.TrimPrefix(string(ref.Name()), "refs/tags/"),
+				Checksum:   commit.Hash.String(),
 			})
 			return nil
 		}
