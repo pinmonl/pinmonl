@@ -12,6 +12,12 @@ import (
 	"github.com/pinmonl/pinmonl/store"
 )
 
+// PkgFromReport defines the job of saving the data from
+// monler report into pkg.
+//
+// There are mainly three kind of data, which are uri, stats
+// and tags.
+// It finds or creates the pkg by the uri from report.
 type PkgFromReport struct {
 	Report      provider.Report
 	Pkgs        *store.Pkgs
@@ -191,6 +197,11 @@ func (p PkgFromReport) saveTags(ctx context.Context, pkgID string, tags model.St
 	return nil
 }
 
+// PkgSelfUpdate defines the job of pkg self update
+// independent from monl.
+//
+// It deispatches a PkgFromReport job if the monler
+// report is downloaded successfully.
 type PkgSelfUpdate struct {
 	PkgID string
 	Pkgs  *store.Pkgs

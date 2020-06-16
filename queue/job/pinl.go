@@ -5,9 +5,14 @@ import (
 	"time"
 
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/pkgs/monlutils"
 	"github.com/pinmonl/pinmonl/store"
 )
 
+// PinlUpdated defines the job whenever a pinl is created or updated.
+//
+// It finds or creates monl by a normalized url. pinl.MonlID is updated
+// accordingly and creates a job for the new monl.
 type PinlUpdated struct {
 	PinlID  string
 	Pinls   *store.Pinls
@@ -53,14 +58,18 @@ func (p PinlUpdated) Run(ctx context.Context) ([]Job, error) {
 		monl *model.Monl
 		jobs []Job
 	)
-	found, err := p.Monls.List(ctx, &store.MonlOpts{URL: pinl.URL})
+	url, err := monlutils.NormalizeURL(pinl.URL)
+	if err != nil {
+		return nil, err
+	}
+	found, err := p.Monls.List(ctx, &store.MonlOpts{URL: url.String()})
 	if err != nil {
 		return nil, err
 	}
 	if len(found) > 0 {
 		monl = found[0]
 	} else {
-		monl = &model.Monl{URL: pinl.URL}
+		monl = &model.Monl{URL: url.String()}
 		err := p.Monls.Create(ctx, monl)
 		if err != nil {
 			return nil, err

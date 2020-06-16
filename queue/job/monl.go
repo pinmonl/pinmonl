@@ -10,6 +10,10 @@ import (
 	"github.com/pinmonl/pinmonl/store"
 )
 
+// MonlCreated defines the job when monl is created.
+//
+// It finds the monler reports by the url and dispatches
+// report saving jobs.
 type MonlCreated struct {
 	MonlID  string
 	Monls   *store.Monls
