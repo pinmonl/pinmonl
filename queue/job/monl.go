@@ -7,55 +7,54 @@ import (
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/monler"
 	"github.com/pinmonl/pinmonl/monler/provider"
-	"github.com/pinmonl/pinmonl/store"
+	"github.com/pinmonl/pinmonl/pkgs/pkguri"
+	"github.com/pinmonl/pinmonl/store/storeutils"
 )
 
 // MonlCreated defines the job when monl is created.
 //
-// It finds the monler reports by the url and dispatches
-// report saving jobs.
+// It finds the monler reports by the url and saves into
+// database.
 type MonlCreated struct {
 	MonlID  string
-	Monls   *store.Monls
-	Pkgs    *store.Pkgs
-	Stats   *store.Stats
-	Monpkgs *store.Monpkgs
+	reports []provider.Report
 }
 
-func NewMonlCreated(monlID string, monls *store.Monls, pkgs *store.Pkgs, stats *store.Stats, monpkgs *store.Monpkgs) MonlCreated {
-	return MonlCreated{
-		MonlID:  monlID,
-		Monls:   monls,
-		Pkgs:    pkgs,
-		Stats:   stats,
-		Monpkgs: monpkgs,
+func NewMonlCreated(monlID string) *MonlCreated {
+	return &MonlCreated{
+		MonlID: monlID,
 	}
 }
 
-func (m MonlCreated) String() string {
+func (m *MonlCreated) String() string {
 	return "monl_created"
 }
 
-func (m MonlCreated) Describe() []string {
+func (m *MonlCreated) Describe() []string {
 	return []string{
 		m.String(),
 		m.MonlID,
 	}
 }
 
-func (m MonlCreated) RunAt() time.Time {
+func (m *MonlCreated) Target() model.Morphable {
+	return model.Monl{ID: m.MonlID}
+}
+
+func (m *MonlCreated) RunAt() time.Time {
 	return time.Time{}
 }
 
-func (m MonlCreated) Run(ctx context.Context) ([]Job, error) {
-	monl, err := m.Monls.Find(ctx, m.MonlID)
+func (m *MonlCreated) PreRun(ctx context.Context) error {
+	stores := StoresFrom(ctx)
+	monl, err := stores.Monls.Find(ctx, m.MonlID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	repos, err := monler.Guess(monl.URL)
+	repos, err := monler.GuessWithout([]string{pkguri.GitProvider}, monl.URL)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	reports := make([]provider.Report, 0)
@@ -69,26 +68,30 @@ func (m MonlCreated) Run(ctx context.Context) ([]Job, error) {
 		repo.Close()
 	}
 
-	jobs := make([]Job, len(reports))
-	for i := range reports {
-		report := reports[i]
-		job := NewPkgFromReport(report, m.Pkgs, m.Stats, m.onPkgCompleted)
-		jobs[i] = job
-	}
-	return jobs, nil
+	m.reports = reports
+	return nil
 }
 
-func (m MonlCreated) onPkgCompleted(ctx context.Context, pkg *model.Pkg) error {
-	monl, err := m.Monls.Find(ctx, m.MonlID)
-	if err != nil {
-		return err
-	}
+func (m *MonlCreated) Run(ctx context.Context) ([]Job, error) {
+	stores := StoresFrom(ctx)
+	for i := range m.reports {
+		report := m.reports[i]
+		defer report.Close()
 
-	_, err = m.Monpkgs.FindOrCreate(ctx, &model.Monpkg{
-		MonlID: monl.ID,
-		PkgID:  pkg.ID,
-	})
-	return err
+		pkg, _, err := storeutils.SaveProviderReport(ctx, stores.Pkgs, stores.Stats, report)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = stores.Monpkgs.FindOrCreate(ctx, &model.Monpkg{
+			MonlID: m.MonlID,
+			PkgID:  pkg.ID,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
 }
 
-var _ Job = MonlCreated{}
+var _ Job = &MonlCreated{}
