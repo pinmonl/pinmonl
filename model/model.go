@@ -23,9 +23,9 @@ func (ml MorphableList) MorphName() string {
 }
 
 func (ml MorphableList) MorphKeys() []string {
-	keys := make([]string, 0)
-	for _, m := range ml {
-		keys = append(keys, m.MorphKey())
+	keys := make([]string, len(ml))
+	for i := range ml {
+		keys[i] = ml[i].MorphKey()
 	}
 	return keys
 }

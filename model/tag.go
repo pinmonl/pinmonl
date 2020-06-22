@@ -23,9 +23,17 @@ func (t Tag) MorphName() string { return "tag" }
 type TagList []*Tag
 
 func (tl TagList) Keys() []string {
-	keys := make([]string, 0)
-	for _, t := range tl {
-		keys = append(keys, t.ID)
+	keys := make([]string, len(tl))
+	for i := range tl {
+		keys[i] = tl[i].ID
 	}
 	return keys
+}
+
+func (tl TagList) Names() []string {
+	names := make([]string, len(tl))
+	for i := range tl {
+		names[i] = tl[i].Name
+	}
+	return names
 }

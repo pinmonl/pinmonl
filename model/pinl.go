@@ -21,12 +21,32 @@ type Pinl struct {
 func (p Pinl) MorphKey() string  { return p.ID }
 func (p Pinl) MorphName() string { return "pinl" }
 
+func (p *Pinl) SetTagNames(tags TagList) {
+	tn := tags.Names()
+	p.TagNames = &tn
+}
+
 type PinlList []*Pinl
 
 func (pl PinlList) Keys() []string {
-	keys := make([]string, 0)
-	for _, p := range pl {
-		keys = append(keys, p.ID)
+	keys := make([]string, len(pl))
+	for i := range pl {
+		keys[i] = pl[i].ID
 	}
 	return keys
+}
+
+func (pl PinlList) Morphables() MorphableList {
+	list := make([]Morphable, len(pl))
+	for i := range pl {
+		list[i] = pl[i]
+	}
+	return list
+}
+
+func (pl PinlList) SetTagNames(tagMap map[string]TagList) {
+	for i := range pl {
+		k := pl[i].ID
+		pl[i].SetTagNames(tagMap[k])
+	}
 }

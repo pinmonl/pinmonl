@@ -15,9 +15,9 @@ func (m Monl) MorphName() string { return "monl" }
 type MonlList []*Monl
 
 func (ml MonlList) Keys() []string {
-	keys := make([]string, 0)
-	for _, m := range ml {
-		keys = append(keys, m.ID)
+	keys := make([]string, len(ml))
+	for i := range ml {
+		keys[i] = ml[i].ID
 	}
 	return keys
 }

@@ -12,7 +12,7 @@ type Taggable struct {
 
 type TaggableList []*Taggable
 
-func (tl TaggableList) Tags() []*Tag {
+func (tl TaggableList) Tags() TagList {
 	tags := make([]*Tag, len(tl))
 	for i := range tl {
 		tags[i] = tl[i].Tag
@@ -21,9 +21,18 @@ func (tl TaggableList) Tags() []*Tag {
 }
 
 func (tl TaggableList) TargetKeys() []string {
-	keys := make([]string, 0)
-	for _, t := range tl {
-		keys = append(keys, t.TargetID)
+	keys := make([]string, len(tl))
+	for i := range tl {
+		keys[i] = tl[i].TargetID
 	}
 	return keys
+}
+
+func (tl TaggableList) TagsByTarget() map[string]TagList {
+	out := make(map[string]TagList)
+	for _, tg := range tl {
+		k := tg.TargetID
+		out[k] = append(out[k], tg.Tag)
+	}
+	return out
 }

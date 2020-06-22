@@ -22,9 +22,9 @@ func (i Image) MorphName() string { return "image" }
 type ImageList []*Image
 
 func (il ImageList) Keys() []string {
-	keys := make([]string, 0)
-	for _, i := range il {
-		keys = append(keys, i.ID)
+	keys := make([]string, len(il))
+	for i := range il {
+		keys[i] = il[i].ID
 	}
 	return keys
 }

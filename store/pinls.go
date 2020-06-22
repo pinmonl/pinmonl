@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -24,7 +25,8 @@ type PinlOpts struct {
 	Status  field.NullValue
 	URL     string
 
-	TagIDs []string
+	TagIDs   []string
+	TagNames []string
 }
 
 func NewPinls(s *Store) *Pinls {
@@ -138,6 +140,20 @@ func (p Pinls) bindOpts(b squirrel.SelectBuilder, opts *PinlOpts) squirrel.Selec
 			Where(squirrel.Eq{"tag_id": opts.TagIDs}).
 			GroupBy("target_id").
 			Having("COUNT( DISTINCT tag_id ) >= ?", len(opts.TagIDs)).
+			Prefix("EXISTS (").
+			Suffix(")")
+		b = b.Where(sq)
+	}
+
+	if len(opts.TagNames) > 0 {
+		sq := p.Builder().Select("1").
+			From(Taggables{}.table()).
+			Join(fmt.Sprintf("%s ON %[1]s.id = %s.tag_id", Tags{}.table(), Taggables{}.table())).
+			Where("target_id = "+p.table()+".id").
+			Where("target_name = ?", model.Pinl{}.MorphName()).
+			Where(squirrel.Eq{"name": opts.TagNames}).
+			GroupBy("target_id").
+			Having("COUNT( DISTINCT tag_id ) >= ?", len(opts.TagNames)).
 			Prefix("EXISTS (").
 			Suffix(")")
 		b = b.Where(sq)

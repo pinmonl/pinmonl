@@ -9,6 +9,11 @@ import (
 // Time wraps time.Time for database nullable timestamp.
 type Time time.Time
 
+func Now() Time {
+	t := time.Now().Round(time.Second).UTC()
+	return Time(t)
+}
+
 // Scan implements sql.Scanner interface.
 func (t *Time) Scan(src interface{}) error {
 	st, ok := src.(time.Time)

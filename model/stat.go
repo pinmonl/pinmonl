@@ -52,9 +52,9 @@ const (
 type StatList []*Stat
 
 func (sl StatList) Keys() []string {
-	keys := make([]string, 0)
-	for _, s := range sl {
-		keys = append(keys, s.ID)
+	keys := make([]string, len(sl))
+	for i := range sl {
+		keys[i] = sl[i].ID
 	}
 	return keys
 }

@@ -15,6 +15,17 @@ type Sharetag struct {
 	Children *SharetagList `json:"children,omitempty"`
 }
 
+func (s Sharetag) ViewTag() *Tag {
+	if s.Tag == nil {
+		return nil
+	}
+	tag := *s.Tag
+	tag.ParentID = s.ParentID
+	tag.Level = s.Level
+	tag.HasChildren = s.HasChildren
+	return &tag
+}
+
 type SharetagKind int
 
 const (
@@ -34,9 +45,9 @@ func IsValidSharetagKind(k SharetagKind) bool {
 type SharetagList []*Sharetag
 
 func (sl SharetagList) Keys() []string {
-	keys := make([]string, 0)
-	for _, s := range sl {
-		keys = append(keys, s.ID)
+	keys := make([]string, len(sl))
+	for i := range sl {
+		keys[i] = sl[i].ID
 	}
 	return keys
 }
@@ -52,12 +63,7 @@ func (sl SharetagList) Tags() TagList {
 func (sl SharetagList) ViewTags() TagList {
 	tags := make([]*Tag, len(sl))
 	for i := range sl {
-		st := sl[i]
-		tag := st.Tag
-		tag.ParentID = st.ParentID
-		tag.Level = st.Level
-		tag.HasChildren = st.HasChildren
-		tags[i] = tag
+		tags[i] = sl[i].ViewTag()
 	}
 	return tags
 }

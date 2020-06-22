@@ -70,3 +70,44 @@ func addPagination(b squirrel.SelectBuilder, pt Paginator) squirrel.SelectBuilde
 	}
 	return b
 }
+
+type Stores struct {
+	Store *Store
+
+	Images    *Images
+	Jobs      *Jobs
+	Monls     *Monls
+	Monpkgs   *Monpkgs
+	Pinls     *Pinls
+	Pinpkgs   *Pinpkgs
+	Pkgs      *Pkgs
+	Sharepins *Sharepins
+	Shares    *Shares
+	Sharetags *Sharetags
+	Stats     *Stats
+	Taggables *Taggables
+	Tags      *Tags
+	Users     *Users
+}
+
+func NewStores(db *database.DB) *Stores {
+	s := NewStore(db)
+	return &Stores{
+		Store: s,
+
+		Images:    NewImages(s),
+		Jobs:      NewJobs(s),
+		Monls:     NewMonls(s),
+		Monpkgs:   NewMonpkgs(s),
+		Pinls:     NewPinls(s),
+		Pinpkgs:   NewPinpkgs(s),
+		Pkgs:      NewPkgs(s),
+		Sharepins: NewSharepins(s),
+		Shares:    NewShares(s),
+		Sharetags: NewSharetags(s),
+		Stats:     NewStats(s),
+		Taggables: NewTaggables(s),
+		Tags:      NewTags(s),
+		Users:     NewUsers(s),
+	}
+}

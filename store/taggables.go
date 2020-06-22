@@ -160,7 +160,7 @@ func (t Taggables) scan(row database.RowScanner) (*model.Taggable, error) {
 	return &taggable, nil
 }
 
-func (t *Taggables) ListWithTags(ctx context.Context, opts *TaggableOpts) (model.TaggableList, error) {
+func (t *Taggables) ListWithTag(ctx context.Context, opts *TaggableOpts) (model.TaggableList, error) {
 	if opts == nil {
 		opts = &TaggableOpts{}
 	}
@@ -299,11 +299,22 @@ func (t *Taggables) Delete(ctx context.Context, id string) (int64, error) {
 	return res.RowsAffected()
 }
 
-func (t *Taggables) DeleteByTaggable(ctx context.Context, target model.Morphable) (int64, error) {
+func (t *Taggables) DeleteByTarget(ctx context.Context, target model.Morphable) (int64, error) {
 	qb := t.RunnableBuilder(ctx).
 		Delete(t.table()).
 		Where("target_name = ?", target.MorphName()).
 		Where("target_id = ?", target.MorphKey())
+	res, err := qb.Exec()
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+func (t *Taggables) DeleteByTag(ctx context.Context, tag *model.Tag) (int64, error) {
+	qb := t.RunnableBuilder(ctx).
+		Delete(t.table()).
+		Where("tag_id = ?", tag.ID)
 	res, err := qb.Exec()
 	if err != nil {
 		return 0, err

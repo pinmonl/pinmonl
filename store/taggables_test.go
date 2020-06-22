@@ -24,7 +24,7 @@ func TestTaggables(t *testing.T) {
 	t.Run("list", testTaggablesList(ctx, taggables, mock))
 	t.Run("count", testTaggablesCount(ctx, taggables, mock))
 	t.Run("find", testTaggablesFind(ctx, taggables, mock))
-	t.Run("listWithTags", testTaggablesListWithTags(ctx, taggables, mock))
+	t.Run("listWithTags", testTaggablesListWithTag(ctx, taggables, mock))
 	t.Run("create", testTaggablesCreate(ctx, taggables, mock))
 	t.Run("update", testTaggablesUpdate(ctx, taggables, mock))
 	t.Run("delete", testTaggablesDelete(ctx, taggables, mock))
@@ -115,7 +115,7 @@ func testTaggablesFind(ctx context.Context, taggables *Taggables, mock sqlmock.S
 	}
 }
 
-func testTaggablesListWithTags(ctx context.Context, taggables *Taggables, mock sqlmock.Sqlmock) func(*testing.T) {
+func testTaggablesListWithTag(ctx context.Context, taggables *Taggables, mock sqlmock.Sqlmock) func(*testing.T) {
 	return func(t *testing.T) {
 		var (
 			prefix = "SELECT (.+) FROM taggables LEFT JOIN tags ON tags.id = taggables.tag_id"
@@ -136,7 +136,7 @@ func testTaggablesListWithTags(ctx context.Context, taggables *Taggables, mock s
 				opts.Targets[1].MorphKey(),
 				opts.Targets[2].MorphKey()).
 			WillReturnRows(sqlmock.NewRows(append(Tags{}.columns(), "target_id")))
-		list, err = taggables.ListWithTags(ctx, opts)
+		list, err = taggables.ListWithTag(ctx, opts)
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(list))
 	}
