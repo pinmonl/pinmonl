@@ -22,12 +22,16 @@ func ParsePinlQuery(r *http.Request) (*PinlQuery, error) {
 }
 
 type TagQuery struct {
-	Query string
+	Query    string
+	Names    []string
+	ParentID string
 }
 
 func ParseTagQuery(r *http.Request) (*TagQuery, error) {
 	query := TagQuery{
-		Query: r.URL.Query().Get("q"),
+		Query:    r.URL.Query().Get("q"),
+		Names:    getQueryCsv(r, "name"),
+		ParentID: r.URL.Query().Get("parent"),
 	}
 	return &query, nil
 }

@@ -6,9 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"github.com/pinmonl/pinmonl/handler/handleutils"
 	"github.com/pinmonl/pinmonl/model"
-	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/pinmonl/pinmonl/pkgs/monlutils"
 	"github.com/pinmonl/pinmonl/pkgs/pinlutils"
 	"github.com/pinmonl/pinmonl/pkgs/pkguri"
@@ -73,8 +71,8 @@ func (s *Server) bindPkgByURI() func(http.Handler) http.Handler {
 	}
 }
 
-// listPkgsHandler finds pkgs of the url.
-func (s *Server) listPkgsHandler(w http.ResponseWriter, r *http.Request) {
+// pkgListHandler finds pkgs of the url.
+func (s *Server) pkgListHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		proto = chi.URLParam(r, "proto")
 		url   = proto + "://" + chi.URLParam(r, "*")
@@ -93,25 +91,25 @@ func (s *Server) listPkgsHandler(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, nil, http.StatusBadRequest)
 		return
 	}
-	u, err1 := monlutils.NormalizeURL(url)
-	if err1 != nil {
+	u, err := monlutils.NormalizeURL(url)
+	if err != nil {
 		response.JSON(w, nil, http.StatusBadRequest)
 		return
 	}
 
 	var (
-		ctx   = r.Context()
-		monl  *model.Monl
-		isNew bool
-		code  int
-		err   error
+		ctx    = r.Context()
+		monl   *model.Monl
+		isNew  bool
+		code   int
+		outerr error
 	)
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
-		found, err2 := s.Monls.List(ctx, &store.MonlOpts{
+		found, err := s.Monls.List(ctx, &store.MonlOpts{
 			URL: u.String(),
 		})
-		if err2 != nil {
-			err, code = err2, http.StatusInternalServerError
+		if err != nil {
+			outerr, code = err, http.StatusInternalServerError
 			return false
 		}
 
@@ -123,9 +121,9 @@ func (s *Server) listPkgsHandler(w http.ResponseWriter, r *http.Request) {
 			monl = &model.Monl{
 				URL: u.String(),
 			}
-			err2 = s.Monls.Create(ctx, monl)
-			if err2 != nil {
-				err, code = err2, http.StatusInternalServerError
+			err = s.Monls.Create(ctx, monl)
+			if err != nil {
+				outerr, code = err, http.StatusInternalServerError
 				return false
 			}
 		}
@@ -133,15 +131,17 @@ func (s *Server) listPkgsHandler(w http.ResponseWriter, r *http.Request) {
 		return true
 	})
 
-	if err != nil || response.IsError(code) {
-		response.JSON(w, err, code)
+	if outerr != nil || response.IsError(code) {
+		response.JSON(w, outerr, code)
 		return
 	}
 
 	if isNew {
-		s.Queue.Add(job.NewMonlCreated(monl.ID, s.Monls, s.Pkgs, s.Stats, s.Monpkgs))
-		response.JSON(w, nil, http.StatusCreated)
-		return
+		cherr := s.Queue.Add(job.NewMonlCreated(monl.ID))
+		if err := <-cherr; err != nil {
+			response.JSON(w, nil, http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Response with the pkgs under the monl.
@@ -155,33 +155,33 @@ func (s *Server) listPkgsHandler(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, pList.Pkgs(), http.StatusOK)
 }
 
-// findPkgHandler finds pkg by the uri.
-func (s *Server) findPkgHandler(w http.ResponseWriter, r *http.Request) {
+// pkgHandler finds pkg by the uri.
+func (s *Server) pkgHandler(w http.ResponseWriter, r *http.Request) {
 	var (
-		ctx   = r.Context()
-		pkg   *model.Pkg
-		isNew bool
-		code  int
-		err   error
+		ctx    = r.Context()
+		pkg    *model.Pkg
+		isNew  bool
+		code   int
+		outerr error
 	)
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
-		var err2 error
+		var err error
 		pu, _ := pkguriURLParam(r)
-		pkg, err2 = s.Pkgs.FindURI(ctx, pu)
-		if err2 != nil {
-			err, code = err2, http.StatusInternalServerError
+		pkg, err = s.Pkgs.FindURI(ctx, pu)
+		if err != nil {
+			outerr, code = err, http.StatusInternalServerError
 			return false
 		}
 
 		if pkg == nil {
 			isNew = true
 			pkg = &model.Pkg{}
-			if err2 = pkg.UnmarshalPkgURI(pu); err2 != nil {
-				err, code = err2, http.StatusInternalServerError
+			if err = pkg.UnmarshalPkgURI(pu); err != nil {
+				outerr, code = err, http.StatusInternalServerError
 				return false
 			}
-			if err2 = s.Pkgs.Create(ctx, pkg); err2 != nil {
-				err, code = err2, http.StatusInternalServerError
+			if err = s.Pkgs.Create(ctx, pkg); err != nil {
+				outerr, code = err, http.StatusInternalServerError
 				return false
 			}
 		}
@@ -189,76 +189,20 @@ func (s *Server) findPkgHandler(w http.ResponseWriter, r *http.Request) {
 		return true
 	})
 
-	if err != nil || response.IsError(code) {
-		response.JSON(w, err, code)
+	if outerr != nil || response.IsError(code) {
+		response.JSON(w, outerr, code)
 		return
 	}
 
 	// Trigger to fetch stats if pkg is new.
 	if isNew {
-		s.Queue.Add(job.NewPkgSelfUpdate(pkg.ID, s.Pkgs, s.Stats))
-		response.JSON(w, nil, http.StatusCreated)
-		return
+		cherr := s.Queue.Add(job.NewPkgSelfUpdate(pkg.ID))
+		if err := <- cherr; err != nil {
+			response.JSON(w, nil, http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Response.
 	response.JSON(w, pkg, http.StatusOK)
-}
-
-// listLatestStatsHandler shows only latest stats of the pkg.
-func (s *Server) listLatestStatsHandler(w http.ResponseWriter, r *http.Request) {
-	h := s.listStatsBaseHandler(field.NewNullBool(true))
-	h.ServeHTTP(w, r)
-}
-
-// listStatsHandler lists stats of the pkg.
-func (s *Server) listStatsHandler(w http.ResponseWriter, r *http.Request) {
-	h := s.listStatsBaseHandler(field.NullBool{})
-	h.ServeHTTP(w, r)
-}
-
-// listStatsBaseHandler lists stats of the pkg.
-func (s *Server) listStatsBaseHandler(defaultLatest field.NullBool) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		query, err := request.ParseStatQuery(r)
-		if err != nil {
-			response.JSON(w, err, http.StatusBadRequest)
-			return
-		}
-
-		var (
-			ctx = r.Context()
-			pkg = request.PkgFrom(ctx)
-			pg  = request.PaginatorFrom(ctx)
-		)
-		opts := &store.StatOpts{
-			PkgIDs:   []string{pkg.ID},
-			Kind:     query.Kind,
-			Orders:   []store.StatOrder{store.StatOrderByRecordDesc},
-			ListOpts: pg.ToOpts(),
-		}
-		// If defaultLatest is not null, it forces to overwrite
-		// the url query.
-		if defaultLatest.Valid {
-			opts.IsLatest = defaultLatest
-		} else {
-			opts.IsLatest = query.Latest
-		}
-
-		// Search for stats.
-		sList, err := s.Stats.List(ctx, opts)
-		if err != nil {
-			response.JSON(w, err, http.StatusInternalServerError)
-			return
-		}
-		// Propagate with substats.
-		sList, err = handleutils.ListStatsTree(ctx, s.Stats, sList)
-		if err != nil {
-			response.JSON(w, err, http.StatusInternalServerError)
-			return
-		}
-
-		response.JSON(w, sList, http.StatusOK)
-	}
-	return http.HandlerFunc(fn)
 }

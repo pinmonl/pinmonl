@@ -15,6 +15,8 @@ const (
 	ShareCtxKey
 	PinlCtxKey
 	PkgCtxKey
+	TagCtxKey
+	SharetagCtxKey
 )
 
 func WithPaginator(ctx context.Context, p *Paginator) context.Context {
@@ -85,6 +87,30 @@ func PkgFrom(ctx context.Context) *model.Pkg {
 	pkg, ok := ctx.Value(PkgCtxKey).(*model.Pkg)
 	if ok {
 		return pkg
+	}
+	return nil
+}
+
+func WithTag(ctx context.Context, tag *model.Tag) context.Context {
+	return context.WithValue(ctx, TagCtxKey, tag)
+}
+
+func TagFrom(ctx context.Context) *model.Tag {
+	tag, ok := ctx.Value(TagCtxKey).(*model.Tag)
+	if ok {
+		return tag
+	}
+	return nil
+}
+
+func WithSharetag(ctx context.Context, sharetag *model.Sharetag) context.Context {
+	return context.WithValue(ctx, SharetagCtxKey, sharetag)
+}
+
+func SharetagFrom(ctx context.Context) *model.Sharetag {
+	sharetag, ok := ctx.Value(SharetagCtxKey).(*model.Sharetag)
+	if ok {
+		return sharetag
 	}
 	return nil
 }

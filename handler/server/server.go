@@ -96,66 +96,69 @@ func (s *Server) APIRouter() chi.Router {
 		r.Use(s.authorizeUserOnly())
 		r.Get("/", nil)
 		r.Route("/{slug}", func(r chi.Router) {
-			r.Post("/", s.prepareShareHandler)
+			r.Post("/", s.sharePrepareHandler)
 			r.With(s.bindShareBySlug()).
-				Delete("/", s.deleteShareHandler)
+				Delete("/", s.shareDeleteHandler)
 			r.Route("/", func(r chi.Router) {
 				r.Use(
 					s.bindShareBySlug(),
 					s.shareStatusMustBe(model.Preparing),
 				)
-				r.Post("/publish", s.publishShareHandler)
-				r.Post("/tag", s.createShareTagHandler)
-				r.Post("/pinl", s.createSharePinlHandler)
+				r.Post("/publish", s.sharePublishHandler)
+				r.Post("/tag/must", s.sharetagCreateHandler(model.SharetagMust))
+				r.Post("/tag/any", s.sharetagCreateHandler(model.SharetagAny))
+				r.Post("/pinl", s.sharepinCreateHandler)
 			})
 		})
 	})
 
-	r.With(s.pagination()).
-		Get("/pkgs/{proto:[a-z]+}://*", s.listPkgsHandler)
-	r.Route("/pkg", func(r chi.Router) {
+	r.Route("/", func(r chi.Router) {
 		suffix := "{provider:[a-z-]+}://*"
 
-		r.With(
-			s.checkPkgURI(),
-			s.bindPkgByURI(),
-			s.pagination(),
-		).Get("/latest/"+suffix, s.listLatestStatsHandler)
+		r.With(s.pagination()).
+			Get("/pkgs/{proto:[a-z]+}://*", s.pkgListHandler)
 
 		r.With(
 			s.checkPkgURI(),
 			s.bindPkgByURI(),
 			s.pagination(),
-		).Get("/stats/"+suffix, s.listStatsHandler)
+		).Get("/stat/latest/"+suffix, s.statListLatestHandler)
 
 		r.With(
 			s.checkPkgURI(),
-		).Get("/"+suffix, s.findPkgHandler)
+			s.bindPkgByURI(),
+			s.pagination(),
+		).Get("/stat/"+suffix, s.statListHandler)
+
+		r.With(
+			s.checkPkgURI(),
+		).Get("/pkg/"+suffix, s.pkgHandler)
 	})
 
 	r.Route("/sharing", func(r chi.Router) {
 		r.Route("/{user}/{share}", func(r chi.Router) {
 			r.Use(
+				s.bindUser(),
 				s.bindUserSharing(),
 				s.shareStatusMustBe(model.Active),
 			)
-			r.Get("/", s.getSharingHandler)
+			r.Get("/", s.sharingHandler)
 			r.With(s.pagination()).
-				Get("/pinl", s.listSharingPinlsHandler)
+				Get("/pinl", s.sharingPinlListHandler)
 			r.With(s.pagination()).
-				Get("/tag", s.listSharingTagsHandler)
+				Get("/tag", s.sharingTagListHandler)
 		})
 	})
 
 	r.Route("/pinl", func(r chi.Router) {
 		r.Use(s.authorize())
 		r.With(s.pagination()).
-			Get("/", s.listPinlsHandler)
-		r.Post("/", s.createPinlHandler)
-		r.Delete("/", s.clearPinlsHandler)
+			Get("/", s.pinlListHandler)
+		r.Post("/", s.pinlCreateHandler)
+		r.Delete("/", s.pinlClearHandler)
 		r.Route("/{pinl}", func(r chi.Router) {
 			r.Use(s.bindPinl())
-			r.Delete("/", s.deletePinlHandler)
+			r.Delete("/", s.pinlDeleteHandler)
 		})
 	})
 

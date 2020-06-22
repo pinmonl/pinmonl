@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/model/field"
@@ -46,9 +45,9 @@ type loginBody struct {
 // returns an access token if succeeded.
 func (s *Server) loginHandler(w http.ResponseWriter, r *http.Request) {
 	var in loginBody
-	err1 := request.JSON(r, &in)
-	if err1 != nil {
-		response.JSON(w, err1, http.StatusBadRequest)
+	err := request.JSON(r, &in)
+	if err != nil {
+		response.JSON(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -58,36 +57,36 @@ func (s *Server) loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		ctx  = r.Context()
-		user *model.User
-		code int
-		err  error
+		ctx    = r.Context()
+		user   *model.User
+		code   int
+		outerr error
 	)
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
-		var err2 error
-		user, err2 = s.Users.FindLogin(ctx, in.Login)
-		if err2 != nil {
-			err, code = err2, http.StatusBadRequest
+		var err error
+		user, err = s.Users.FindLogin(ctx, in.Login)
+		if err != nil {
+			outerr, code = err, http.StatusBadRequest
 			return false
 		}
-		err2 = passwd.CompareString(user.Password, in.Password)
-		if err2 != nil {
-			err, code = err2, http.StatusBadRequest
+		err = passwd.CompareString(user.Password, in.Password)
+		if err != nil {
+			outerr, code = err, http.StatusBadRequest
 			return false
 		}
 
-		user.LastSeen = field.Time(time.Now())
-		err2 = s.Users.Update(ctx, user)
-		if err2 != nil {
-			err, code = err2, http.StatusInternalServerError
+		user.LastSeen = field.Now()
+		err = s.Users.Update(ctx, user)
+		if err != nil {
+			outerr, code = err, http.StatusInternalServerError
 			return false
 		}
 
 		return true
 	})
 
-	if err != nil || response.IsError(code) {
-		response.JSON(w, err, code)
+	if outerr != nil || response.IsError(code) {
+		response.JSON(w, outerr, code)
 		return
 	}
 	s.printToken(w, user)
@@ -102,9 +101,9 @@ type signupBody struct {
 // signupHandler creates a user and returns with an access token.
 func (s *Server) signupHandler(w http.ResponseWriter, r *http.Request) {
 	var in signupBody
-	err1 := request.JSON(r, &in)
-	if err1 != nil {
-		response.JSON(w, err1, http.StatusBadRequest)
+	err := request.JSON(r, &in)
+	if err != nil {
+		response.JSON(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -114,15 +113,15 @@ func (s *Server) signupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		ctx  = r.Context()
-		user *model.User
-		code int
-		err  error
+		ctx    = r.Context()
+		user   *model.User
+		code   int
+		outerr error
 	)
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
-		found, err2 := s.Users.FindLogin(ctx, in.Login)
-		if err2 == nil && found != nil {
-			err, code = ErrLoginUsed, http.StatusBadRequest
+		found, err := s.Users.FindLogin(ctx, in.Login)
+		if err == nil && found != nil {
+			outerr, code = ErrLoginUsed, http.StatusBadRequest
 			return false
 		}
 
@@ -130,25 +129,25 @@ func (s *Server) signupHandler(w http.ResponseWriter, r *http.Request) {
 			Login:    in.Login,
 			Name:     in.Name,
 			Hash:     generate.UserHash(),
-			LastSeen: field.Time(time.Now()),
+			LastSeen: field.Now(),
 		}
-		if pw, err2 := passwd.HashString(in.Password); err2 == nil {
+		if pw, err := passwd.HashString(in.Password); err == nil {
 			user.Password = pw
 		} else {
-			err, code = err2, http.StatusBadRequest
+			outerr, code = err, http.StatusBadRequest
 			return false
 		}
-		err2 = s.Users.Create(ctx, user)
-		if err2 != nil {
-			err, code = err2, http.StatusBadRequest
+		err = s.Users.Create(ctx, user)
+		if err != nil {
+			outerr, code = err, http.StatusBadRequest
 			return false
 		}
 
 		return true
 	})
 
-	if err != nil || response.IsError(code) {
-		response.JSON(w, err, code)
+	if outerr != nil || response.IsError(code) {
+		response.JSON(w, outerr, code)
 		return
 	}
 	s.printToken(w, user)
@@ -158,23 +157,23 @@ func (s *Server) signupHandler(w http.ResponseWriter, r *http.Request) {
 // new access token.
 func (s *Server) aliveHandler(w http.ResponseWriter, r *http.Request) {
 	var (
-		ctx  = r.Context()
-		user = request.AuthedFrom(ctx)
-		code int
-		err  error
+		ctx    = r.Context()
+		user   = request.AuthedFrom(ctx)
+		code   int
+		outerr error
 	)
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
-		user.LastSeen = field.Time(time.Now())
-		err = s.Users.Update(ctx, user)
+		user.LastSeen = field.Now()
+		err := s.Users.Update(ctx, user)
 		if err != nil {
-			err, code = err, http.StatusInternalServerError
+			outerr, code = err, http.StatusInternalServerError
 			return false
 		}
 		return true
 	})
 
-	if err != nil || response.IsError(code) {
-		response.JSON(w, err, code)
+	if outerr != nil || response.IsError(code) {
+		response.JSON(w, outerr, code)
 		return
 	}
 	s.printToken(w, user)

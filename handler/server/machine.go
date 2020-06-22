@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/model/field"
@@ -16,28 +15,28 @@ import (
 // and returns an access token.
 func (s *Server) machineSignupHandler(w http.ResponseWriter, r *http.Request) {
 	var (
-		ctx  = r.Context()
-		mach *model.User
-		code int
-		err  error
+		ctx    = r.Context()
+		mach   *model.User
+		code   int
+		outerr error
 	)
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
 		mach = &model.User{
 			Login:    xid.New().String(),
 			Role:     model.MachineUser,
 			Hash:     generate.UserHash(),
-			LastSeen: field.Time(time.Now()),
+			LastSeen: field.Now(),
 		}
-		err2 := s.Users.Create(ctx, mach)
-		if err2 != nil {
-			err, code = err2, http.StatusInternalServerError
+		err := s.Users.Create(ctx, mach)
+		if err != nil {
+			outerr, code = err, http.StatusInternalServerError
 			return false
 		}
 		return true
 	})
 
-	if err != nil || response.IsError(code) {
-		response.JSON(w, err, code)
+	if outerr != nil || response.IsError(code) {
+		response.JSON(w, outerr, code)
 		return
 	}
 	s.printToken(w, mach)

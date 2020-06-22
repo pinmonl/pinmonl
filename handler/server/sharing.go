@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/pinmonl/pinmonl/pkgs/request"
 	"github.com/pinmonl/pinmonl/pkgs/response"
 	"github.com/pinmonl/pinmonl/store"
@@ -14,20 +16,10 @@ func (s *Server) bindUserSharing() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			var (
-				ctx   = r.Context()
-				login = chi.URLParam(r, "user")
-				slug  = chi.URLParam(r, "share")
+				ctx  = r.Context()
+				user = request.UserFrom(ctx)
+				slug = chi.URLParam(r, "share")
 			)
-
-			user, err := s.Users.FindLogin(ctx, login)
-			if err != nil {
-				response.JSON(w, err, http.StatusInternalServerError)
-				return
-			}
-			if user == nil {
-				response.JSON(w, nil, http.StatusNotFound)
-				return
-			}
 
 			share, err := s.Shares.FindSlug(ctx, user.ID, slug)
 			if err != nil {
@@ -39,7 +31,6 @@ func (s *Server) bindUserSharing() func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx = request.WithUser(ctx, user)
 			ctx = request.WithShare(ctx, share)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
@@ -47,8 +38,8 @@ func (s *Server) bindUserSharing() func(http.Handler) http.Handler {
 	}
 }
 
-// getSharingHandler shows the information of the share and its owner.
-func (s *Server) getSharingHandler(w http.ResponseWriter, r *http.Request) {
+// sharingHandler shows the information of the share and its owner.
+func (s *Server) sharingHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx   = r.Context()
 		user  = request.UserFrom(ctx)
@@ -59,8 +50,8 @@ func (s *Server) getSharingHandler(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, share, http.StatusOK)
 }
 
-// listSharingPinlsHandler lists the pinls of the share.
-func (s *Server) listSharingPinlsHandler(w http.ResponseWriter, r *http.Request) {
+// sharingPinlListHandler lists the pinls of the share.
+func (s *Server) sharingPinlListHandler(w http.ResponseWriter, r *http.Request) {
 	query, err := request.ParsePinlQuery(r)
 	if err != nil {
 		response.JSON(w, err, http.StatusBadRequest)
@@ -100,8 +91,8 @@ func (s *Server) listSharingPinlsHandler(w http.ResponseWriter, r *http.Request)
 	response.JSON(w, spList.Pinls(), http.StatusOK)
 }
 
-// listSharingTagsHandler lists the tags of the share.
-func (s *Server) listSharingTagsHandler(w http.ResponseWriter, r *http.Request) {
+// sharingTagListHandler lists the tags with any kind of the share.
+func (s *Server) sharingTagListHandler(w http.ResponseWriter, r *http.Request) {
 	query, err := request.ParseTagQuery(r)
 	if err != nil {
 		response.JSON(w, err, http.StatusBadRequest)
@@ -113,12 +104,19 @@ func (s *Server) listSharingTagsHandler(w http.ResponseWriter, r *http.Request) 
 		share = request.ShareFrom(ctx)
 		pg    = request.PaginatorFrom(ctx)
 	)
+	opts := &store.SharetagOpts{
+		ShareIDs: []string{share.ID},
+		Kind:     field.NewNullValue(model.SharetagAny),
+		ListOpts: pg.ToOpts(),
+	}
+	if query.Query != "" {
+		opts.TagNamePattern = "%" + query.Query + "%"
+	}
+	if len(query.Names) > 0 {
+		opts.TagNames = query.Names
+	}
 
-	stList, err := s.Sharetags.ListWithTag(ctx, &store.SharetagOpts{
-		ShareIDs:       []string{share.ID},
-		TagNamePattern: "%" + query.Query + "%",
-		ListOpts:       pg.ToOpts(),
-	})
+	stList, err := s.Sharetags.ListWithTag(ctx, opts)
 	if err != nil {
 		response.JSON(w, err, http.StatusInternalServerError)
 		return
