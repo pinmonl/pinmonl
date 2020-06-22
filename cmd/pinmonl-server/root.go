@@ -5,26 +5,20 @@ import (
 	"strings"
 
 	"github.com/pinmonl/pinmonl/cmd/pinmonl-server/version"
-	"github.com/pinmonl/pinmonl/monler"
-	"github.com/pinmonl/pinmonl/monler/provider/git"
-	"github.com/pinmonl/pinmonl/monler/provider/github"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var (
-	cfg     *config
 	cfgFile string
-	verbose int
 )
 
 func init() {
-	cobra.OnInitialize(initConfig, initLogger, initMonler)
+	cobra.OnInitialize(initConfig)
 
 	pflags := rootCmd.PersistentFlags()
 	pflags.StringVarP(&cfgFile, "config", "c", "", "path to config file")
-	pflags.IntVarP(&verbose, "v", "v", 0, "log level verbosity")
+	pflags.IntP("v", "v", 0, "log level verbosity")
 
 	viper.BindPFlag("verbose", pflags.Lookup("v"))
 }
@@ -54,40 +48,6 @@ func initConfig() {
 
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
-
-	if c, err := readConfig(); err == nil {
-		cfg = c
-	} else {
-		catchErr(err)
-	}
-}
-
-func initLogger() {
-	logrus.SetFormatter(&logrus.TextFormatter{
-		DisableColors: true,
-		FullTimestamp: true,
-	})
-
-	switch verbose {
-	case 3:
-		logrus.SetLevel(logrus.TraceLevel)
-	case 2:
-		logrus.SetLevel(logrus.DebugLevel)
-	case 1:
-		logrus.SetLevel(logrus.InfoLevel)
-	default:
-		logrus.SetLevel(logrus.WarnLevel)
-	}
-}
-
-func initMonler() {
-	if gitPvd, err := git.NewProvider(); err == nil {
-		monler.Register(gitPvd.ProviderName(), gitPvd)
-	}
-	if githubPvd, err := github.NewProvider(); err == nil {
-		monler.Register(githubPvd.ProviderName(), githubPvd)
-		github.AddToken(cfg.Github.Tokens)
 	}
 }
 

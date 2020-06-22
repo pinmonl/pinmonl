@@ -13,27 +13,24 @@ func init() {
 
 var migrateCmd = &cobra.Command{
 	Use: "migrate",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: withApp(func(cmd *cobra.Command, args []string, app *application) {
 		if len(args) == 0 {
 			fmt.Println("please specify direction (up/down).")
 			return
 		}
 
-		db := newDB(cfg)
-		defer db.Close()
-
 		action := args[0]
 		switch action {
 		case "up":
-			err := db.Migrate.Up()
+			err := app.db.Migrate.Up()
 			if err != nil && err != migrate.ErrNoChange {
 				catchErr(err)
 			}
 		case "down":
-			err := db.Migrate.Down()
+			err := app.db.Migrate.Down()
 			if err != nil && err != migrate.ErrNoChange {
 				catchErr(err)
 			}
 		}
-	},
+	}),
 }

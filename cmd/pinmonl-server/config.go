@@ -31,7 +31,7 @@ type config struct {
 	}
 }
 
-func readConfig() (*config, error) {
+func unmarshalConfig() (*config, error) {
 	var c config
 	err := viper.Unmarshal(&c)
 	if err != nil {
