@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/model/field"
@@ -168,7 +167,7 @@ func newReport(pu *pkguri.PkgURI, client *Client, gitReport provider.Report) (*R
 		return nil, err
 	}
 
-	now := field.Time(time.Now())
+	now := field.Now()
 	stats := make([]*model.Stat, 0)
 	stats = append(stats,
 		&model.Stat{

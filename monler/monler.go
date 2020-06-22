@@ -65,8 +65,19 @@ func Ping(providerName, url string) error {
 }
 
 func Guess(url string) ([]provider.Repo, error) {
+	return GuessWithout(nil, url)
+}
+
+func GuessWithout(excluded []string, url string) ([]provider.Repo, error) {
 	repos := make([]provider.Repo, 0)
-	for _, pvd := range providers {
+	exc := make(map[string]int)
+	for _, pvdName := range excluded {
+		exc[pvdName]++
+	}
+	for pvdName, pvd := range providers {
+		if _, ok := exc[pvdName]; ok {
+			continue
+		}
 		if err := pvd.Ping(url); err != nil {
 			continue
 		}
