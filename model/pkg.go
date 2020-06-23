@@ -6,13 +6,15 @@ import (
 )
 
 type Pkg struct {
-	ID           string     `json:"id"`
-	URL          string     `json:"url"`
-	Provider     string     `json:"provider"`
-	ProviderHost string     `json:"providerHost"`
-	ProviderURI  string     `json:"providerUri"`
-	CreatedAt    field.Time `json:"createdAt"`
-	UpdatedAt    field.Time `json:"updatedAt"`
+	ID            string     `json:"id"`
+	URL           string     `json:"url"`
+	Provider      string     `json:"provider"`
+	ProviderHost  string     `json:"providerHost"`
+	ProviderURI   string     `json:"providerUri"`
+	ProviderProto string     `json:"providerProto"`
+	FetchedAt     field.Time `json:"fetchedAt"`
+	CreatedAt     field.Time `json:"createdAt"`
+	UpdatedAt     field.Time `json:"updatedAt"`
 
 	Stats *StatList `json:"stats,omitempty"`
 }
@@ -25,6 +27,7 @@ func (p Pkg) MarshalPkgURI() (*pkguri.PkgURI, error) {
 		Provider: p.Provider,
 		Host:     p.ProviderHost,
 		URI:      p.ProviderURI,
+		Proto:    p.ProviderProto,
 	}, nil
 }
 
@@ -32,6 +35,7 @@ func (p *Pkg) UnmarshalPkgURI(pu *pkguri.PkgURI) error {
 	p.Provider = pu.Provider
 	p.ProviderHost = pu.Host
 	p.ProviderURI = pu.URI
+	p.ProviderProto = pu.Proto
 	return nil
 }
 

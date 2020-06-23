@@ -99,6 +99,7 @@ func (m Monls) columns() []string {
 	return []string{
 		m.table() + ".id",
 		m.table() + ".url",
+		m.table() + ".fetched_at",
 		m.table() + ".created_at",
 		m.table() + ".updated_at",
 	}
@@ -108,6 +109,7 @@ func (m Monls) scanColumns(monl *model.Monl) []interface{} {
 	return []interface{}{
 		&monl.ID,
 		&monl.URL,
+		&monl.FetchedAt,
 		&monl.CreatedAt,
 		&monl.UpdatedAt,
 	}
@@ -133,11 +135,13 @@ func (m *Monls) Create(ctx context.Context, monl *model.Monl) error {
 		Columns(
 			"id",
 			"url",
+			"fetched_at",
 			"created_at",
 			"updated_at").
 		Values(
 			monl2.ID,
 			monl2.URL,
+			monl2.FetchedAt,
 			monl2.CreatedAt,
 			monl2.UpdatedAt)
 	_, err := qb.Exec()
@@ -155,6 +159,7 @@ func (m *Monls) Update(ctx context.Context, monl *model.Monl) error {
 	qb := m.RunnableBuilder(ctx).
 		Update(m.table()).
 		Set("url", monl2.URL).
+		Set("fetched_at", monl2.FetchedAt).
 		Set("updated_at", monl2.UpdatedAt).
 		Where("id = ?", monl2.ID)
 	_, err := qb.Exec()

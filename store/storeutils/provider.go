@@ -32,6 +32,11 @@ func SaveProviderReport(
 		return nil, nil, err
 	}
 
+	pkg.FetchedAt = field.Now()
+	if err := pkgs.Update(ctx, pkg); err != nil {
+		return nil, nil, err
+	}
+
 	return pkg, sList, nil
 }
 

@@ -90,7 +90,8 @@ func (p *Pkgs) FindURI(ctx context.Context, pu *pkguri.PkgURI) (*model.Pkg, erro
 		Select(p.columns()...).From(p.table()).
 		Where("provider = ?", pu.Provider).
 		Where("provider_host = ?", pu.Host).
-		Where("provider_uri = ?", pu.URI)
+		Where("provider_uri = ?", pu.URI).
+		Where("provider_proto = ?", pu.Proto)
 	row := qb.QueryRow()
 	pkg, err := p.scan(row)
 	if err == sql.ErrNoRows {
@@ -129,6 +130,8 @@ func (p Pkgs) columns() []string {
 		p.table() + ".provider",
 		p.table() + ".provider_host",
 		p.table() + ".provider_uri",
+		p.table() + ".provider_proto",
+		p.table() + ".fetched_at",
 		p.table() + ".created_at",
 		p.table() + ".updated_at",
 	}
@@ -141,6 +144,8 @@ func (p Pkgs) scanColumns(pkg *model.Pkg) []interface{} {
 		&pkg.Provider,
 		&pkg.ProviderHost,
 		&pkg.ProviderURI,
+		&pkg.ProviderProto,
+		&pkg.FetchedAt,
 		&pkg.CreatedAt,
 		&pkg.UpdatedAt,
 	}
@@ -169,6 +174,8 @@ func (p *Pkgs) Create(ctx context.Context, pkg *model.Pkg) error {
 			"provider",
 			"provider_host",
 			"provider_uri",
+			"provider_proto",
+			"fetched_at",
 			"created_at",
 			"updated_at").
 		Values(
@@ -177,6 +184,8 @@ func (p *Pkgs) Create(ctx context.Context, pkg *model.Pkg) error {
 			pkg2.Provider,
 			pkg2.ProviderHost,
 			pkg2.ProviderURI,
+			pkg2.ProviderProto,
+			pkg2.FetchedAt,
 			pkg2.CreatedAt,
 			pkg2.UpdatedAt)
 	_, err := qb.Exec()
@@ -197,6 +206,8 @@ func (p *Pkgs) Update(ctx context.Context, pkg *model.Pkg) error {
 		Set("provider", pkg2.Provider).
 		Set("provider_host", pkg2.ProviderHost).
 		Set("provider_uri", pkg2.ProviderURI).
+		Set("provider_proto", pkg2.ProviderProto).
+		Set("fetched_at", pkg2.FetchedAt).
 		Set("updated_at", pkg2.UpdatedAt).
 		Where("id = ?", pkg2.ID)
 	_, err := qb.Exec()

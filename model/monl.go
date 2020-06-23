@@ -5,6 +5,7 @@ import "github.com/pinmonl/pinmonl/model/field"
 type Monl struct {
 	ID        string     `json:"id"`
 	URL       string     `json:"url"`
+	FetchedAt field.Time `json:"fetchedAt"`
 	CreatedAt field.Time `json:"createdAt"`
 	UpdatedAt field.Time `json:"updatedAt"`
 }
