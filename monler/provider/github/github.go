@@ -46,7 +46,7 @@ func (p *Provider) ProviderName() string {
 }
 
 func (p *Provider) Open(rawurl string) (provider.Repo, error) {
-	pu, err := pkguri.ParseFromGithub(rawurl)
+	pu, err := pkguri.ParseGithub(rawurl)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (p *Provider) Open(rawurl string) (provider.Repo, error) {
 }
 
 func (p *Provider) Parse(uri string) (provider.Repo, error) {
-	pu, err := pkguri.Parse(uri)
+	pu, err := pkguri.NewFromURI(uri)
 	if err != nil {
 		return nil, err
 	}
@@ -69,12 +69,12 @@ func (p *Provider) open(pu *pkguri.PkgURI) (*Repo, error) {
 }
 
 func (p *Provider) Ping(rawurl string) error {
-	pu, err := pkguri.ParseFromGithub(rawurl)
+	pu, err := pkguri.ParseGithub(rawurl)
 	if err != nil {
 		return err
 	}
 
-	resp, err := http.Get(pkguri.ToURL(pu).String())
+	resp, err := http.Get(pkguri.ToURL(pu))
 	if err != nil {
 		return err
 	}
@@ -92,8 +92,8 @@ type Repo struct {
 }
 
 func newRepo(pu *pkguri.PkgURI, tokens *TokenStore) (*Repo, error) {
-	gitURL := pkguri.ToGithub(pu)
-	gitRepo, err := git.NewRepo(gitURL.String())
+	gitURL := pkguri.ToURL(pu)
+	gitRepo, err := git.NewRepo(gitURL)
 	if err != nil {
 		return nil, err
 	}

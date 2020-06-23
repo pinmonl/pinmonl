@@ -43,14 +43,14 @@ func (p *Provider) Open(rawurl string) (provider.Repo, error) {
 }
 
 func (p *Provider) Parse(uri string) (provider.Repo, error) {
-	pu, err := pkguri.Parse(uri)
+	pu, err := pkguri.NewFromURI(uri)
 	if err != nil {
 		return nil, err
 	}
 	if pu.Provider != p.ProviderName() {
 		return nil, ErrNotSupportedURI
 	}
-	return p.open(pu.URL().String())
+	return p.open(pkguri.ToURL(pu))
 }
 
 func (p *Provider) open(rawurl string) (*Repo, error) {
@@ -151,7 +151,7 @@ func (r *Repo) analyze() (*Report, error) {
 	}
 
 	// Construct pkguri.
-	pu, err := pkguri.ParseFromGit(r.gitURL)
+	pu, err := pkguri.ParseGit(r.gitURL)
 	if err != nil {
 		return nil, err
 	}

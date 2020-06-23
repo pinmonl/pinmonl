@@ -55,7 +55,7 @@ func (p *PkgSelfUpdate) PreRun(ctx context.Context) error {
 		return err
 	}
 
-	err = monler.Ping(pu.Provider, pkguri.ToURL(pu).String())
+	err = monler.Ping(pu.Provider, pkguri.ToURL(pu))
 	if err != nil {
 		return err
 	}

@@ -27,7 +27,7 @@ func (d *Derived) AddNpm() error {
 		return err
 	}
 
-	_, report, err := openFromURI(pu.Provider, pkguri.ToNpm(pu).String())
+	_, report, err := openFromURI(pu.Provider, pkguri.ToURL(pu))
 	if err != nil {
 		logrus.Debugf("gitderive: npm err(%v)", err)
 		return err
