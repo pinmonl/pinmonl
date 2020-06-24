@@ -16,32 +16,27 @@ var (
 type DB struct {
 	*sql.DB
 	Locker
-	drv     string
+	driver  string
 	Migrate *migrate.Migrate
 	Builder Builder
 }
 
-type DBOpts struct {
-	Driver string
-	DSN    string
-}
-
-func NewDB(opts *DBOpts) (*DB, error) {
-	db, err := Open(opts.Driver, opts.DSN)
+func NewDB(driver, dsn string) (*DB, error) {
+	db, err := Open(driver, dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	m, err := NewMigrate(opts.Driver, opts.DSN)
+	m, err := NewMigrate(driver, dsn)
 	if err != nil {
 		return nil, err
 	}
 
 	return &DB{
 		DB:      db,
-		Locker:  NewDriverLocker(opts.Driver),
+		Locker:  NewDriverLocker(driver),
 		Migrate: m,
-		drv:     opts.Driver,
+		driver:  driver,
 		Builder: NewBuilderFromBase(squirrel.StatementBuilder),
 	}, nil
 }
@@ -51,7 +46,7 @@ func Open(driver, dsn string) (*sql.DB, error) {
 }
 
 func (d *DB) DriverName() string {
-	return d.drv
+	return d.driver
 }
 
 func (d *DB) TxFunc(ctx context.Context, fn func(context.Context) bool) error {

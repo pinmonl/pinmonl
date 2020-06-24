@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/pinmonl/pinmonl/cmd/pinmonl-server/version"
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/handler/server"
 	"github.com/pinmonl/pinmonl/monler"
@@ -84,10 +85,10 @@ func setupMonler(cfg *config) {
 }
 
 func newDB(cfg *config) *database.DB {
-	db, err := database.NewDB(&database.DBOpts{
-		Driver: cfg.DB.Driver,
-		DSN:    cfg.DB.DSN,
-	})
+	db, err := database.NewDB(
+		cfg.DB.Driver,
+		cfg.DB.DSN,
+	)
 	catchErr(err)
 	return db
 }
@@ -104,21 +105,21 @@ func newQueue(cfg *config, db *database.DB, stores *store.Stores) *queue.Manager
 }
 
 func newScheduler(cfg *config, stores *store.Stores, qm *queue.Manager) *queue.Scheduler {
-	sch, err := queue.NewScheduler(&queue.SchedulerOpts{
+	sch := &queue.Scheduler{
 		Queue:  qm,
 		Stores: stores,
-	})
-	catchErr(err)
+	}
 	return sch
 }
 
 func newHandler(cfg *config, db *database.DB, stores *store.Stores, qm *queue.Manager) http.Handler {
-	server := server.NewServer(&server.ServerOpts{
+	server := &server.Server{
 		Txer:        db,
 		TokenSecret: []byte(cfg.JWT.Secret),
 		TokenExpire: cfg.JWT.Expire,
 		TokenIssuer: cfg.JWT.Issuer,
 		Queue:       qm,
+		Version:     version.Version,
 
 		Monls:     stores.Monls,
 		Monpkgs:   stores.Monpkgs,
@@ -131,7 +132,7 @@ func newHandler(cfg *config, db *database.DB, stores *store.Stores, qm *queue.Ma
 		Taggables: stores.Taggables,
 		Tags:      stores.Tags,
 		Users:     stores.Users,
-	})
+	}
 
 	r := chi.NewRouter()
 	r.Mount("/", server.Handler())

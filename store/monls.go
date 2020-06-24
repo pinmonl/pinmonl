@@ -83,6 +83,21 @@ func (m *Monls) Find(ctx context.Context, id string) (*model.Monl, error) {
 	return monl, nil
 }
 
+func (m *Monls) FindURL(ctx context.Context, url string) (*model.Monl, error) {
+	qb := m.RunnableBuilder(ctx).
+		Select(m.columns()...).From(m.table()).
+		Where("url = ?", url)
+	row := qb.QueryRow()
+	monl, err := m.scan(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return monl, nil
+}
+
 func (m Monls) bindOpts(b squirrel.SelectBuilder, opts *MonlOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b

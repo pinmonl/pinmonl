@@ -15,20 +15,6 @@ type Scheduler struct {
 	Stores   *store.Stores
 }
 
-type SchedulerOpts struct {
-	Queue    *Manager
-	Exchange *exchange.Manager
-	Stores   *store.Stores
-}
-
-func NewScheduler(opts *SchedulerOpts) (*Scheduler, error) {
-	return &Scheduler{
-		Queue:    opts.Queue,
-		Exchange: opts.Exchange,
-		Stores:   opts.Stores,
-	}, nil
-}
-
 func (s *Scheduler) Start() error {
 	ctx := context.TODO()
 	if err := s.bootstrap(ctx); err != nil {

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Masterminds/semver"
 	"github.com/go-chi/chi"
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/model"
@@ -18,6 +19,7 @@ type Server struct {
 	TokenExpire time.Duration
 	TokenIssuer string
 	Queue       *queue.Manager
+	Version     *semver.Version
 
 	Monls     *store.Monls
 	Monpkgs   *store.Monpkgs
@@ -30,48 +32,6 @@ type Server struct {
 	Taggables *store.Taggables
 	Tags      *store.Tags
 	Users     *store.Users
-}
-
-type ServerOpts struct {
-	Txer        database.Txer
-	TokenSecret []byte
-	TokenExpire time.Duration
-	TokenIssuer string
-	Queue       *queue.Manager
-
-	Monls     *store.Monls
-	Monpkgs   *store.Monpkgs
-	Pinls     *store.Pinls
-	Pkgs      *store.Pkgs
-	Sharepins *store.Sharepins
-	Shares    *store.Shares
-	Sharetags *store.Sharetags
-	Stats     *store.Stats
-	Taggables *store.Taggables
-	Tags      *store.Tags
-	Users     *store.Users
-}
-
-func NewServer(opts *ServerOpts) *Server {
-	return &Server{
-		Txer:        opts.Txer,
-		TokenSecret: opts.TokenSecret,
-		TokenExpire: opts.TokenExpire,
-		TokenIssuer: opts.TokenIssuer,
-		Queue:       opts.Queue,
-
-		Monls:     opts.Monls,
-		Monpkgs:   opts.Monpkgs,
-		Pinls:     opts.Pinls,
-		Pkgs:      opts.Pkgs,
-		Sharepins: opts.Sharepins,
-		Shares:    opts.Shares,
-		Sharetags: opts.Sharetags,
-		Stats:     opts.Stats,
-		Taggables: opts.Taggables,
-		Tags:      opts.Tags,
-		Users:     opts.Users,
-	}
 }
 
 func (s *Server) Handler() http.Handler {

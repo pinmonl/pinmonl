@@ -29,7 +29,7 @@ func uriURLParam(r *http.Request) string {
 // pkguriURLParam extracts the pkguri param from url.
 func pkguriURLParam(r *http.Request) (*pkguri.PkgURI, error) {
 	uri := providerURLParam(r) + "://" + uriURLParam(r)
-	return pkguri.ParseProvider(uri)
+	return pkguri.NewFromURI(uri)
 }
 
 // checkPkgURI checks the format of the pkguri.
@@ -100,7 +100,6 @@ func (s *Server) pkgListHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx    = r.Context()
 		monl   *model.Monl
-		isNew  bool
 		code   int
 		outerr error
 	)
@@ -117,7 +116,6 @@ func (s *Server) pkgListHandler(w http.ResponseWriter, r *http.Request) {
 		if len(found) > 0 {
 			monl = found[0]
 		} else {
-			isNew = true
 			monl = &model.Monl{
 				URL: u.String(),
 			}
@@ -136,7 +134,7 @@ func (s *Server) pkgListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isNew {
+	if monl.FetchedAt.Time().IsZero() {
 		cherr := s.Queue.Add(job.NewMonlCreated(monl.ID))
 		if err := <-cherr; err != nil {
 			response.JSON(w, nil, http.StatusInternalServerError)
@@ -160,7 +158,6 @@ func (s *Server) pkgHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx    = r.Context()
 		pkg    *model.Pkg
-		isNew  bool
 		code   int
 		outerr error
 	)
@@ -174,7 +171,6 @@ func (s *Server) pkgHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if pkg == nil {
-			isNew = true
 			pkg = &model.Pkg{}
 			if err = pkg.UnmarshalPkgURI(pu); err != nil {
 				outerr, code = err, http.StatusInternalServerError
@@ -195,9 +191,16 @@ func (s *Server) pkgHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Trigger to fetch stats if pkg is new.
-	if isNew {
+	if pkg.FetchedAt.Time().IsZero() {
 		cherr := s.Queue.Add(job.NewPkgSelfUpdate(pkg.ID))
-		if err := <- cherr; err != nil {
+		if err := <-cherr; err != nil {
+			response.JSON(w, nil, http.StatusInternalServerError)
+			return
+		}
+
+		var err error
+		pkg, err = s.Pkgs.Find(ctx, pkg.ID)
+		if err != nil {
 			response.JSON(w, nil, http.StatusInternalServerError)
 			return
 		}
