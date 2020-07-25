@@ -25,8 +25,12 @@ type PinlOpts struct {
 	Status  field.NullValue
 	URL     string
 
-	TagIDs   []string
-	TagNames []string
+	TagIDs          []string
+	TagNames        []string
+	TagNamePatterns []string
+	NoTag           field.NullBool
+
+	Orders []PinlOrder
 }
 
 func NewPinls(s *Store) *Pinls {
@@ -159,6 +163,45 @@ func (p Pinls) bindOpts(b squirrel.SelectBuilder, opts *PinlOpts) squirrel.Selec
 		b = b.Where(sq)
 	}
 
+	if len(opts.TagNamePatterns) > 0 {
+		sq := p.Builder().Select("1").
+			From(Taggables{}.table()).
+			Join(fmt.Sprintf("%s ON %[1]s.id = %s.tag_id", Tags{}.table(), Taggables{}.table())).
+			Where("target_id = "+p.table()+".id").
+			Where("target_name = ?", model.Pinl{}.MorphName()).
+			GroupBy("target_id").
+			Having("COUNT( DISTINCT tag_id ) >= ?", len(opts.TagNames)).
+			Prefix("EXISTS (").
+			Suffix(")")
+		for _, tagName := range opts.TagNamePatterns {
+			b = b.Where(sq.Where("name like ?", tagName))
+		}
+	}
+
+	if opts.NoTag.Valid {
+		sq := p.Builder().Select("1").
+			From(Taggables{}.table()).
+			Join(fmt.Sprintf("%s ON %[1]s.id = %s.tag_id", Tags{}.table(), Taggables{}.table())).
+			Where("target_id = "+p.table()+".id").
+			Where("target_name = ?", model.Pinl{}.MorphName()).
+			GroupBy("target_id").
+			Suffix(")")
+
+		if opts.NoTag.Value() {
+			sq = sq.Prefix("NOT EXISTS (")
+		} else {
+			sq = sq.Prefix("EXISTS (")
+		}
+		b = b.Where(sq)
+	}
+
+	for _, order := range opts.Orders {
+		switch order {
+		case PinlOrderByLatest:
+			b = b.OrderBy("created_at DESC")
+		}
+	}
+
 	return b
 }
 
@@ -272,3 +315,9 @@ func (p *Pinls) Delete(ctx context.Context, id string) (int64, error) {
 	}
 	return res.RowsAffected()
 }
+
+type PinlOrder int
+
+const (
+	PinlOrderByLatest PinlOrder = iota
+)

@@ -309,6 +309,18 @@ func (s *Sharetags) DeleteByShare(ctx context.Context, shareID string) (int64, e
 	return res.RowsAffected()
 }
 
+func (s *Sharetags) DeleteByShareAndKind(ctx context.Context, shareID string, kind model.SharetagKind) (int64, error) {
+	qb := s.RunnableBuilder(ctx).
+		Delete(s.table()).
+		Where("share_id = ?", shareID).
+		Where("kind = ?", kind)
+	res, err := qb.Exec()
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 func (o *SharetagOpts) JoinTags() *SharetagOpts {
 	o2 := *o
 	o2.joinTags = true

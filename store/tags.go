@@ -111,6 +111,22 @@ func (t *Tags) FindOrCreate(ctx context.Context, data *model.Tag) (*model.Tag, e
 	return &tag, nil
 }
 
+func (t *Tags) FindName(ctx context.Context, userID, tagName string) (*model.Tag, error) {
+	qb := t.RunnableBuilder(ctx).
+		Select(t.columns()...).From(t.table()).
+		Where("user_id = ?", userID).
+		Where("name = ?", tagName)
+	row := qb.QueryRow()
+	tag, err := t.scan(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return tag, nil
+}
+
 func (t Tags) bindOpts(b squirrel.SelectBuilder, opts *TagOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -145,6 +161,8 @@ func (t Tags) bindOpts(b squirrel.SelectBuilder, opts *TagOpts) squirrel.SelectB
 	if opts.Level.Valid {
 		b = b.Where("level = ?", opts.Level.Value())
 	}
+
+	b = b.OrderBy("name, level")
 
 	return b
 }

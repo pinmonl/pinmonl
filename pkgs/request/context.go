@@ -17,6 +17,7 @@ const (
 	PkgCtxKey
 	TagCtxKey
 	SharetagCtxKey
+	ImageCtxKey
 )
 
 func WithPaginator(ctx context.Context, p *Paginator) context.Context {
@@ -111,6 +112,18 @@ func SharetagFrom(ctx context.Context) *model.Sharetag {
 	sharetag, ok := ctx.Value(SharetagCtxKey).(*model.Sharetag)
 	if ok {
 		return sharetag
+	}
+	return nil
+}
+
+func WithImage(ctx context.Context, image *model.Image) context.Context {
+	return context.WithValue(ctx, ImageCtxKey, image)
+}
+
+func ImageFrom(ctx context.Context) *model.Image {
+	image, ok := ctx.Value(ImageCtxKey).(*model.Image)
+	if ok {
+		return image
 	}
 	return nil
 }

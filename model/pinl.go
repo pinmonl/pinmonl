@@ -16,6 +16,7 @@ type Pinl struct {
 
 	Tags     *TagList  `json:"-"`
 	TagNames *[]string `json:"tags,omitempty"`
+	Pkgs     *PkgList  `json:"pkgs,omitempty"`
 }
 
 func (p Pinl) MorphKey() string  { return p.ID }
@@ -24,6 +25,10 @@ func (p Pinl) MorphName() string { return "pinl" }
 func (p *Pinl) SetTagNames(tags TagList) {
 	tn := tags.Names()
 	p.TagNames = &tn
+}
+
+func (p *Pinl) SetPkgs(pkgs PkgList) {
+	p.Pkgs = &pkgs
 }
 
 type PinlList []*Pinl
@@ -48,5 +53,21 @@ func (pl PinlList) SetTagNames(tagMap map[string]TagList) {
 	for i := range pl {
 		k := pl[i].ID
 		pl[i].SetTagNames(tagMap[k])
+	}
+}
+
+func (pl PinlList) MonlKeys() []string {
+	keys := make([]string, len(pl))
+	for i := range pl {
+		keys[i] = pl[i].MonlID
+	}
+	return keys
+}
+
+func (pl PinlList) SetPkgs(pMap map[string]PkgList) {
+	for i := range pl {
+		k := pl[i].MonlID
+		pkgs := append(make([]*Pkg, 0), pMap[k]...)
+		pl[i].SetPkgs(pkgs)
 	}
 }

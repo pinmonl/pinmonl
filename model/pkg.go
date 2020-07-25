@@ -39,6 +39,10 @@ func (p *Pkg) UnmarshalPkgURI(pu *pkguri.PkgURI) error {
 	return nil
 }
 
+func (p *Pkg) SetStats(stats StatList) {
+	p.Stats = &stats
+}
+
 type PkgList []*Pkg
 
 func (pl PkgList) Keys() []string {
@@ -47,6 +51,13 @@ func (pl PkgList) Keys() []string {
 		keys[i] = pl[i].ID
 	}
 	return keys
+}
+
+func (pl PkgList) SetStats(stats StatList) {
+	for i := range pl {
+		ps := stats.GetPkgID(pl[i].ID)
+		pl[i].SetStats(ps)
+	}
 }
 
 var _ pkguri.Marshaler = &Pkg{}

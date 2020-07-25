@@ -10,6 +10,7 @@ import (
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/pkgs/request"
 	"github.com/pinmonl/pinmonl/pkgs/response"
+	"github.com/pinmonl/pinmonl/pkgs/tagutils"
 	"github.com/pinmonl/pinmonl/store"
 	"github.com/pinmonl/pinmonl/store/storeutils"
 )
@@ -63,10 +64,13 @@ func TagListHandler(tags *store.Tags) http.Handler {
 			ListOpts: pg.ToOpts(),
 		}
 		if query.Query != "" {
-			opts.NamePattern = "%" + query.Query + "%"
+			opts.NamePattern = tagutils.ToNamePattern(query.Query)
 		}
-		if len(opts.Names) > 0 {
-			opts.Names = opts.Names
+		if len(query.Names) > 0 {
+			opts.Names = query.Names
+		}
+		if len(query.ParentIDs) > 0 {
+			opts.ParentIDs = query.ParentIDs
 		}
 
 		tList, err := tags.List(ctx, opts)
@@ -75,7 +79,13 @@ func TagListHandler(tags *store.Tags) http.Handler {
 			return
 		}
 
-		response.JSON(w, tList, http.StatusOK)
+		count, err := tags.Count(ctx, opts)
+		if err != nil {
+			response.JSON(w, err, http.StatusInternalServerError)
+			return
+		}
+
+		response.ListJSON(w, tList, pg.ToPageInfo(count), http.StatusOK)
 	}
 	return http.HandlerFunc(fn)
 }
@@ -93,10 +103,9 @@ func TagHandler() http.Handler {
 }
 
 type TagBody struct {
-	Name     string `json:"name"`
-	ParentID string `json:"parentId"`
-	Color    string `json:"color"`
-	BgColor  string `json:"bgColor"`
+	Name    string `json:"name"`
+	Color   string `json:"color"`
+	BgColor string `json:"bgColor"`
 }
 
 func TagCreateHandler(txer database.Txer, tags *store.Tags) http.Handler {
@@ -133,11 +142,10 @@ func TagCreateHandler(txer database.Txer, tags *store.Tags) http.Handler {
 		}
 
 		tag := &model.Tag{
-			UserID:   user.ID,
-			Name:     in.Name,
-			ParentID: in.ParentID,
-			Color:    in.Color,
-			BgColor:  in.BgColor,
+			UserID:  user.ID,
+			Name:    in.Name,
+			Color:   in.Color,
+			BgColor: in.BgColor,
 		}
 
 		txer.TxFunc(ctx, func(ctx context.Context) bool {
@@ -196,7 +204,6 @@ func TagUpdateHandler(txer database.Txer, tags *store.Tags) http.Handler {
 		}
 
 		tag.Name = in.Name
-		tag.ParentID = in.ParentID
 		tag.Color = in.Color
 		tag.BgColor = in.BgColor
 
@@ -228,17 +235,12 @@ func TagDeleteHandler(txer database.Txer, tags *store.Tags, taggables *store.Tag
 			outerr error
 		)
 		txer.TxFunc(ctx, func(ctx context.Context) bool {
-			_, err := taggables.DeleteByTag(ctx, tag)
+			_, err := storeutils.DeleteTag(ctx, tags, taggables, tag)
 			if err != nil {
 				outerr, code = err, http.StatusInternalServerError
 				return false
 			}
 
-			_, err = tags.Delete(ctx, tag.ID)
-			if err != nil {
-				outerr, code = err, http.StatusInternalServerError
-				return false
-			}
 			return true
 		})
 

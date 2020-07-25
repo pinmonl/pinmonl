@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -15,11 +16,14 @@ import (
 )
 
 type Manager struct {
+	*sync.Mutex
 	queue     chan *workerJob
 	workers   []worker
 	readyPool chan chan *workerJob
 	txer      database.Txer
-	stores    *store.Stores
+	errchs    map[string][]chan error
+
+	stores *store.Stores
 }
 
 func NewManager(txer database.Txer, stores *store.Stores, maxJob, workerN int) (*Manager, error) {
@@ -31,11 +35,13 @@ func NewManager(txer database.Txer, stores *store.Stores, maxJob, workerN int) (
 	}
 
 	return &Manager{
+		Mutex:     &sync.Mutex{},
 		txer:      txer,
 		queue:     make(chan *workerJob, maxJob),
 		readyPool: readyPool,
 		workers:   workers,
 		stores:    stores,
+		errchs:    make(map[string][]chan error),
 	}, nil
 }
 
@@ -72,7 +78,11 @@ func (m *Manager) start() error {
 
 func (m *Manager) Add(job job.Job) <-chan error {
 	ctx := context.TODO()
-	cherr := make(chan error, 1)
+	has, cherr := m.enqueue(job)
+	if has {
+		return cherr
+	}
+
 	wjob := newWorkerJob(m, job)
 	if err := wjob.startRecord(ctx); err != nil {
 		cherr <- err
@@ -89,10 +99,54 @@ func (m *Manager) Add(job job.Job) <-chan error {
 		m.queue <- wjob
 
 		// Wait until job is completed.
-		<-wjob.done
-		cherr <- nil
+		err := <-wjob.done
+		if qerr := m.dequeue(job, err); qerr != nil {
+			logrus.Debugf("queue: dequeue err(%v)", qerr)
+		}
 	}()
 	return cherr
+}
+
+func (m *Manager) enqueue(job job.Job) (bool, chan error) {
+	m.Lock()
+	defer m.Unlock()
+
+	ch := make(chan error)
+	k := m.jobKey(job)
+	has := false
+	if chs, ok := m.errchs[k]; ok && len(chs) > 0 {
+		has = true
+	}
+
+	m.errchs[k] = append(m.errchs[k], ch)
+	return has, ch
+}
+
+func (m *Manager) dequeue(job job.Job, err error) error {
+	m.Lock()
+	defer m.Unlock()
+	k := m.jobKey(job)
+	if _, ok := m.errchs[k]; !ok {
+		return fmt.Errorf("queue: job dequeue not found %s", k)
+	}
+
+	for i := range m.errchs[k] {
+		chs := m.errchs[k][i]
+		defer func() {
+			close(chs)
+			logrus.Debugf("queue: dequeue channel closed %s", k)
+		}()
+		select {
+		case chs <- err:
+		default:
+		}
+	}
+	delete(m.errchs, k)
+	return nil
+}
+
+func (m *Manager) jobKey(job job.Job) string {
+	return strings.Join(job.Describe(), "::")
 }
 
 // worker is the job runner of the queue.
@@ -127,7 +181,7 @@ type workerJob struct {
 	stores *store.Stores
 	job    job.Job
 	record *model.Job
-	done   chan struct{}
+	done   chan error
 }
 
 func newWorkerJob(mgr *Manager, job job.Job) *workerJob {
@@ -136,7 +190,7 @@ func newWorkerJob(mgr *Manager, job job.Job) *workerJob {
 		txer:   mgr.txer,
 		stores: mgr.stores,
 		job:    job,
-		done:   make(chan struct{}, 1),
+		done:   make(chan error, 1),
 	}
 }
 
@@ -186,7 +240,6 @@ func (w *workerJob) run(ctx context.Context) error {
 	if err := w.endRecord(ctx, status, message); err != nil {
 		return err
 	}
-	w.done <- struct{}{}
 	return nil
 }
 
@@ -220,8 +273,10 @@ func (w *workerJob) endRecord(ctx context.Context, status model.JobStatus, messa
 	record.EndedAt = field.Now()
 	err := w.stores.Jobs.Update(ctx, &record)
 	if err != nil {
+		w.done <- err
 		return err
 	}
+	w.done <- nil
 	w.record = &record
 	return nil
 }

@@ -35,3 +35,17 @@ func IsError(code int) bool {
 	}
 	return false
 }
+
+type PageInfo struct {
+	TotalCount int64 `json:"totalCount"`
+	Page       int64 `json:"page"`
+	PageSize   int64 `json:"pageSize"`
+}
+
+func ListJSON(w http.ResponseWriter, v interface{}, info PageInfo, code int) error {
+	body := struct {
+		PageInfo
+		Data interface{} `json:"data"`
+	}{info, v}
+	return JSON(w, body, code)
+}

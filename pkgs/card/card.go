@@ -64,7 +64,7 @@ func (c *Card) Title() string {
 	if c.TwitterTitle != "" {
 		return c.TwitterTitle
 	}
-	return ""
+	return c.HtmlTitle
 }
 
 // Description retrieves the suitable card description.
@@ -75,7 +75,7 @@ func (c *Card) Description() string {
 	if c.TwitterDescription != "" {
 		return c.TwitterDescription
 	}
-	return ""
+	return c.HtmlDescription
 }
 
 // ImageURL retrieves the suitable card image url.
@@ -90,24 +90,21 @@ func (c *Card) ImageURL() string {
 }
 
 // Image returns the image content at ImageURL.
-func (c *Card) Image() []byte {
+func (c *Card) Image() ([]byte, error) {
 	url := c.ImageURL()
 	if url == "" {
-		return nil
+		return nil, nil
 	}
 
 	res, err := http.Get(url)
 	if err != nil {
-		return nil
-	}
-	if res.StatusCode >= 400 {
-		return nil
+		return nil, err
 	}
 
 	defer res.Body.Close()
 	img, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return img
+	return img, nil
 }

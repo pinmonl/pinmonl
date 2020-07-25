@@ -67,3 +67,31 @@ func (sl SharetagList) ViewTags() TagList {
 	}
 	return tags
 }
+
+func (sl SharetagList) GetKind(kind SharetagKind) SharetagList {
+	list := make([]*Sharetag, 0)
+	for i := range sl {
+		if sl[i].Kind == kind {
+			list = append(list, sl[i])
+		}
+	}
+	return list
+}
+
+func (sl SharetagList) TagsByShare() map[string]TagList {
+	out := make(map[string]TagList)
+	for i := range sl {
+		k := sl[i].ShareID
+		out[k] = append(out[k], sl[i].Tag)
+	}
+	return out
+}
+
+func (sl SharetagList) ByTagID() map[string]*Sharetag {
+	out := make(map[string]*Sharetag)
+	for i := range sl {
+		k := sl[i].TagID
+		out[k] = sl[i]
+	}
+	return out
+}

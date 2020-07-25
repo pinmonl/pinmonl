@@ -21,3 +21,12 @@ func (ml MonpkgList) Pkgs() PkgList {
 	}
 	return out
 }
+
+func (ml MonpkgList) PkgsByMonl() map[string]PkgList {
+	out := make(map[string]PkgList)
+	for i := range ml {
+		k := ml[i].MonlID
+		out[k] = append(out[k], ml[i].Pkg)
+	}
+	return out
+}

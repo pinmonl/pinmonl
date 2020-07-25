@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/pinmonl/pinmonl/monler"
 	"github.com/pinmonl/pinmonl/monler/provider"
 	"github.com/pinmonl/pinmonl/pkgs/pkguri"
@@ -17,6 +18,7 @@ import (
 // database.
 type MonlCreated struct {
 	MonlID  string
+	monl    *model.Monl
 	reports []provider.Report
 }
 
@@ -51,6 +53,7 @@ func (m *MonlCreated) PreRun(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	m.monl = monl
 
 	repos, err := monler.GuessWithout([]string{pkguri.GitProvider}, monl.URL)
 	if err != nil {
@@ -90,6 +93,12 @@ func (m *MonlCreated) Run(ctx context.Context) ([]Job, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	m.monl.FetchedAt = field.Now()
+	err := stores.Monls.Update(ctx, m.monl)
+	if err != nil {
+		return nil, err
 	}
 	return nil, nil
 }

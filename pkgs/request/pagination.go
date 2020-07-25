@@ -9,20 +9,20 @@ import (
 )
 
 type Paginator struct {
-	Page     int
-	PageSize int
+	Page     int64
+	PageSize int64
 }
 
-func NewPaginatorFromRequest(r *http.Request, pageName, sizeName string, defaultSize int) (*Paginator, error) {
+func NewPaginatorFromRequest(r *http.Request, pageName, sizeName string, defaultSize int64) (*Paginator, error) {
 	var (
-		page, size int
+		page, size int64
 		err        error
 		pageq      = r.URL.Query().Get(pageName)
 		sizeq      = r.URL.Query().Get(sizeName)
 	)
 
 	if pageq != "" {
-		if page, err = strconv.Atoi(pageq); err != nil {
+		if page, err = strconv.ParseInt(pageq, 10, 64); err != nil {
 			return nil, err
 		}
 	} else {
@@ -30,7 +30,7 @@ func NewPaginatorFromRequest(r *http.Request, pageName, sizeName string, default
 	}
 
 	if sizeq != "" {
-		if size, err = strconv.Atoi(sizeq); err != nil {
+		if size, err = strconv.ParseInt(sizeq, 10, 64); err != nil {
 			return nil, err
 		}
 	} else {
@@ -50,7 +50,15 @@ func (p *Paginator) ToOpts() store.ListOpts {
 	}
 }
 
-func Pagination(pageName, sizeName string, defaultSize int) func(http.Handler) http.Handler {
+func (p *Paginator) ToPageInfo(total int64) response.PageInfo {
+	return response.PageInfo{
+		TotalCount: total,
+		Page:       p.Page,
+		PageSize:   p.PageSize,
+	}
+}
+
+func Pagination(pageName, sizeName string, defaultSize int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			p, err := NewPaginatorFromRequest(r, pageName, sizeName, defaultSize)

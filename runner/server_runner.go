@@ -1,21 +1,20 @@
-package queue
+package runner
 
 import (
 	"context"
 
-	"github.com/pinmonl/pinmonl/exchange"
+	"github.com/pinmonl/pinmonl/queue"
 	"github.com/pinmonl/pinmonl/queue/job"
 	"github.com/pinmonl/pinmonl/store"
 	"github.com/sirupsen/logrus"
 )
 
-type Scheduler struct {
-	Queue    *Manager
-	Exchange *exchange.Manager
-	Stores   *store.Stores
+type ServerRunner struct {
+	Queue  *queue.Manager
+	Stores *store.Stores
 }
 
-func (s *Scheduler) Start() error {
+func (s *ServerRunner) Start() error {
 	ctx := context.TODO()
 	if err := s.bootstrap(ctx); err != nil {
 		return err
@@ -25,15 +24,15 @@ func (s *Scheduler) Start() error {
 	return nil
 }
 
-func (s *Scheduler) bootstrap(ctx context.Context) error {
-	logrus.Debugln("scheduler: bootstrap")
+func (s *ServerRunner) bootstrap(ctx context.Context) error {
+	logrus.Debugln("runner: bootstrap")
 	if err := s.resumePinlUpdated(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *Scheduler) resumePinlUpdated(ctx context.Context) error {
+func (s *ServerRunner) resumePinlUpdated(ctx context.Context) error {
 	pList, err := s.Stores.Pinls.List(ctx, &store.PinlOpts{
 		MonlIDs: []string{""},
 	})
@@ -48,6 +47,4 @@ func (s *Scheduler) resumePinlUpdated(ctx context.Context) error {
 	return nil
 }
 
-func (s *Scheduler) keepExchangeAlive(ctx context.Context) error {
-	return nil
-}
+var _ Runner = &ServerRunner{}

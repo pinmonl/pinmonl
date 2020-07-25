@@ -42,15 +42,21 @@ func (s *Store) RunnableBuilder(ctx context.Context) database.Builder {
 }
 
 type ListOpts struct {
-	Limit  int
-	Offset int
+	Limit  int64
+	Offset int64
 }
 
 func (o ListOpts) LimitUint64() uint64 {
+	if o.Limit < 0 {
+		return 0
+	}
 	return uint64(o.Limit)
 }
 
 func (o ListOpts) OffsetUint64() uint64 {
+	if o.Offset < 0 {
+		return 0
+	}
 	return uint64(o.Offset)
 }
 
@@ -64,9 +70,10 @@ func addPagination(b squirrel.SelectBuilder, pt Paginator) squirrel.SelectBuilde
 		return b
 	}
 	if pt.LimitUint64() > 0 {
-		return b.
-			Limit(pt.LimitUint64()).
-			Offset(pt.OffsetUint64())
+		b = b.Limit(pt.LimitUint64())
+	}
+	if pt.OffsetUint64() > 0 {
+		b = b.Offset(pt.OffsetUint64())
 	}
 	return b
 }

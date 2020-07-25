@@ -201,3 +201,15 @@ func (i *Images) Delete(ctx context.Context, id string) (int64, error) {
 	}
 	return res.RowsAffected()
 }
+
+func (i *Images) DeleteByTarget(ctx context.Context, target model.Morphable) (int64, error) {
+	qb := i.RunnableBuilder(ctx).
+		Delete(i.table()).
+		Where("target_id = ?", target.MorphKey()).
+		Where("target_name = ?", target.MorphName())
+	res, err := qb.Exec()
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}

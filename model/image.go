@@ -6,7 +6,7 @@ type Image struct {
 	ID          string     `json:"id"`
 	TargetID    string     `json:"targetId"`
 	TargetName  string     `json:"targetName"`
-	Content     []byte     `json:"content"`
+	Content     []byte     `json:"-"`
 	Description string     `json:"description"`
 	Size        int        `json:"size"`
 	ContentType string     `json:"contentType"`
