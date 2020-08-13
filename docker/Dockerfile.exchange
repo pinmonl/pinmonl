@@ -3,6 +3,7 @@ WORKDIR /go/src/github.com/pinmonl/pinmonl/
 COPY ./ ./
 RUN apk add --no-cache --virtual .deps build-base git \
   && go get github.com/markbates/pkger/cmd/pkger \
+  && mkdir -p webui/dist \
   && make build-exchange \
   && apk del .deps
 
