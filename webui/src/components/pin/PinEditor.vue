@@ -42,17 +42,20 @@
             :disabled="loading"
           ></v-text-field>
 
-          <v-text-field
+          <v-textarea
             label="Description"
             v-model="model.description"
             :disabled="loading"
-          ></v-text-field>
+            auto-grow
+            rows="1"
+          ></v-textarea>
 
           <tag-input
             label="Tags"
             v-model="model.tags"
             :disabled="loading"
             multiple
+            hide-details
           ></tag-input>
         </v-form>
       </v-card-text>
@@ -60,7 +63,7 @@
         <v-btn text :disabled="loading" @click="$emit('update:show', false)">
           Cancel
         </v-btn>
-        <v-btn text :loading="loading" color="error" @click="remove">
+        <v-btn text :loading="loading" color="error" @click="remove" v-if="!isNew">
           Delete
         </v-btn>
         <v-spacer></v-spacer>
@@ -153,7 +156,7 @@ export default {
 
         await this.client.deletePin(this.value.id)
 
-        this.$emit('delete', this.value)
+        this.$emit('remove', this.value)
       } catch (e) {
         //
       } finally {

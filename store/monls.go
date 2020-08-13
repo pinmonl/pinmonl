@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -15,7 +16,8 @@ type Monls struct {
 
 type MonlOpts struct {
 	ListOpts
-	URL string
+	URL           string
+	FetchedBefore time.Time
 }
 
 func NewMonls(s *Store) *Monls {
@@ -105,6 +107,10 @@ func (m Monls) bindOpts(b squirrel.SelectBuilder, opts *MonlOpts) squirrel.Selec
 
 	if opts.URL != "" {
 		b = b.Where("url = ?", opts.URL)
+	}
+
+	if !opts.FetchedBefore.IsZero() {
+		b = b.Where("(fetched_at <= ? OR fetched_at IS NULL)", opts.FetchedBefore)
 	}
 
 	return b

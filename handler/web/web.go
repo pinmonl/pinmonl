@@ -1,14 +1,20 @@
 package web
 
 import (
+	"bytes"
+	"context"
+	"html/template"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/markbates/pkger"
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/exchange"
+	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/pkgs/request"
 	"github.com/pinmonl/pinmonl/pubsub"
 	"github.com/pinmonl/pinmonl/queue"
@@ -25,6 +31,8 @@ type Server struct {
 	Pubsub      pubsub.Pubsuber
 
 	ExchangeEnabled bool
+	DefaultUserID   string
+	DevServer       string
 
 	Images    *store.Images
 	Monls     *store.Monls
@@ -51,8 +59,10 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) APIRouter() chi.Router {
 	r := chi.NewRouter()
 
-	r.Post("/signup", s.signupHandler)
-	r.Post("/login", s.loginHandler)
+	if !s.hasDefaultUser() {
+		r.Post("/signup", s.signupHandler)
+		r.Post("/login", s.loginHandler)
+	}
 	r.With(s.authorize()).
 		Post("/refresh", s.refreshHandler)
 
@@ -70,7 +80,7 @@ func (s *Server) APIRouter() chi.Router {
 		})
 	})
 
-	r.Get("/card/*", s.fetchCardHandler)
+	r.Get("/card", s.fetchCardHandler)
 
 	r.Route("/tag", func(r chi.Router) {
 		r.Use(s.authorize())
@@ -123,16 +133,114 @@ func (s *Server) APIRouter() chi.Router {
 }
 
 func (s *Server) WebRouter() chi.Router {
-	devServer, _ := url.Parse("http://node:8080")
-	devHandle := httputil.NewSingleHostReverseProxy(devServer)
-
 	r := chi.NewRouter()
 	r.With(s.bindImage()).Get("/image/{image}", s.imageHandler)
-	r.Handle("/*", devHandle)
-
+	r.Handle("/*", s.webHandler())
 	return r
 }
 
 func (s *Server) pagination() func(http.Handler) http.Handler {
 	return request.Pagination("page", "page_size", 10)
+}
+
+func (s *Server) hasDefaultUser() bool {
+	return s.DefaultUserID != ""
+}
+
+func (s *Server) defaultUser() *model.User {
+	user, _ := s.Users.Find(context.TODO(), s.DefaultUserID)
+	return user
+}
+
+func (s *Server) webHandler() http.Handler {
+	var handler http.Handler
+	if s.DevServer != "" {
+		u, err := url.Parse(s.DevServer)
+		if err != nil {
+			return nil
+		}
+		handler = httputil.NewSingleHostReverseProxy(u)
+	} else {
+		pkgdir, _ := pkger.Open("/webui/dist")
+		handler = http.FileServer(pkgdir)
+	}
+
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" ||
+			strings.HasPrefix(r.URL.Path, "/sockjs-node/") ||
+			strings.HasPrefix(r.URL.Path, "/css/") ||
+			strings.HasPrefix(r.URL.Path, "/js/") {
+			handler.ServeHTTP(w, r)
+			return
+		}
+
+		lw := newLazyResponseWriter()
+		handler.ServeHTTP(lw, r)
+		if lw.code >= 400 {
+			lw = newLazyResponseWriter()
+			r.URL.Path = "/"
+			handler.ServeHTTP(lw, r)
+		}
+
+		s.handleStaticFile(w, r, lw)
+	}
+	return http.HandlerFunc(fn)
+}
+
+func (s *Server) handleStaticFile(w http.ResponseWriter, r *http.Request, lw *lazyResponseWriter) {
+	baseURL := &url.URL{
+		Scheme: "http",
+		Host:   r.Host,
+	}
+
+	data := map[string]interface{}{
+		"BaseURL":         baseURL.String(),
+		"BasePrefix":      "",
+		"DefaultUser":     s.DefaultUserID != "",
+		"ExchangeEnabled": s.ExchangeEnabled,
+	}
+
+	tmpl, err := template.New("").Parse(lw.content.String())
+	if err != nil {
+		return
+	}
+
+	// Copy headers
+	for header, values := range lw.header {
+		if strings.ToLower(header) == "content-length" {
+			continue
+		}
+		for _, value := range values {
+			w.Header().Add(header, value)
+		}
+	}
+	// Copy status code
+	w.WriteHeader(lw.code)
+	// Write content
+	tmpl.Execute(w, data)
+}
+
+type lazyResponseWriter struct {
+	code    int
+	content *bytes.Buffer
+	header  http.Header
+}
+
+func newLazyResponseWriter() *lazyResponseWriter {
+	return &lazyResponseWriter{
+		content: &bytes.Buffer{},
+		header:  http.Header{},
+	}
+}
+
+func (lw *lazyResponseWriter) Write(bs []byte) (int, error) {
+	return lw.content.Write(bs)
+}
+
+func (lw *lazyResponseWriter) WriteHeader(code int) {
+	lw.code = code
+}
+
+func (lw *lazyResponseWriter) Header() http.Header {
+	return lw.header
 }

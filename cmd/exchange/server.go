@@ -16,7 +16,7 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "start pinmonl server",
 	Run: withApp(func(cmd *cobra.Command, args []string, app *application) {
-		migrateCmd.Run(cmd, []string{"up"})
+		app.migrateUp()
 
 		wg := &sync.WaitGroup{}
 
@@ -35,7 +35,7 @@ var serverCmd = &cobra.Command{
 
 		wg.Add(1)
 		go func() {
-			app.scheduler.Start()
+			app.runner.Start()
 			wg.Done()
 		}()
 

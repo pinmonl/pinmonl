@@ -37,7 +37,7 @@ func NewDB(driver, dsn string) (*DB, error) {
 		Locker:  NewDriverLocker(driver),
 		Migrate: m,
 		driver:  driver,
-		Builder: NewBuilderFromBase(squirrel.StatementBuilder),
+		Builder: NewBuilder(driver),
 	}, nil
 }
 
@@ -122,7 +122,12 @@ func (d *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
 
 func NewMigrate(driver, dsn string) (*migrate.Migrate, error) {
 	srcURL := "pkger://" + getSourceURL(driver)
-	dsnURL := driver + "://" + dsn
+
+	dsnURL := dsn
+	if driver == "sqlite3" {
+		dsnURL = driver + "://" + dsn
+	}
+
 	return migrate.New(srcURL, dsnURL)
 }
 
@@ -176,6 +181,15 @@ type RowScanner interface {
 
 type Builder struct {
 	squirrel.StatementBuilderType
+}
+
+func NewBuilder(driver string) Builder {
+	builder := squirrel.StatementBuilder
+	if driver == "postgres" {
+		builder = builder.PlaceholderFormat(squirrel.Dollar)
+	}
+
+	return NewBuilderFromBase(builder)
 }
 
 func NewBuilderFromBase(base squirrel.StatementBuilderType) Builder {

@@ -4,13 +4,13 @@ import Layout from '@/views/Layout'
 import Pin from '@/views/Pin'
 import Tag from '@/views/Tag'
 import Login from '@/views/Login'
-import { baseURL } from '@/utils/constants'
+import { basePrefix } from '@/utils/constants'
 import store from '@/store'
 
 Vue.use(VueRouter)
 
 const router = new VueRouter({
-  base: baseURL,
+  base: basePrefix,
   mode: 'history',
   routes: [
     {

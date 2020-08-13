@@ -10,16 +10,19 @@ import (
 // Card scrapes the information of social media card.
 type Card struct {
 	HtmlTitle       string
-	HtmlDescription string
+	MetaTitle       string
+	MetaDescription string
 
 	FacebookTitle       string
 	FacebookDescription string
 	FacebookImageURL    string
 	FacebookSiteName    string
+	FacebookURL         string
 
 	TwitterTitle       string
 	TwitterDescription string
 	TwitterImageURL    string
+	TwitterURL         string
 
 	Response *http.Response
 	Document *goquery.Document
@@ -39,17 +42,20 @@ func NewCard(rawurl string) (*Card, error) {
 	}
 
 	return &Card{
-		HtmlTitle:       doc.Find("head title").Text(),
-		HtmlDescription: doc.Find("head meta[name='description']").AttrOr("content", ""),
+		HtmlTitle:       doc.Find("title").Text(),
+		MetaTitle:       doc.Find("meta[name='title']").AttrOr("content", ""),
+		MetaDescription: doc.Find("meta[name='description']").AttrOr("content", ""),
 
-		FacebookTitle:       doc.Find("head meta[property='og:title']").AttrOr("content", ""),
-		FacebookDescription: doc.Find("head meta[property='og:description']").AttrOr("content", ""),
-		FacebookImageURL:    doc.Find("head meta[property='og:image']").AttrOr("content", ""),
-		FacebookSiteName:    doc.Find("head meta[property='og:site_name']").AttrOr("content", ""),
+		FacebookTitle:       doc.Find("meta[property='og:title']").AttrOr("content", ""),
+		FacebookDescription: doc.Find("meta[property='og:description']").AttrOr("content", ""),
+		FacebookImageURL:    doc.Find("meta[property='og:image']").AttrOr("content", ""),
+		FacebookSiteName:    doc.Find("meta[property='og:site_name']").AttrOr("content", ""),
+		FacebookURL:         doc.Find("meta[property='og:url']").AttrOr("content", ""),
 
-		TwitterTitle:       doc.Find("head meta[name='twitter:title']").AttrOr("content", ""),
-		TwitterDescription: doc.Find("head meta[name='twitter:description']").AttrOr("content", ""),
-		TwitterImageURL:    doc.Find("head meta[name='twitter:image:src']").AttrOr("content", ""),
+		TwitterTitle:       doc.Find("meta[name='twitter:title']").AttrOr("content", ""),
+		TwitterDescription: doc.Find("meta[name='twitter:description']").AttrOr("content", ""),
+		TwitterImageURL:    doc.Find("meta[name='twitter:image:src']").AttrOr("content", ""),
+		TwitterURL:         doc.Find("meta[name='twitter:url']").AttrOr("content", ""),
 
 		Response: res,
 		Document: doc,
@@ -64,6 +70,9 @@ func (c *Card) Title() string {
 	if c.TwitterTitle != "" {
 		return c.TwitterTitle
 	}
+	if c.MetaTitle != "" {
+		return c.MetaTitle
+	}
 	return c.HtmlTitle
 }
 
@@ -75,7 +84,7 @@ func (c *Card) Description() string {
 	if c.TwitterDescription != "" {
 		return c.TwitterDescription
 	}
-	return c.HtmlDescription
+	return c.MetaDescription
 }
 
 // ImageURL retrieves the suitable card image url.
@@ -107,4 +116,14 @@ func (c *Card) Image() ([]byte, error) {
 		return nil, err
 	}
 	return img, nil
+}
+
+func (c *Card) URL() string {
+	if c.FacebookURL != "" {
+		return c.FacebookURL
+	}
+	if c.TwitterURL != "" {
+		return c.TwitterURL
+	}
+	return ""
 }

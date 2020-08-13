@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"sync"
 
@@ -16,7 +17,14 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "start client web server",
 	Run: withApp(func(cmd *cobra.Command, args []string, app *application) {
-		migrateCmd.Run(cmd, []string{"up"})
+		app.migrateUp()
+
+		if app.cfg.DefaultUser {
+			ctx := context.TODO()
+			if err := app.bootstrapDefaultUser(ctx); err != nil {
+				logrus.Fatal(err)
+			}
+		}
 
 		wg := &sync.WaitGroup{}
 		wg.Add(4)

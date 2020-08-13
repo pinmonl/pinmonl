@@ -8,11 +8,17 @@ import (
 )
 
 func ListStatTree(ctx context.Context, stats *store.Stats, rootStats []*model.Stat) (model.StatList, error) {
-	children, err := stats.List(ctx, &store.StatOpts{
-		ParentIDs: model.StatList(rootStats).Keys(),
-	})
-	if err != nil {
-		return nil, err
+	var children []*model.Stat
+
+	parent := model.StatList(rootStats).GetHasChildren()
+	if len(parent) > 0 {
+		children2, err := stats.List(ctx, &store.StatOpts{
+			ParentIDs: parent.Keys(),
+		})
+		if err != nil {
+			return nil, err
+		}
+		children = children2
 	}
 
 	if len(children) > 0 {

@@ -5,10 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
-	"time"
-
-	"github.com/pinmonl/pinmonl/pkgs/pkgrepo"
 )
 
 type Client struct {
@@ -34,7 +30,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return client.Do(req)
 }
 
-func (c *Client) GetRepository(owner, repo string) (*ApiRepoResponse, error) {
+func (c *Client) GetRepository(owner, repo string) (*RepositoryResponse, error) {
 	query := `{
   repository(owner: "` + owner + `", name: "` + repo + `") {
     stargazers {
@@ -63,6 +59,10 @@ func (c *Client) GetRepository(owner, repo string) (*ApiRepoResponse, error) {
       name
       key
     }
+    fundingLinks {
+      platform
+      url
+    }
   }
 }`
 
@@ -88,7 +88,7 @@ func (c *Client) GetRepository(owner, repo string) (*ApiRepoResponse, error) {
 
 	var info struct {
 		Data struct {
-			Repo ApiRepoResponse `json:"repository"`
+			Repo RepositoryResponse `json:"repository"`
 		} `json:"data"`
 	}
 	err = json.NewDecoder(resp.Body).Decode(&info)
@@ -119,46 +119,37 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return resp, err
 }
 
-type ApiRepoResponse struct {
-	ForkCount       int                `json:"forkCount"`
-	HomepageUrl     string             `json:"homepageUrl"`
-	IsArchived      bool               `json:"isArchived"`
-	IsDisabled      bool               `json:"isDisabled"`
-	IsMirror        bool               `json:"isMirror"`
-	UpdatedAt       time.Time          `json:"updatedAt"`
-	Stargazers      ApiCountResponse   `json:"stargazers"`
-	Watchers        ApiCountResponse   `json:"watchers"`
-	Issues          ApiCountResponse   `json:"issues"`
-	PullRequests    ApiCountResponse   `json:"pullRequests"`
-	PrimaryLanguage ApiLangResponse    `json:"primaryLanguage"`
-	LicenseInfo     ApiLicenseResponse `json:"licenseInfo"`
+type RepositoryResponse struct {
+	ForkCount       int64                  `json:"forkCount"`
+	HomepageUrl     string                 `json:"homepageUrl"`
+	IsArchived      bool                   `json:"isArchived"`
+	IsDisabled      bool                   `json:"isDisabled"`
+	IsMirror        bool                   `json:"isMirror"`
+	UpdatedAt       string                 `json:"updatedAt"`
+	Stargazers      *CountResponse         `json:"stargazers"`
+	Watchers        *CountResponse         `json:"watchers"`
+	Issues          *CountResponse         `json:"issues"`
+	PullRequests    *CountResponse         `json:"pullRequests"`
+	PrimaryLanguage *PrimaryLanguage       `json:"primaryLanguage"`
+	LicenseInfo     *LicenseInfo           `json:"licenseInfo"`
+	FundingLinks    []*FundingLinkResponse `json:"fundingLinks"`
 }
 
-type ApiCountResponse struct {
-	TotalCount int `json:"totalCount"`
+type CountResponse struct {
+	TotalCount int64 `json:"totalCount"`
 }
 
-type ApiLangResponse struct {
-	Name  RepoLanguage `json:"name"`
-	Color string       `json:"color"`
+type PrimaryLanguage struct {
+	Name  string `json:"name"`
+	Color string `json:"color"`
 }
 
-type ApiLicenseResponse struct {
+type LicenseInfo struct {
 	Name string `json:"name"`
 	Key  string `json:"key"`
 }
 
-type RepoLanguage string
-
-func (rl RepoLanguage) String() string {
-	return strings.ToLower(string(rl))
-}
-
-func (rl RepoLanguage) Language() pkgrepo.Language {
-	switch rl.String() {
-	case "javascript":
-		return pkgrepo.Javascript
-	default:
-		return pkgrepo.Undefined
-	}
+type FundingLinkResponse struct {
+	Platform string `json:"platform"`
+	URL      string `json:"url"`
 }

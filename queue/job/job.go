@@ -2,10 +2,13 @@ package job
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/pinmonl/pinmonl/exchange"
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/pubsub"
 	"github.com/pinmonl/pinmonl/store"
 )
 
@@ -31,10 +34,18 @@ type Job interface {
 	Run(context.Context) ([]Job, error)
 }
 
+var (
+	ErrNoStores          = errors.New("job: stores is missing")
+	ErrNoPubsuber        = errors.New("job: pubsuber is missing")
+	ErrNoExchangeManager = errors.New("job: exchange manager is missing")
+)
+
 type CtxKey int
 
 const (
 	StoresCtxKey CtxKey = iota
+	ExchangeManagerCtxKey
+	PubsuberCtxKey
 )
 
 func WithStores(ctx context.Context, stores *store.Stores) context.Context {
@@ -47,4 +58,28 @@ func StoresFrom(ctx context.Context) *store.Stores {
 		return nil
 	}
 	return stores
+}
+
+func WithExchangeManager(ctx context.Context, exm *exchange.Manager) context.Context {
+	return context.WithValue(ctx, ExchangeManagerCtxKey, exm)
+}
+
+func ExchangeManagerFrom(ctx context.Context) *exchange.Manager {
+	exm, ok := ctx.Value(ExchangeManagerCtxKey).(*exchange.Manager)
+	if !ok {
+		return nil
+	}
+	return exm
+}
+
+func WithPubsuber(ctx context.Context, hub pubsub.Pubsuber) context.Context {
+	return context.WithValue(ctx, PubsuberCtxKey, hub)
+}
+
+func PubsuberFrom(ctx context.Context) pubsub.Pubsuber {
+	hub, ok := ctx.Value(PubsuberCtxKey).(pubsub.Pubsuber)
+	if !ok {
+		return nil
+	}
+	return hub
 }

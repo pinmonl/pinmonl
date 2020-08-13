@@ -37,15 +37,17 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	viper.SetDefault("address", ":3399")
+	viper.SetDefault("defaultuser", true)
 	viper.SetDefault("db.driver", "sqlite3")
 	viper.SetDefault("db.dsn", "client.db")
-	viper.SetDefault("exchange.address", "https://pinmonl.com")
+	viper.SetDefault("exchange.address", "https://pinmonl.io")
 	viper.SetDefault("exchange.enabled", true)
 	viper.SetDefault("jwt.expire", "24h")
 	viper.SetDefault("jwt.issuer", "pinmonl")
 	viper.SetDefault("jwt.secret", string(generateKey()))
 	viper.SetDefault("queue.job", 1)
 	viper.SetDefault("queue.worker", 1)
+	viper.SetDefault("web.devserver", "")
 
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
@@ -54,7 +56,6 @@ func initConfig() {
 
 var rootCmd = &cobra.Command{
 	Use:     "pinmonl",
-	Short:   "Pinmonl bookmark client",
-	Long:    `Pinmonl bookmark client`,
+	Short:   "Pinmonl bookmark",
 	Version: version.Version.String(),
 }

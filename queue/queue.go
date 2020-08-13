@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/pinmonl/pinmonl/database"
+	"github.com/pinmonl/pinmonl/exchange"
 	"github.com/pinmonl/pinmonl/model"
-	"github.com/pinmonl/pinmonl/model/field"
+	"github.com/pinmonl/pinmonl/pubsub"
 	"github.com/pinmonl/pinmonl/queue/job"
 	"github.com/pinmonl/pinmonl/store"
 	"github.com/sirupsen/logrus"
@@ -23,10 +24,12 @@ type Manager struct {
 	txer      database.Txer
 	errchs    map[string][]chan error
 
-	stores *store.Stores
+	stores   *store.Stores
+	exchange *exchange.Manager
+	hub      pubsub.Pubsuber
 }
 
-func NewManager(txer database.Txer, stores *store.Stores, maxJob, workerN int) (*Manager, error) {
+func NewManager(txer database.Txer, maxJob, workerN int) (*Manager, error) {
 	readyPool := make(chan chan *workerJob, workerN)
 
 	workers := make([]worker, workerN)
@@ -40,7 +43,6 @@ func NewManager(txer database.Txer, stores *store.Stores, maxJob, workerN int) (
 		queue:     make(chan *workerJob, maxJob),
 		readyPool: readyPool,
 		workers:   workers,
-		stores:    stores,
 		errchs:    make(map[string][]chan error),
 	}, nil
 }
@@ -149,6 +151,21 @@ func (m *Manager) jobKey(job job.Job) string {
 	return strings.Join(job.Describe(), "::")
 }
 
+func (m *Manager) Stores(stores *store.Stores) *Manager {
+	m.stores = stores
+	return m
+}
+
+func (m *Manager) ExchangeManager(exm *exchange.Manager) *Manager {
+	m.exchange = exm
+	return m
+}
+
+func (m *Manager) Pubsuber(hub pubsub.Pubsuber) *Manager {
+	m.hub = hub
+	return m
+}
+
 // worker is the job runner of the queue.
 type worker struct {
 	readyPool chan chan *workerJob
@@ -176,21 +193,25 @@ func (w worker) start() error {
 
 // workerJob handles the returned data after job is done.
 type workerJob struct {
-	mgr    *Manager
-	txer   database.Txer
-	stores *store.Stores
-	job    job.Job
-	record *model.Job
-	done   chan error
+	mgr      *Manager
+	txer     database.Txer
+	stores   *store.Stores
+	exchange *exchange.Manager
+	hub      pubsub.Pubsuber
+	job      job.Job
+	record   *model.Job
+	done     chan error
 }
 
 func newWorkerJob(mgr *Manager, job job.Job) *workerJob {
 	return &workerJob{
-		mgr:    mgr,
-		txer:   mgr.txer,
-		stores: mgr.stores,
-		job:    job,
-		done:   make(chan error, 1),
+		mgr:      mgr,
+		txer:     mgr.txer,
+		stores:   mgr.stores,
+		exchange: mgr.exchange,
+		hub:      mgr.hub,
+		job:      job,
+		done:     make(chan error, 1),
 	}
 }
 
@@ -203,10 +224,15 @@ func (w *workerJob) run(ctx context.Context) error {
 		nexts  []job.Job
 		outerr error
 	)
+
+	// Inject services
 	ctx = job.WithStores(ctx, w.stores)
+	ctx = job.WithExchangeManager(ctx, w.exchange)
+	ctx = job.WithPubsuber(ctx, w.hub)
 
 	if err := w.job.PreRun(ctx); err != nil {
 		w.endRecord(ctx, model.JobFailed, err.Error())
+		logrus.Debugf("queue: job err with (%s)", err)
 		return err
 	}
 
@@ -254,10 +280,10 @@ func (w *workerJob) startRecord(ctx context.Context) error {
 		record.TargetName = target.MorphName()
 	}
 
-	err := w.stores.Jobs.Create(ctx, record)
-	if err != nil {
-		return err
-	}
+	// err := w.stores.Jobs.Create(ctx, record)
+	// if err != nil {
+	// 	return err
+	// }
 	w.record = record
 	return nil
 }
@@ -268,14 +294,14 @@ func (w *workerJob) endRecord(ctx context.Context, status model.JobStatus, messa
 	}
 
 	record := *w.record
-	record.Status = status
-	record.Message = message
-	record.EndedAt = field.Now()
-	err := w.stores.Jobs.Update(ctx, &record)
-	if err != nil {
-		w.done <- err
-		return err
-	}
+	// record.Status = status
+	// record.Message = message
+	// record.EndedAt = field.Now()
+	// err := w.stores.Jobs.Update(ctx, &record)
+	// if err != nil {
+	// 	w.done <- err
+	// 	return err
+	// }
 	w.done <- nil
 	w.record = &record
 	return nil

@@ -7,6 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Client struct {
@@ -120,42 +122,24 @@ func (c *Client) SharingTagList(user, slug string, opts *TagListOpts) ([]*Tag, e
 	return out, err
 }
 
-func (c *Client) Pkg(rawurl string) (*Pkg, error) {
-	dest := fmt.Sprintf("%s/api/pkg/%s", c.addr, rawurl)
-	var out *Pkg
-	_, err := c.get(dest, &out)
-	return out, err
-}
-
-func (c *Client) PkgList(rawurl string, opts *PkgListOpts) ([]*Pkg, error) {
-	dest := fmt.Sprintf("%s/api/pkgs/%s", c.addr, rawurl)
+func (c *Client) PkgList(opts *PkgListOpts) (*MonpkgListResponse, error) {
+	dest := fmt.Sprintf("%s/api/pkg", c.addr)
 	if opts != nil {
 		dest += "?" + opts.Encode()
 	}
 
-	var out []*Pkg
+	var out *MonpkgListResponse
 	_, err := c.get(dest, &out)
 	return out, err
 }
 
-func (c *Client) StatList(rawurl string, opts *StatListOpts) ([]*Stat, error) {
-	dest := fmt.Sprintf("%s/api/stat/%s", c.addr, rawurl)
+func (c *Client) StatList(opts *StatListOpts) (*StatListResponse, error) {
+	dest := fmt.Sprintf("%s/api/stat", c.addr)
 	if opts != nil {
 		dest += "?" + opts.Encode()
 	}
 
-	var out []*Stat
-	_, err := c.get(dest, &out)
-	return out, err
-}
-
-func (c *Client) StatLatestList(rawurl string, opts *StatLatestListOpts) ([]*Stat, error) {
-	dest := fmt.Sprintf("%s/api/stat/latest/%s", c.addr, rawurl)
-	if opts != nil {
-		dest += "?" + opts.Encode()
-	}
-
-	var out []*Stat
+	var out *StatListResponse
 	_, err := c.get(dest, &out)
 	return out, err
 }
@@ -215,6 +199,7 @@ func (c *Client) doRequest(method, rawurl string, in, out interface{}) (*http.Re
 		}
 		reqbody = bytes.NewBuffer(dec)
 	}
+	logrus.Debugf("pinmonl client: %s - %s", method, rawurl)
 	req, err := http.NewRequest(method, rawurl, reqbody)
 	if err != nil {
 		return nil, err

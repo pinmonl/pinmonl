@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import { mapState } from 'vuex'
+import { mapState, mapGetters } from 'vuex'
 import * as auth from '@/utils/auth'
 
 export default {
@@ -15,6 +15,7 @@ export default {
   },
   computed: {
     ...mapState(['client']),
+    ...mapGetters(['isAuthed']),
   },
   methods: {
     async refreshToken () {
@@ -23,6 +24,13 @@ export default {
         auth.save(res)
       } catch (e) {
         //
+      }
+    },
+  },
+  watch: {
+    isAuthed (val) {
+      if (val) {
+        this.$router.replace('/')
       }
     },
   },

@@ -45,18 +45,20 @@ func ParseTagQuery(r *http.Request) (*TagQuery, error) {
 }
 
 type StatQuery struct {
-	PkgIDs []string
-	Kind   field.NullValue
-	Latest field.NullBool
+	PkgIDs    []string
+	Kinds     []model.StatKind
+	Latest    field.NullBool
+	ParentIDs []string
 }
 
 func ParseStatQuery(r *http.Request) (*StatQuery, error) {
 	query := StatQuery{
-		PkgIDs: QueryCsv(r, "pkg"),
-		Latest: QueryBool(r, "latest"),
+		PkgIDs:    QueryCsv(r, "pkg"),
+		Latest:    QueryBool(r, "latest"),
+		ParentIDs: QueryCsv(r, "parent"),
 	}
-	if kindq := r.URL.Query().Get("kind"); kindq != "" {
-		query.Kind = field.NewNullValue(model.StatKind(kindq))
+	for _, kindstr := range QueryCsv(r, "kind") {
+		query.Kinds = append(query.Kinds, model.StatKind(kindstr))
 	}
 	return &query, nil
 }

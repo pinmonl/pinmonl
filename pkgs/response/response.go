@@ -42,9 +42,9 @@ type PageInfo struct {
 	PageSize   int64 `json:"pageSize"`
 }
 
-func ListJSON(w http.ResponseWriter, v interface{}, info PageInfo, code int) error {
+func ListJSON(w http.ResponseWriter, v interface{}, info *PageInfo, code int) error {
 	body := struct {
-		PageInfo
+		*PageInfo
 		Data interface{} `json:"data"`
 	}{info, v}
 	return JSON(w, body, code)

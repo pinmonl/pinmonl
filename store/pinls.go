@@ -33,6 +33,12 @@ type PinlOpts struct {
 	Orders []PinlOrder
 }
 
+type PinlOrder int
+
+const (
+	PinlOrderByLatest PinlOrder = iota
+)
+
 func NewPinls(s *Store) *Pinls {
 	return &Pinls{s}
 }
@@ -71,9 +77,12 @@ func (p *Pinls) Count(ctx context.Context, opts *PinlOpts) (int64, error) {
 		opts = &PinlOpts{}
 	}
 
+	o2 := *opts
+	o2.Orders = nil
+
 	qb := p.RunnableBuilder(ctx).
 		Select("count(*)").From(p.table())
-	qb = p.bindOpts(qb, opts)
+	qb = p.bindOpts(qb, &o2)
 	row := qb.QueryRow()
 	var count int64
 	err := row.Scan(&count)
@@ -315,9 +324,3 @@ func (p *Pinls) Delete(ctx context.Context, id string) (int64, error) {
 	}
 	return res.RowsAffected()
 }
-
-type PinlOrder int
-
-const (
-	PinlOrderByLatest PinlOrder = iota
-)

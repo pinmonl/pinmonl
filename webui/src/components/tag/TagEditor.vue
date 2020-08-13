@@ -25,7 +25,7 @@
         <v-btn text :disabled="loading" @click="$emit('update:show', false)">
           Cancel
         </v-btn>
-        <v-btn text color="error" @click="remove">
+        <v-btn text color="error" @click="remove" v-if="!isNew">
           Delete
         </v-btn>
         <v-spacer></v-spacer>

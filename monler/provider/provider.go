@@ -28,11 +28,8 @@ type Repo interface {
 	// Analyze creates Report.
 	Analyze() (Report, error)
 
-	// Derived creates other Reports which is derived from primary report.
-	Derived() ([]Report, error)
-
-	// Skipped reports the monler providers that should be skipped.
-	Skipped() []string
+	// Derived returns urls which are related.
+	Derived() ([]string, error)
 
 	// Close closes and frees up resources.
 	Close() error

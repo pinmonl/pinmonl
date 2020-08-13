@@ -189,7 +189,7 @@ func (s Sharepins) bindOpts(b squirrel.SelectBuilder, opts *SharepinOpts) squirr
 	}
 
 	if opts.joinPinls {
-		b = b.LeftJoin(fmt.Sprintf("%s ON %[1]s.id = %s.pinl_id", Pinls{}.table(), s.table()))
+		b = b.Join(fmt.Sprintf("%s ON %[1]s.id = %s.pinl_id", Pinls{}.table(), s.table()))
 	}
 
 	return b

@@ -21,6 +21,10 @@ type config struct {
 		DSN    string
 	}
 
+	Git struct {
+		Dev bool
+	}
+
 	Github struct {
 		Tokens []string
 	}
@@ -28,6 +32,10 @@ type config struct {
 	Queue struct {
 		Job    int
 		Worker int
+	}
+
+	Youtube struct {
+		Tokens []string
 	}
 }
 

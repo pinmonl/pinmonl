@@ -16,13 +16,21 @@ type Stats struct {
 
 type StatOpts struct {
 	ListOpts
-	PkgIDs    []string
-	ParentIDs []string
-	Kind      field.NullValue
-	IsLatest  field.NullBool
+	PkgIDs        []string
+	ParentIDs     []string
+	Kind          field.NullValue
+	IsLatest      field.NullBool
+	Kinds         []model.StatKind
+	KindsExcluded []model.StatKind
 
 	Orders []StatOrder
 }
+
+type StatOrder int
+
+const (
+	StatOrderByRecordDesc StatOrder = iota
+)
 
 func NewStats(s *Store) *Stats {
 	return &Stats{s}
@@ -62,9 +70,12 @@ func (s *Stats) Count(ctx context.Context, opts *StatOpts) (int64, error) {
 		opts = &StatOpts{}
 	}
 
+	o2 := *opts
+	o2.Orders = nil
+
 	qb := s.RunnableBuilder(ctx).
 		Select("count(*)").From(s.table())
-	qb = s.bindOpts(qb, opts)
+	qb = s.bindOpts(qb, &o2)
 	row := qb.QueryRow()
 	var count int64
 	err := row.Scan(&count)
@@ -124,8 +135,15 @@ func (s Stats) bindOpts(b squirrel.SelectBuilder, opts *StatOpts) squirrel.Selec
 
 	if opts.Kind.Valid {
 		if k, ok := opts.Kind.Value().(model.StatKind); ok {
-			b = b.Where("kind = ?", k)
+			opts.Kinds = append(opts.Kinds, k)
 		}
+	}
+	if len(opts.Kinds) > 0 {
+		b = b.Where(squirrel.Eq{"kind": opts.Kinds})
+	}
+
+	if len(opts.KindsExcluded) > 0 {
+		b = b.Where(squirrel.NotEq{"kind": opts.KindsExcluded})
 	}
 
 	if opts.IsLatest.Valid {
@@ -149,6 +167,7 @@ func (s Stats) columns() []string {
 		s.table() + ".parent_id",
 		s.table() + ".recorded_at",
 		s.table() + ".kind",
+		s.table() + ".name",
 		s.table() + ".value",
 		s.table() + ".value_type",
 		s.table() + ".checksum",
@@ -165,6 +184,7 @@ func (s Stats) scanColumns(stat *model.Stat) []interface{} {
 		&stat.ParentID,
 		&stat.RecordedAt,
 		&stat.Kind,
+		&stat.Name,
 		&stat.Value,
 		&stat.ValueType,
 		&stat.Checksum,
@@ -195,6 +215,7 @@ func (s *Stats) Create(ctx context.Context, stat *model.Stat) error {
 			"parent_id",
 			"recorded_at",
 			"kind",
+			"name",
 			"value",
 			"value_type",
 			"checksum",
@@ -207,6 +228,7 @@ func (s *Stats) Create(ctx context.Context, stat *model.Stat) error {
 			stat2.ParentID,
 			stat2.RecordedAt,
 			stat2.Kind,
+			stat2.Name,
 			stat2.Value,
 			stat2.ValueType,
 			stat2.Checksum,
@@ -230,6 +252,7 @@ func (s *Stats) Update(ctx context.Context, stat *model.Stat) error {
 		Set("parent_id", stat2.ParentID).
 		Set("recorded_at", stat2.RecordedAt).
 		Set("kind", stat2.Kind).
+		Set("name", stat2.Name).
 		Set("value", stat2.Value).
 		Set("value_type", stat2.ValueType).
 		Set("checksum", stat2.Checksum).
@@ -255,9 +278,3 @@ func (s *Stats) Delete(ctx context.Context, id string) (int64, error) {
 	}
 	return res.RowsAffected()
 }
-
-type StatOrder int
-
-const (
-	StatOrderByRecordDesc StatOrder = iota
-)

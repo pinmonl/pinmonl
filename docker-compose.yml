@@ -8,9 +8,9 @@ services:
     command: tail -f /dev/null
     volumes:
       - .:/go/src/github.com/pinmonl/pinmonl
-      - /tmp/gomod/:/go/pkg/mod/
     ports:
       - 3399:3399
+      - 8080:8080
   node:
     build:
       context: .

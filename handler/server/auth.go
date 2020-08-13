@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/model/field"
@@ -67,6 +68,10 @@ func (s *Server) loginHandler(w http.ResponseWriter, r *http.Request) {
 		user, err = s.Users.FindLogin(ctx, in.Login)
 		if err != nil {
 			outerr, code = err, http.StatusBadRequest
+			return false
+		}
+		if user == nil {
+			code = http.StatusBadRequest
 			return false
 		}
 		err = passwd.CompareString(user.Password, in.Password)
@@ -180,7 +185,8 @@ func (s *Server) aliveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type tokenResponse struct {
-	Token string `json:"token"`
+	Token    string    `json:"token"`
+	ExpireAt time.Time `json:"expireAt"`
 }
 
 func (s *Server) printToken(w http.ResponseWriter, user *model.User) error {
@@ -189,6 +195,7 @@ func (s *Server) printToken(w http.ResponseWriter, user *model.User) error {
 		return response.JSON(w, err, http.StatusInternalServerError)
 	}
 	return response.JSON(w, tokenResponse{
-		Token: token,
+		Token:    token,
+		ExpireAt: time.Now().Add(s.TokenExpire),
 	}, http.StatusOK)
 }

@@ -193,7 +193,7 @@ func (s Sharetags) bindOpts(b squirrel.SelectBuilder, opts *SharetagOpts) squirr
 	}
 
 	if opts.joinTags {
-		b = b.LeftJoin(fmt.Sprintf("%s ON %[1]s.id = %s.tag_id", Tags{}.table(), s.table()))
+		b = b.Join(fmt.Sprintf("%s ON %[1]s.id = %s.tag_id", Tags{}.table(), s.table()))
 	}
 
 	return b

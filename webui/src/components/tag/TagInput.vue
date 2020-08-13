@@ -50,6 +50,13 @@
             </v-list-item-title>
           </v-list-item-content>
         </v-list-item>
+        <v-list-item v-if="isCreatable">
+          <v-list-item-content>
+            <v-list-item-title>
+              Create <tag-chip :tag="stripInputValue"></tag-chip>
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
       </v-list>
     </v-menu>
   </div>
@@ -131,8 +138,20 @@ export default {
       return this.isFocused || !this.isEmpty
     },
     menuCanShow () {
-      return this.tags.length > 0
+      return this.tags.length > 0 || this.isCreatable
     },
+    isDirty () {
+      return this.inputValue.length > 0
+    },
+    hasExactMatch () {
+      return this.tags.filter(tag => tag == this.stripInputValue).length > 0
+    },
+    isCreatable () {
+      return this.isDirty && !this.hasExactMatch
+    },
+    stripInputValue () {
+      return this.inputValue.replace(/^\/+/, '')
+    }
   },
   methods: {
     focus () {
@@ -223,11 +242,11 @@ export default {
         return
       }
       // Stop if inside $el.
-      if (this.$el.contains(e.target)) {
+      if (this.$el && this.$el.contains(e.target)) {
         return
       }
       // Stop if inside menu.
-      if (this.$refs.menu && this.$refs.menu.$refs.content.contains(e.target)) {
+      if (this.$refs.menu && this.$refs.menu.$refs.content && this.$refs.menu.$refs.content.contains(e.target)) {
         return
       }
       this.blur()
@@ -247,7 +266,7 @@ export default {
     },
     onEnter () {
       // Toggle tag.
-      if (!this.isEmptyList) {
+      if (!this.isEmptyList && !this.isCreatable) {
         let tag = this.tags[this.selectIndex]
         if (!tag) {
           tag = this.tags[0]

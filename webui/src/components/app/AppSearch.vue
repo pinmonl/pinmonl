@@ -396,7 +396,7 @@ export default {
         this.debounceFetchData()
       }
     },
-    '$route.path' () {
+    '$route' () {
       this.restoreSearchParams()
     },
   },

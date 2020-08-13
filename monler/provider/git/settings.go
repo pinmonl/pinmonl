@@ -8,6 +8,8 @@ import (
 )
 
 var (
+	IsDev = false
+
 	TempDir  = ""
 	CloneDir = "monler/git"
 

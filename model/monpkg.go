@@ -12,6 +12,11 @@ type Monpkg struct {
 
 type MonpkgKind int
 
+const (
+	MonpkgDirect MonpkgKind = iota
+	MonpkgDerived
+)
+
 type MonpkgList []*Monpkg
 
 func (ml MonpkgList) Pkgs() PkgList {

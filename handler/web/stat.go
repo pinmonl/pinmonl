@@ -23,7 +23,7 @@ func (s *Server) statListHandler(w http.ResponseWriter, r *http.Request) {
 
 	opts := &store.StatOpts{
 		ListOpts: pg.ToOpts(),
-		Kind:     query.Kind,
+		Kinds:    query.Kinds,
 		IsLatest: query.Latest,
 	}
 	if len(query.PkgIDs) > 0 {

@@ -10,6 +10,12 @@ type config struct {
 	Address string
 	Verbose int
 
+	DefaultUser bool
+
+	Web struct {
+		DevServer string
+	}
+
 	JWT struct {
 		Secret string
 		Issuer string

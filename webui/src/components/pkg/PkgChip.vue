@@ -1,5 +1,5 @@
 <template>
-  <v-chip small outlined :class="pkgClasses">
+  <v-chip small outlined :class="pkgClasses" v-if="provider">
     <v-avatar :left="!iconOnly">
       <v-icon small>{{ provider.icon }}</v-icon>
     </v-avatar>
@@ -25,7 +25,7 @@ export default {
     },
     latestTag () {
       const tag = this.pkg.stats.find(stat => stat.kind == 'tag')
-      if (!tag && !tag.isLatest) {
+      if (!tag || !tag.isLatest) {
         return
       }
       return tag.value

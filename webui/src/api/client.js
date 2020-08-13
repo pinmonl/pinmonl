@@ -138,7 +138,7 @@ class Client {
 
   // Crawl card information of url.
   async card(url) {
-    return this.doJson(`/api/card/${url}`)
+    return this.doJson(`/api/card${encodeQuery({ url })}`)
   }
 
   // Upload image to the target.

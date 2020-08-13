@@ -6,7 +6,7 @@ import (
 
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/pkgs/monlutils"
-	"github.com/pinmonl/pinmonl/store"
+	"github.com/pinmonl/pinmonl/store/storeutils"
 )
 
 // PinlUpdated defines the job whenever a pinl is created or updated.
@@ -61,19 +61,13 @@ func (p *PinlUpdated) Run(ctx context.Context) ([]Job, error) {
 	if err != nil {
 		return nil, err
 	}
-	found, err := stores.Monls.List(ctx, &store.MonlOpts{URL: url.String()})
+
+	monl, isNew, err := storeutils.FindOrCreateMonl(ctx, stores.Monls, url.String())
 	if err != nil {
 		return nil, err
 	}
-	if len(found) > 0 {
-		monl = found[0]
-	} else {
-		monl = &model.Monl{URL: url.String()}
-		err := stores.Monls.Create(ctx, monl)
-		if err != nil {
-			return nil, err
-		}
-		jobs = append(jobs, NewMonlCreated(monl.ID))
+	if isNew {
+		jobs = append(jobs, NewMonlCrawler(monl.ID))
 	}
 
 	pinl.MonlID = monl.ID

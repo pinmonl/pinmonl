@@ -28,13 +28,14 @@ func NewConfigs() *Configs {
 	v.BindEnv("user.login")
 	v.BindEnv("user.token")
 	v.BindEnv("user.linked.userId")
+	v.BindEnv("user.defaultUserId")
 
 	c := &Configs{
 		Mutex: &sync.Mutex{},
 		viper: v,
 	}
-	c.SetConfigName(".pmdata")
-	c.SetEnvPrefix("PMC_DATA")
+	c.SetConfigName("pmdata")
+	c.SetEnvPrefix("PMDATA")
 
 	return c
 }
@@ -86,6 +87,10 @@ func (c *Configs) GetUserLinkedUserID() string {
 	return c.viper.GetString("user.linked.userId")
 }
 
+func (c *Configs) GetUserDefaultUserID() string {
+	return c.viper.GetString("user.defaultUserId")
+}
+
 func (c *Configs) SetMachineToken(token string) {
 	c.viper.Set("machine.token", token)
 }
@@ -108,4 +113,8 @@ func (c *Configs) SetUserExpireAt(t time.Time) {
 
 func (c *Configs) SetUserLinkedUserID(userID string) {
 	c.viper.Set("user.linked.userId", userID)
+}
+
+func (c *Configs) SetUserDefaultUserID(userID string) {
+	c.viper.Set("user.defaultUserId", userID)
 }

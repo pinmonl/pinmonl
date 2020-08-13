@@ -8,6 +8,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/model/field"
 )
 
 type Monpkgs struct {
@@ -18,8 +19,10 @@ type MonpkgOpts struct {
 	ListOpts
 	MonlIDs []string
 	PkgIDs  []string
+	Kind    field.NullValue
 
-	joinPkgs bool
+	joinPkgs  bool
+	joinMonls bool
 }
 
 func NewMonpkgs(s *Store) *Monpkgs {
@@ -141,6 +144,40 @@ func (m *Monpkgs) ListWithPkg(ctx context.Context, opts *MonpkgOpts) (model.Monp
 	return list, nil
 }
 
+func (m *Monpkgs) ListWithMonl(ctx context.Context, opts *MonpkgOpts) (model.MonpkgList, error) {
+	if opts == nil {
+		opts = &MonpkgOpts{}
+	}
+	opts = opts.JoinPkgs()
+
+	qb := m.RunnableBuilder(ctx).
+		Select(m.columns()...).
+		Columns(Monls{}.columns()...).
+		From(m.table())
+	qb = m.bindOpts(qb, opts)
+	qb = addPagination(qb, opts)
+	rows, err := qb.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list := make([]*model.Monpkg, 0)
+	for rows.Next() {
+		var (
+			mmp model.Monpkg
+			mm  model.Monl
+		)
+		scanCols := append(m.scanColumns(&mmp), Monls{}.scanColumns(&mm)...)
+		err := rows.Scan(scanCols...)
+		if err != nil {
+			return nil, err
+		}
+		mmp.Monl = &mm
+		list = append(list, &mmp)
+	}
+	return list, nil
+}
+
 func (m Monpkgs) bindOpts(b squirrel.SelectBuilder, opts *MonpkgOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -154,8 +191,18 @@ func (m Monpkgs) bindOpts(b squirrel.SelectBuilder, opts *MonpkgOpts) squirrel.S
 		b = b.Where(squirrel.Eq{m.table() + ".pkg_id": opts.PkgIDs})
 	}
 
+	if opts.Kind.Valid {
+		if sv, ok := opts.Kind.Value().(model.MonpkgKind); ok {
+			b = b.Where("kind = ?", sv)
+		}
+	}
+
 	if opts.joinPkgs {
-		b = b.LeftJoin(fmt.Sprintf("%s ON %[1]s.id = %s.pkg_id", Pkgs{}.table(), m.table()))
+		b = b.Join(fmt.Sprintf("%s ON %[1]s.id = %s.pkg_id", Pkgs{}.table(), m.table()))
+	}
+
+	if opts.joinMonls {
+		b = b.Join(fmt.Sprintf("%s ON %[1]s.id = %s.monl_id", Monls{}.table(), m.table()))
 	}
 
 	return b
@@ -243,5 +290,11 @@ func (m *Monpkgs) Delete(ctx context.Context, id string) (int64, error) {
 func (o *MonpkgOpts) JoinPkgs() *MonpkgOpts {
 	o2 := *o
 	o2.joinPkgs = true
+	return &o2
+}
+
+func (o *MonpkgOpts) JoinMonls() *MonpkgOpts {
+	o2 := *o
+	o2.joinMonls = true
 	return &o2
 }

@@ -38,7 +38,8 @@
       :show.sync="showEditor"
       :value="editorValue"
       autofocus
-      @change="update"
+      @change="showEditor = false"
+      @remove="showEditor = false"
     ></pin-editor>
 
     <v-speed-dial
@@ -75,7 +76,8 @@ import PinEditor from '@/components/pin/PinEditor'
 import cloneDeep from 'lodash.clonedeep'
 import { pin as pinDefault } from '@/utils/model'
 import { mapState } from 'vuex'
-import { 
+import { Topics } from '@/utils/constants'
+import {
   mdiPlus,
   mdiBookmarkMultiple,
   mdiClose,
@@ -101,6 +103,12 @@ export default {
   },
   mounted () {
     this.fetchData()
+    this.$store.state.socket.on(Topics.PINL_UPDATED, this.onPinlUpdated)
+    this.$store.state.socket.on(Topics.PINL_DELETED, this.onPinlDeleted)
+  },
+  beforeDestroy () {
+    this.$store.state.socket.off(Topics.PINL_UPDATED, this.onPinlUpdated)
+    this.$store.state.socket.off(Topics.PINL_DELETED, this.onPinlDeleted)
   },
   computed: {
     ...mapState(['client', 'search']),
@@ -140,17 +148,52 @@ export default {
     edit (item) {
       this.editorValue = cloneDeep(item)
     },
+    findIndex (item) {
+      return this.items.findIndex(p => p.id == item.id)
+    },
     update (item) {
-      const idx = this.items.findIndex(p => p.id == item.id)
+      const idx = this.findIndex(item)
+
+      // Replace if found.
+      if (idx >= 0) {
+        this.items = [
+          ...this.items.slice(0, idx),
+          { ...this.items[idx], ...item },
+          ...this.items.slice(idx + 1),
+        ]
+        return
+      }
+
+      // Compare tags with query.
+      if (this.search.isEmpty() && item.tags.length > 0) {
+        return
+      }
+
+      const searchTags = this.search.getValues('tag')
+      const remainings = searchTags.filter(tag => !item.tags.includes(tag.replace(/^\/+|\/+$/, '')))
+      if (remainings.length > 0) {
+        return
+      }
+
+      this.items = [ item, ...this.items ]
+    },
+    remove (item) {
+      const idx = this.findIndex(item)
       if (idx < 0) {
         return
       }
+
+      // Remove if found.
       this.items = [
         ...this.items.slice(0, idx),
-        { ...this.items[idx], ...item },
         ...this.items.slice(idx + 1),
       ]
-      this.showEditor = false
+    },
+    onPinlUpdated ({ data }) {
+      this.update(data)
+    },
+    onPinlDeleted ({ data }) {
+      this.remove(data)
     },
   },
   watch: {

@@ -50,8 +50,8 @@ func (p *Paginator) ToOpts() store.ListOpts {
 	}
 }
 
-func (p *Paginator) ToPageInfo(total int64) response.PageInfo {
-	return response.PageInfo{
+func (p *Paginator) ToPageInfo(total int64) *response.PageInfo {
+	return &response.PageInfo{
 		TotalCount: total,
 		Page:       p.Page,
 		PageSize:   p.PageSize,

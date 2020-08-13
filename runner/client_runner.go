@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/pinmonl/pinmonl/exchange"
-	"github.com/pinmonl/pinmonl/pinmonl-go"
 	"github.com/pinmonl/pinmonl/queue"
 	"github.com/pinmonl/pinmonl/queue/job"
 	"github.com/pinmonl/pinmonl/store"
@@ -32,7 +31,7 @@ func (c *ClientRunner) Start() error {
 	if c.ExchangeEnabled {
 		wg.Add(1)
 		go func() {
-			c.cronExchange(ctx)
+			c.keepExchangeAlive(ctx)
 			wg.Done()
 		}()
 	}
@@ -42,12 +41,13 @@ func (c *ClientRunner) Start() error {
 }
 
 func (c *ClientRunner) bootstrap(ctx context.Context) error {
-	logrus.Debugln("runner: bootstrap")
 	if !c.ExchangeEnabled {
 		return nil
 	}
 
-	if err := c.resumePinls(ctx); err != nil {
+	logrus.Debugln("runner: bootstrap")
+
+	if err := c.resumeMonls(ctx); err != nil {
 		return err
 	}
 	if err := c.bootstrapExchangeClients(ctx); err != nil {
@@ -56,18 +56,20 @@ func (c *ClientRunner) bootstrap(ctx context.Context) error {
 	return nil
 }
 
-func (c *ClientRunner) resumePinls(ctx context.Context) error {
-	pList, err := c.Stores.Pinls.List(ctx, &store.PinlOpts{
-		MonlIDs: []string{""},
+func (c *ClientRunner) resumeMonls(ctx context.Context) error {
+	mList, err := c.Stores.Monls.List(ctx, &store.MonlOpts{
+		FetchedBefore: time.Now().Add(-1 * 8 * time.Hour),
 	})
 	if err != nil {
 		return err
 	}
 
-	for i := range pList {
-		j := job.NewDownloadPinlInfo(pList[i].ID, c.Exchange.UserClient())
-		c.Queue.Add(j)
+	logrus.Debugf("runner: resume monl n=%d", len(mList))
+
+	for i := range mList {
+		c.Queue.Add(job.NewFetchMonl(mList[i].ID))
 	}
+
 	return nil
 }
 
@@ -92,7 +94,7 @@ func (c *ClientRunner) bootstrapExchangeClients(ctx context.Context) error {
 	return nil
 }
 
-func (c *ClientRunner) cronExchange(ctx context.Context) error {
+func (c *ClientRunner) keepExchangeAlive(ctx context.Context) error {
 	ticker := time.NewTicker(24 * time.Hour)
 	defer func() {
 		ticker.Stop()
@@ -114,24 +116,24 @@ func (c *ClientRunner) cronExchange(ctx context.Context) error {
 }
 
 func (c *ClientRunner) uploadUniqueURLs(ctx context.Context) error {
-	logrus.Debugln("runner: upload unique urls")
-	monls, err := c.Stores.Monls.List(ctx, nil)
-	if err != nil {
-		return err
-	}
+	// logrus.Debugln("runner: upload unique urls")
+	// monls, err := c.Stores.Monls.List(ctx, nil)
+	// if err != nil {
+	// 	return err
+	// }
 
-	client := c.Exchange.MachineClient()
-	if err := client.PinlClear(); err != nil {
-		return err
-	}
-	for _, monl := range monls {
-		pinl := &pinmonl.Pinl{URL: monl.URL}
-		_, err := client.PinlCreate(pinl)
-		if err != nil {
-			return err
-		}
-	}
-	logrus.Debugf("runner: total of %d unique urls uploaded", len(monls))
+	// client := c.Exchange.MachineClient()
+	// if err := client.PinlClear(); err != nil {
+	// 	return err
+	// }
+	// for _, monl := range monls {
+	// 	pinl := &pinmonl.Pinl{URL: monl.URL}
+	// 	_, err := client.PinlCreate(pinl)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+	// logrus.Debugf("runner: total of %d unique urls uploaded", len(monls))
 	return nil
 }
 

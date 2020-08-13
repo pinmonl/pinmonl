@@ -5,183 +5,208 @@ import (
 	"time"
 
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/pinmonl/pinmonl/pinmonl-go"
-	"github.com/pinmonl/pinmonl/pkgs/monlutils"
 	"github.com/pinmonl/pinmonl/pkgs/pkguri"
-	"github.com/sirupsen/logrus"
+	"github.com/pinmonl/pinmonl/pubsub/message"
+	"github.com/pinmonl/pinmonl/store"
+	"github.com/pinmonl/pinmonl/store/storeutils"
 )
 
-type DownloadPinlInfo struct {
-	PinlID string
-	client *pinmonl.Client
+type FetchMonl struct {
+	MonlID string
 
-	monl     *model.Monl
-	pkgStats map[*model.Pkg][]*model.Stat
+	monl  *model.Monl
+	pkgs  map[*model.Pkg]model.MonpkgKind
+	stats map[*model.Pkg][]*model.Stat
 }
 
-func NewDownloadPinlInfo(pinlID string, client *pinmonl.Client) *DownloadPinlInfo {
-	return &DownloadPinlInfo{PinlID: pinlID, client: client}
-}
-
-func (d *DownloadPinlInfo) String() string {
-	return "download_pinl_info"
-}
-
-func (d *DownloadPinlInfo) Describe() []string {
-	return []string{
-		d.String(),
-		d.PinlID,
+func NewFetchMonl(monlID string) *FetchMonl {
+	return &FetchMonl{
+		MonlID: monlID,
 	}
 }
 
-func (d *DownloadPinlInfo) Target() model.Morphable {
-	return model.Pinl{ID: d.PinlID}
+func (f *FetchMonl) String() string {
+	return "fetch_monl"
 }
 
-func (d *DownloadPinlInfo) RunAt() time.Time {
+func (f *FetchMonl) Describe() []string {
+	return []string{
+		f.String(),
+		f.MonlID,
+	}
+}
+
+func (f *FetchMonl) Target() model.Morphable {
+	return model.Monl{ID: f.MonlID}
+}
+
+func (f *FetchMonl) RunAt() time.Time {
 	return time.Time{}
 }
 
-func (d *DownloadPinlInfo) PreRun(ctx context.Context) error {
+func (f *FetchMonl) PreRun(ctx context.Context) error {
 	stores := StoresFrom(ctx)
-	pinl, err := stores.Pinls.Find(ctx, d.PinlID)
+
+	monl, err := stores.Monls.Find(ctx, f.MonlID)
+	if err != nil {
+		return err
+	}
+	f.monl = monl
+
+	exm := ExchangeManagerFrom(ctx)
+	if exm == nil {
+		return ErrNoExchangeManager
+	}
+	client := exm.UserClient()
+
+	pOpts := &pinmonl.PkgListOpts{}
+	pOpts.URL = monl.URL
+	pOpts.Size = -1
+	pResp, err := client.PkgList(pOpts)
 	if err != nil {
 		return err
 	}
 
-	u, err := monlutils.NormalizeURL(pinl.URL)
-	if err != nil {
-		return err
-	}
-	monl, err := stores.Monls.FindURL(ctx, u.String())
-	if err != nil {
-		return err
-	}
-	if monl != nil {
-		logrus.Debugln(u.String(), "existed")
-		d.monl = monl
-		return nil
-	}
-
-	d.monl = &model.Monl{URL: u.String()}
-	data := make(map[*model.Pkg][]*model.Stat)
-	pData, err := d.client.PkgList(u.String(), nil)
-	if err != nil {
-		return err
-	}
-	for _, p := range pData {
-		pu := &pkguri.PkgURI{
-			Provider: p.Provider,
-			Host:     p.ProviderHost,
-			URI:      p.ProviderURI,
-			Proto:    p.ProviderProto,
+	f.pkgs = make(map[*model.Pkg]model.MonpkgKind)
+	f.stats = make(map[*model.Pkg][]*model.Stat)
+	for i := range pResp.Data {
+		mpsrc := pResp.Data[i]
+		pu, err := f.parseURI(mpsrc)
+		if err != nil {
+			return err
 		}
+
 		pkg, err := stores.Pkgs.FindURI(ctx, pu)
 		if err != nil {
 			return err
 		}
-		if pkg != nil {
-			data[pkg] = nil
-			continue
+		if pkg == nil {
+			pkg = &model.Pkg{}
+			if err := pkg.UnmarshalPkgURI(pu); err != nil {
+				return err
+			}
 		}
+		f.pkgs[pkg] = model.MonpkgKind(mpsrc.Kind)
 
-		sData, err := d.client.StatLatestList(pu.String(), nil)
+		sOpts := &pinmonl.StatListOpts{}
+		sOpts.Latest = field.NewNullBool(true)
+		sOpts.Pkgs = []string{mpsrc.PkgID}
+		sOpts.Size = -1
+		sResp, err := client.StatList(sOpts)
 		if err != nil {
 			return err
 		}
 
-		pkg = &model.Pkg{}
-		err = pkg.UnmarshalPkgURI(pu)
-		if err != nil {
-			return err
-		}
-
-		for _, s := range sData {
-			stat, err := d.parseStat(s)
+		stats := make([]*model.Stat, len(sResp.Data))
+		for j := range sResp.Data {
+			ssrc := sResp.Data[j]
+			stat, err := f.parseStat(ssrc)
 			if err != nil {
 				return err
 			}
-			data[pkg] = append(data[pkg], stat)
+			stats[j] = stat
 		}
+		f.stats[pkg] = stats
 	}
-	d.pkgStats = data
+
 	return nil
 }
 
-func (d *DownloadPinlInfo) parseStat(src *pinmonl.Stat) (*model.Stat, error) {
-	stat := &model.Stat{
-		RecordedAt: src.RecordedAt,
-		Kind:       src.Kind,
-		Value:      src.Value,
-		Checksum:   src.Checksum,
-		IsLatest:   src.IsLatest,
-	}
-	for _, subsrc := range src.Substats {
-		substat, err := d.parseStat(subsrc)
-		if err != nil {
-			return nil, err
-		}
-		*stat.Substats = append(*stat.Substats, substat)
-	}
-	return stat, nil
-}
-
-func (d *DownloadPinlInfo) Run(ctx context.Context) ([]Job, error) {
+func (f *FetchMonl) Run(ctx context.Context) ([]Job, error) {
 	stores := StoresFrom(ctx)
-	var err error
 
-	if d.monl.ID == "" {
-		err = stores.Monls.Create(ctx, d.monl)
+	hub := PubsuberFrom(ctx)
+	if hub == nil {
+		return nil, ErrNoPubsuber
+	}
+
+	monl := f.monl
+	monl.FetchedAt = field.Now()
+	if err := stores.Monls.Update(ctx, monl); err != nil {
+		return nil, err
+	}
+
+	for pkg, kind := range f.pkgs {
+		var err error
+		pkg.FetchedAt = field.Now()
+		if pkg.ID == "" {
+			err = stores.Pkgs.Create(ctx, pkg)
+		} else {
+			err = stores.Pkgs.Update(ctx, pkg)
+		}
 		if err != nil {
 			return nil, err
 		}
 
-		for pkg, stats := range d.pkgStats {
-			if pkg.ID == "" {
-				err = stores.Pkgs.Create(ctx, pkg)
-				if err != nil {
-					return nil, err
-				}
-			}
+		monpkg, err := stores.Monpkgs.FindOrCreate(ctx, &model.Monpkg{
+			MonlID: monl.ID,
+			PkgID:  pkg.ID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		monpkg.Kind = kind
+		if err := stores.Monpkgs.Update(ctx, monpkg); err != nil {
+			return nil, err
+		}
 
-			_, err = stores.Monpkgs.FindOrCreate(ctx, &model.Monpkg{
-				MonlID: d.monl.ID,
-				PkgID:  pkg.ID,
-			})
-			if err != nil {
+		prevStats, err := stores.Stats.List(ctx, &store.StatOpts{
+			PkgIDs: []string{pkg.ID},
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, prevStat := range prevStats {
+			if _, err := stores.Stats.Delete(ctx, prevStat.ID); err != nil {
 				return nil, err
 			}
+		}
 
-			for _, stat := range stats {
-				stat.PkgID = pkg.ID
-				err = stores.Stats.Create(ctx, stat)
-				if err != nil {
-					return nil, err
-				}
+		for i := range f.stats[pkg] {
+			stat := f.stats[pkg][i]
+			stat.PkgID = pkg.ID
+			if err := stores.Stats.Create(ctx, stat); err != nil {
+				return nil, err
 			}
 		}
 	}
 
-	// Checks if the url of the pinl is still the same.
-	pinl, err := stores.Pinls.Find(ctx, d.PinlID)
+	pinls, err := storeutils.ListPinlsWithLatestStats(ctx, stores.Pinls, stores.Monpkgs, stores.Stats, stores.Taggables, &store.PinlOpts{
+		MonlIDs: []string{monl.ID},
+	})
 	if err != nil {
 		return nil, err
 	}
-	u, err := monlutils.NormalizeURL(pinl.URL)
-	if err != nil {
-		return nil, err
-	}
-	if u.String() != d.monl.URL {
-		return nil, nil
+	for i := range pinls {
+		hub.Broadcast(message.NewPinlUpdated(pinls[i]))
 	}
 
-	// Associate to monl if the url is unchanged.
-	pinl.MonlID = d.monl.ID
-	err = stores.Pinls.Update(ctx, pinl)
-	if err != nil {
-		return nil, err
-	}
 	return nil, nil
 }
 
-var _ Job = &DownloadPinlInfo{}
+func (f *FetchMonl) parseURI(src *pinmonl.Monpkg) (*pkguri.PkgURI, error) {
+	psrc := src.Pkg
+	return &pkguri.PkgURI{
+		Provider: psrc.Provider,
+		Host:     psrc.ProviderHost,
+		URI:      psrc.ProviderURI,
+		Proto:    psrc.ProviderProto,
+	}, nil
+}
+
+func (f *FetchMonl) parseStat(src *pinmonl.Stat) (*model.Stat, error) {
+	return &model.Stat{
+		RecordedAt:  src.RecordedAt,
+		Kind:        model.StatKind(src.Kind),
+		Value:       src.Value,
+		ValueType:   model.StatValueType(src.ValueType),
+		Checksum:    src.Checksum,
+		Weight:      src.Weight,
+		IsLatest:    src.IsLatest,
+		HasChildren: src.HasChildren,
+	}, nil
+}
+
+var _ Job = &FetchMonl{}

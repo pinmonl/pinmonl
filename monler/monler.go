@@ -2,6 +2,7 @@ package monler
 
 import (
 	"errors"
+	"net/url"
 
 	"github.com/pinmonl/pinmonl/monler/provider"
 	"github.com/pinmonl/pinmonl/pkgs/pkguri"
@@ -26,6 +27,13 @@ func Providers() []string {
 		list = append(list, name)
 	}
 	return list
+}
+
+func Has(providerName string) bool {
+	if _, has := providers[providerName]; has {
+		return true
+	}
+	return false
 }
 
 func Open(providerName, url string) (provider.Repo, error) {
@@ -80,4 +88,12 @@ func GuessWithout(excluded []string, url string) ([]provider.Repo, error) {
 		repos = append(repos, repo)
 	}
 	return repos, nil
+}
+
+func IsMonler(rawurl string) bool {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return false
+	}
+	return Has(u.Scheme)
 }

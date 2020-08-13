@@ -7,19 +7,14 @@
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title>Pinmonl</title>
 
-    <% if (process.env.NODE_ENV == 'production') { %>
     <script>
-      window.Pinmonl = {
-        baseURL: "{{ .Json }}",
+      var Pinmonl = {
+        "baseURL": "{{ .BaseURL }}",
+        "basePrefix": "{{ .BasePrefix }}",
+        "defaultUser": {{ .DefaultUser }},
+        "exchangeEnabled": {{ .ExchangeEnabled }},
       };
     </script>
-    <% } else { %>
-    <script>
-      window.Pinmonl = {
-        baseURL: '',
-      };
-    </script>
-    <% } %>
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900">
   </head>

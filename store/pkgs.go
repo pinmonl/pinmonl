@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -16,9 +17,10 @@ type Pkgs struct {
 
 type PkgOpts struct {
 	ListOpts
-	Provider     string
-	ProviderHost string
-	ProviderURI  string
+	Provider      string
+	ProviderHost  string
+	ProviderURI   string
+	FetchedBefore time.Time
 }
 
 func NewPkgs(s *Store) *Pkgs {
@@ -118,6 +120,10 @@ func (p Pkgs) bindOpts(b squirrel.SelectBuilder, opts *PkgOpts) squirrel.SelectB
 
 	if opts.ProviderURI != "" {
 		b = b.Where("provider_uri = ?", opts.ProviderURI)
+	}
+
+	if !opts.FetchedBefore.IsZero() {
+		b = b.Where("(fetched_at <= ? OR fetched_at IS NULL)", opts.FetchedBefore)
 	}
 
 	return b

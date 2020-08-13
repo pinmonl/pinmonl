@@ -22,7 +22,18 @@ var (
 
 // authenticate binds request user into context.
 func (s *Server) authenticate() func(http.Handler) http.Handler {
-	return request.Authenticate(s.TokenSecret, s.Users)
+	if !s.hasDefaultUser() {
+		return request.Authenticate(s.TokenSecret, s.Users)
+	}
+
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			ctx = request.WithAuthed(ctx, s.defaultUser())
+			next.ServeHTTP(w, r.WithContext(ctx))
+		}
+		return http.HandlerFunc(fn)
+	}
 }
 
 // authorize checks the request is from a valid user.

@@ -4,20 +4,20 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/pinmonl/pinmonl/model"
 	"github.com/pinmonl/pinmonl/model/field"
 	"github.com/pinmonl/pinmonl/monler/provider"
 	"github.com/pinmonl/pinmonl/monler/provider/git"
-	"github.com/pinmonl/pinmonl/monler/provider/git/gitderive"
-	"github.com/pinmonl/pinmonl/pkgs/pkgrepo"
+	"github.com/pinmonl/pinmonl/pkgs/pkgdata"
 	"github.com/pinmonl/pinmonl/pkgs/pkguri"
 	"github.com/sirupsen/logrus"
 )
 
 // Github settings.
 var (
-	DefaultHost = pkguri.GithubHost
+	DefaultHost = pkgdata.GithubHost
 )
 
 // Errors.
@@ -42,7 +42,7 @@ func NewProviderWithTokens(tokens *TokenStore) (*Provider, error) {
 }
 
 func (p *Provider) ProviderName() string {
-	return pkguri.GithubProvider
+	return pkgdata.GithubProvider
 }
 
 func (p *Provider) Open(rawurl string) (provider.Repo, error) {
@@ -56,9 +56,6 @@ func (p *Provider) Open(rawurl string) (provider.Repo, error) {
 func (p *Provider) Parse(uri string) (provider.Repo, error) {
 	pu, err := pkguri.NewFromURI(uri)
 	if err != nil {
-		return nil, err
-	}
-	if pu.Provider != pkguri.GithubProvider {
 		return nil, err
 	}
 	return p.open(pu)
@@ -98,6 +95,8 @@ func newRepo(pu *pkguri.PkgURI, tokens *TokenStore) (*Repo, error) {
 		return nil, err
 	}
 
+	logrus.Debugf("github: report created %s", pu)
+
 	return &Repo{
 		pu:      pu,
 		tokens:  tokens,
@@ -115,34 +114,31 @@ func (r *Repo) analyze() (*Report, error) {
 		return nil, err
 	}
 
+	logrus.Debugf("github: report analyzed %s", r.pu)
+
 	client := &Client{tokens: r.tokens}
 	report, err := newReport(r.pu, client, gitReport)
 	r.lastReport = report
 	return report, err
 }
 
-func (r *Repo) Derived() ([]provider.Report, error) {
+func (r *Repo) Derived() ([]string, error) {
 	if r.lastReport == nil {
-		report, err := r.analyze()
-		if err != nil {
+		if _, err := r.analyze(); err != nil {
 			return nil, err
 		}
-		r.lastReport = report
 	}
 
-	derived := gitderive.New(r.gitRepo)
-	primLang := r.lastReport.PrimaryLanguage()
-	logrus.Debugf("github: repo's primary language is %q", primLang)
-
-	if primLang == pkgrepo.Javascript {
-		derived.AddNpm()
+	derived, err := r.gitRepo.Derived()
+	if err != nil {
+		return nil, err
 	}
 
-	return derived.Reports(), nil
-}
+	if pu, err := r.lastReport.URI(); err == nil {
+		derived = append(derived, pkguri.ToURL(pu))
+	}
 
-func (r *Repo) Skipped() []string {
-	return []string{pkguri.GitProvider}
+	return derived, nil
 }
 
 func (r *Repo) Close() error {
@@ -157,61 +153,88 @@ func (r *Repo) Close() error {
 type Report struct {
 	*pkguri.PkgURI
 	stats     []*model.Stat
-	repoInfo  *ApiRepoResponse
+	repoInfo  *RepositoryResponse
 	gitReport provider.Report
 }
 
 func newReport(pu *pkguri.PkgURI, client *Client, gitReport provider.Report) (*Report, error) {
-	res, err := client.GetRepository(pu.Namespace(), pu.RepoName())
+	resp, err := client.GetRepository(pu.Namespace(), pu.RepoName())
 	if err != nil {
 		return nil, err
 	}
 
 	now := field.Now()
-	stats := make([]*model.Stat, 0)
-	stats = append(stats,
+	stats := []*model.Stat{
 		&model.Stat{
-			Kind:       model.ForkStat,
-			Value:      strconv.Itoa(res.ForkCount),
+			Kind:       model.ForkCountStat,
+			Value:      strconv.FormatInt(resp.ForkCount, 10),
 			RecordedAt: now,
 			IsLatest:   true,
 		},
-		&model.Stat{
-			Kind:       model.StarStat,
-			Value:      strconv.Itoa(res.Stargazers.TotalCount),
+	}
+
+	if resp.Stargazers != nil {
+		stats = append(stats, &model.Stat{
+			Kind:       model.StarCountStat,
+			Value:      strconv.FormatInt(resp.Stargazers.TotalCount, 10),
 			RecordedAt: now,
 			IsLatest:   true,
-		},
-		&model.Stat{
-			Kind:       model.WatcherStat,
-			Value:      strconv.Itoa(res.Watchers.TotalCount),
+		})
+	}
+	if resp.Watchers != nil {
+		stats = append(stats, &model.Stat{
+			Kind:       model.WatcherCountStat,
+			Value:      strconv.FormatInt(resp.Watchers.TotalCount, 10),
 			RecordedAt: now,
 			IsLatest:   true,
-		},
-		&model.Stat{
+		})
+	}
+	if resp.Issues != nil {
+		stats = append(stats, &model.Stat{
+			Kind:       model.OpenIssueCountStat,
+			Value:      strconv.FormatInt(resp.Issues.TotalCount, 10),
+			RecordedAt: now,
+			IsLatest:   true,
+		})
+	}
+	if resp.PrimaryLanguage != nil {
+		stats = append(stats, &model.Stat{
 			Kind:       model.LangStat,
-			Value:      res.PrimaryLanguage.Name.String(),
+			Value:      strings.ToLower(resp.PrimaryLanguage.Name),
 			RecordedAt: now,
 			IsLatest:   true,
-		},
-		&model.Stat{
-			Kind:       model.OpenIssueStat,
-			Value:      strconv.Itoa(res.Issues.TotalCount),
-			RecordedAt: now,
-			IsLatest:   true,
-		},
-		&model.Stat{
+		})
+	}
+	if resp.LicenseInfo != nil {
+		stats = append(stats, &model.Stat{
 			Kind:       model.LicenseStat,
-			Value:      res.LicenseInfo.Key,
+			Value:      strings.ToLower(resp.LicenseInfo.Key),
 			RecordedAt: now,
 			IsLatest:   true,
-		},
-	)
+		})
+	}
+
+	fundingStats := make(model.StatList, len(resp.FundingLinks))
+	for i := range resp.FundingLinks {
+		f := resp.FundingLinks[i]
+		fundingStats[i] = &model.Stat{
+			Name:       f.Platform,
+			Value:      f.URL,
+			RecordedAt: now,
+		}
+	}
+	stats = append(stats, &model.Stat{
+		Kind:       model.FundingStat,
+		Value:      strconv.Itoa(len(fundingStats)),
+		RecordedAt: now,
+		IsLatest:   true,
+		Substats:   &fundingStats,
+	})
 
 	return &Report{
 		PkgURI:    pu,
 		stats:     stats,
-		repoInfo:  res,
+		repoInfo:  resp,
 		gitReport: gitReport,
 	}, nil
 }
@@ -222,10 +245,6 @@ func (r *Report) URI() (*pkguri.PkgURI, error) {
 
 func (r *Report) Stats() ([]*model.Stat, error) {
 	return r.stats, nil
-}
-
-func (r *Report) PrimaryLanguage() pkgrepo.Language {
-	return r.repoInfo.PrimaryLanguage.Name.Language()
 }
 
 func (r *Report) Next() bool {

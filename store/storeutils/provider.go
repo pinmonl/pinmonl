@@ -14,10 +14,14 @@ func SaveProviderReport(
 	pkgs *store.Pkgs,
 	stats *store.Stats,
 	report provider.Report,
+	force bool,
 ) (*model.Pkg, model.StatList, error) {
 	pkg, err := findOrCreatePkgFromReport(ctx, pkgs, report)
 	if err != nil {
 		return nil, nil, err
+	}
+	if !force && !pkg.FetchedAt.Time().IsZero() {
+		return pkg, nil, nil
 	}
 
 	sList := model.StatList{}
@@ -40,30 +44,52 @@ func SaveProviderReport(
 	return pkg, sList, nil
 }
 
+type statKey struct {
+	kind  model.StatKind
+	name  string
+	value string
+}
+
+func getStatKey(stat *model.Stat) statKey {
+	key := statKey{
+		kind: stat.Kind,
+		name: stat.Name,
+	}
+
+	if stat.Kind == model.FundingStat {
+		key.value = stat.Value
+	}
+
+	return key
+}
+
 func saveReportStats(ctx context.Context, stats *store.Stats, pkgID string, report provider.Report) (model.StatList, error) {
+	// Set previous stats, except release kind, to expired.
+	if err := updateExpiredStats(ctx, stats, pkgID); err != nil {
+		return nil, err
+	}
+
 	rsList, err := report.Stats()
 	if err != nil {
 		return nil, err
 	}
 
+	// Save latest stats.
 	out := make([]*model.Stat, len(rsList))
-	for i := range rsList {
-		stat := *rsList[i]
-		// If stat is latest, update previous latest stats as expired.
-		if stat.IsLatest {
-			err := updateExpiredStats(ctx, stats, pkgID, &stat)
-			if err != nil {
-				return nil, err
-			}
-		}
+	for i, stat := range rsList {
 		// Save stat.
-		s2, err := saveStat(ctx, stats, pkgID, &stat)
+		stat2, err := saveStat(ctx, stats, pkgID, stat)
 		if err != nil {
 			return nil, err
 		}
-		out[i] = s2
+		out[i] = stat2
 	}
 	return out, nil
+}
+
+type reportTagKey struct {
+	kind  model.StatKind
+	value string
 }
 
 func saveReportTags(ctx context.Context, stats *store.Stats, pkgID string, report provider.Report) (model.StatList, error) {
@@ -76,45 +102,58 @@ func saveReportTags(ctx context.Context, stats *store.Stats, pkgID string, repor
 		}
 		tags = append(tags, tag)
 	}
+
 	// Get previous tags.
 	prevTags, err := stats.List(ctx, &store.StatOpts{
-		PkgIDs: []string{pkgID},
-		Kind:   field.NewNullValue(model.TagStat),
+		PkgIDs:    []string{pkgID},
+		Kinds:     model.ReleaseStatKinds,
+		ParentIDs: []string{""},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	var latest *model.Stat
-	if ts := tags.GetLatest(); len(ts) > 0 {
-		latest = ts[0]
+	prevTagSet := make(map[reportTagKey]*model.Stat)
+	for _, tag := range prevTags {
+		key := reportTagKey{kind: tag.Kind, value: tag.Value}
+		prevTagSet[key] = tag
+	}
+
+	latestKeys := make(map[reportTagKey]int)
+	for _, tag := range tags.GetLatest() {
+		key := reportTagKey{
+			kind:  tag.Kind,
+			value: tag.Value,
+		}
+		latestKeys[key]++
 	}
 
 	// Save tags.
 	out := make([]*model.Stat, len(tags))
 	for i := range tags {
-		tag := *tags[i]
-		preVals := prevTags.GetValue(tag.Value)
-		// If tag is already existed.
-		if len(preVals) > 0 {
-			tag = *preVals[0]
-			out[i] = &tag
+		deref := *tags[i]
+		tag := &deref
+		out[i] = tag
+
+		key := reportTagKey{kind: tag.Kind, value: tag.Value}
+		prevTag, has := prevTagSet[key]
+		if has {
+			tag = prevTag
 			// Skip if the previous tag is not marked as latest.
 			if !tag.IsLatest {
 				continue
 			}
 			// Skip if the previous tag is same as the latest one.
-			if tag.Value == latest.Value {
+			if _, match := latestKeys[key]; match {
 				continue
 			}
 			// Update to unset latest flag.
 			tag.IsLatest = false
 		}
-		_, err := saveStat(ctx, stats, pkgID, &tag)
+		_, err := saveStat(ctx, stats, pkgID, tag)
 		if err != nil {
 			return nil, err
 		}
-		out[i] = &tag
 	}
 	return out, nil
 }
@@ -168,11 +207,11 @@ func saveStat(ctx context.Context, stats *store.Stats, pkgID string, data *model
 	return &stat, nil
 }
 
-func updateExpiredStats(ctx context.Context, stats *store.Stats, pkgID string, stat *model.Stat) error {
+func updateExpiredStats(ctx context.Context, stats *store.Stats, pkgID string) error {
 	expired, err := stats.List(ctx, &store.StatOpts{
-		PkgIDs:   []string{pkgID},
-		Kind:     field.NewNullValue(stat.Kind),
-		IsLatest: field.NewNullBool(true),
+		PkgIDs:        []string{pkgID},
+		IsLatest:      field.NewNullBool(true),
+		KindsExcluded: model.ReleaseStatKinds,
 	})
 	if err != nil {
 		return err
@@ -180,8 +219,7 @@ func updateExpiredStats(ctx context.Context, stats *store.Stats, pkgID string, s
 
 	for _, ex := range expired {
 		ex.IsLatest = false
-		err := stats.Update(ctx, ex)
-		if err != nil {
+		if err := stats.Update(ctx, ex); err != nil {
 			return err
 		}
 	}

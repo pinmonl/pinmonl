@@ -19,27 +19,17 @@ func (l ListOpts) AppendTo(val url.Values) {
 	}
 	if l.Size > 0 {
 		val.Add("page_size", strconv.Itoa(l.Size))
+	} else if l.Size == -1 {
+		val.Add("page_size", "0")
 	}
-}
-
-type StatLatestListOpts struct {
-	ListOpts
-	Kind string
-}
-
-func (s StatLatestListOpts) Encode() string {
-	qs := url.Values{}
-	s.ListOpts.AppendTo(qs)
-	if s.Kind != "" {
-		qs.Add("kind", s.Kind)
-	}
-	return qs.Encode()
 }
 
 type StatListOpts struct {
 	ListOpts
-	Kind   string
-	Latest field.NullBool
+	Kinds   []string
+	Latest  field.NullBool
+	Parents []string
+	Pkgs    []string
 }
 
 func (s StatListOpts) Encode() string {
@@ -52,8 +42,14 @@ func (s StatListOpts) Encode() string {
 		}
 		qs.Add("latest", vl)
 	}
-	if s.Kind != "" {
-		qs.Add("kind", s.Kind)
+	if len(s.Kinds) > 0 {
+		qs.Add("kind", strings.Join(s.Kinds, ","))
+	}
+	if len(s.Parents) > 0 {
+		qs.Add("parent", strings.Join(s.Parents, ","))
+	}
+	if len(s.Pkgs) > 0 {
+		qs.Add("pkg", strings.Join(s.Pkgs, ","))
 	}
 	return qs.Encode()
 }
@@ -92,10 +88,14 @@ func (t TagListOpts) Encode() string {
 
 type PkgListOpts struct {
 	ListOpts
+	URL string
 }
 
 func (p PkgListOpts) Encode() string {
 	qs := url.Values{}
 	p.ListOpts.AppendTo(qs)
+	if p.URL != "" {
+		qs.Add("url", p.URL)
+	}
 	return qs.Encode()
 }

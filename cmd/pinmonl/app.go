@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/exchange"
 	"github.com/pinmonl/pinmonl/handler/web"
+	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/pkgs/generate"
 	"github.com/pinmonl/pinmonl/pubsub"
 	"github.com/pinmonl/pinmonl/queue"
 	"github.com/pinmonl/pinmonl/runner"
@@ -27,6 +30,24 @@ type application struct {
 	hub      pubsub.Pubsuber
 }
 
+func (a *application) bootstrapDefaultUser(ctx context.Context) error {
+	// Create default user if not found.
+	userId := a.configs.GetUserDefaultUserID()
+	if userId == "" {
+		user := model.User{Hash: generate.UserHash()}
+		if err := a.stores.Users.Create(ctx, &user); err != nil {
+			return err
+		}
+		userId = user.ID
+		a.configs.SetUserDefaultUserID(userId)
+		a.configs.Save()
+
+		a.handler = newHandler(a.cfg, a.db, a.stores, a.queue, a.exchange, a.hub, a.configs)
+	}
+
+	return nil
+}
+
 func withApp(fn func(*cobra.Command, []string, *application)) func(*cobra.Command, []string) {
 	return func(cmd *cobra.Command, args []string) {
 		cfg, err := unmarshalConfig()
@@ -37,11 +58,11 @@ func withApp(fn func(*cobra.Command, []string, *application)) func(*cobra.Comman
 		db := newDB(cfg)
 		configs := newConfigStore(cfg)
 		stores := store.NewStores(db)
-		qm := newQueue(cfg, db, stores)
 		exm := newExchange(cfg, configs)
-		runner := newRunner(cfg, stores, qm, exm)
 		hub := newPubsubHub(cfg, stores)
-		handler := newHandler(cfg, db, stores, qm, exm, hub)
+		qm := newQueue(cfg, db, stores, exm, hub)
+		runner := newRunner(cfg, stores, qm, exm)
+		handler := newHandler(cfg, db, stores, qm, exm, hub, configs)
 
 		app := &application{
 			cfg:      cfg,
@@ -90,14 +111,14 @@ func newDB(cfg *config) *database.DB {
 	return db
 }
 
-func newQueue(cfg *config, db *database.DB, stores *store.Stores) *queue.Manager {
+func newQueue(cfg *config, db *database.DB, stores *store.Stores, exm *exchange.Manager, hub pubsub.Pubsuber) *queue.Manager {
 	qm, err := queue.NewManager(
 		db,
-		stores,
 		cfg.Queue.Job,
 		cfg.Queue.Worker,
 	)
 	catchErr(err)
+	qm = qm.Stores(stores).ExchangeManager(exm).Pubsuber(hub)
 	return qm
 }
 
@@ -130,7 +151,7 @@ func newPubsubHub(cfg *config, stores *store.Stores) pubsub.Pubsuber {
 	)
 }
 
-func newHandler(cfg *config, db *database.DB, stores *store.Stores, qm *queue.Manager, exm *exchange.Manager, hub pubsub.Pubsuber) http.Handler {
+func newHandler(cfg *config, db *database.DB, stores *store.Stores, qm *queue.Manager, exm *exchange.Manager, hub pubsub.Pubsuber, configs *store.Configs) http.Handler {
 	web := &web.Server{
 		Txer:        db,
 		TokenSecret: []byte(cfg.JWT.Secret),
@@ -141,6 +162,7 @@ func newHandler(cfg *config, db *database.DB, stores *store.Stores, qm *queue.Ma
 		Pubsub:      hub,
 
 		ExchangeEnabled: cfg.Exchange.Enabled,
+		DevServer:       cfg.Web.DevServer,
 
 		Images:    stores.Images,
 		Monls:     stores.Monls,
@@ -154,6 +176,10 @@ func newHandler(cfg *config, db *database.DB, stores *store.Stores, qm *queue.Ma
 		Taggables: stores.Taggables,
 		Tags:      stores.Tags,
 		Users:     stores.Users,
+	}
+
+	if cfg.DefaultUser {
+		web.DefaultUserID = configs.GetUserDefaultUserID()
 	}
 
 	r := chi.NewRouter()

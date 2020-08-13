@@ -30,7 +30,6 @@ export default {
   computed: {
     containerClasses () {
       return {
-        'px-0': this.$vuetify.breakpoint.mobile,
       }
     },
   },

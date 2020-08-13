@@ -5,7 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
+
+	"github.com/pinmonl/pinmonl/pkgs/monlutils"
+	"github.com/pinmonl/pinmonl/pkgs/pkgdata"
 )
 
 const (
@@ -19,26 +23,6 @@ var (
 	ErrNoUnmarshaler = errors.New("pkguri: cannot be unmarshal")
 	ErrHost          = errors.New("pkguri: host not match")
 	ErrPath          = errors.New("pkguri: path not match")
-)
-
-// Provider url settings.
-var (
-	// Git.
-	GitProvider = "git"
-
-	// Npm.
-	NpmProvider     = "npm"
-	NpmHost         = "www.npmjs.com"
-	NpmPrefix       = "package"
-	NpmRegistryHost = "registry.npmjs.org"
-
-	// Github.
-	GithubProvider = "github"
-	GithubHost     = "github.com"
-
-	// Docker.
-	DockerProvider = "docker"
-	DockerHost     = "hub.docker.com"
 )
 
 // PkgURI contains
@@ -151,10 +135,10 @@ func unmarshal(pkguri string) (*PkgURI, error) {
 	}
 
 	switch pu.Provider {
-	case GitProvider:
+	case pkgdata.GitProvider:
 		pu.URI, pu.Host = pu.Host+"/"+pu.URI, ""
-	case GithubProvider:
-		if pu.Host == GithubHost {
+	case pkgdata.GithubProvider:
+		if pu.Host == pkgdata.GithubHost {
 			pu.Host = ""
 		}
 	}
@@ -195,8 +179,8 @@ func marshal(pu *PkgURI) (string, error) {
 	u.RawQuery = query.Encode()
 
 	switch pu.Provider {
-	case GithubProvider:
-		if pu.Host == GithubHost {
+	case pkgdata.GithubProvider:
+		if pu.Host == pkgdata.GithubHost {
 			u.Host = ""
 		}
 	}
@@ -204,20 +188,23 @@ func marshal(pu *PkgURI) (string, error) {
 	return u.String(), nil
 }
 
+func getProto(proto string) string {
+	if proto == "" {
+		return DefaultProto
+	}
+	return proto
+}
+
 // ParseGit parses git url to pkguri.
 func ParseGit(rawurl string) (*PkgURI, error) {
-	u, err := url.Parse(rawurl)
+	u, err := monlutils.NormalizeURL(rawurl)
 	if err != nil {
 		return nil, err
 	}
-	proto := u.Scheme
-	if proto == "" {
-		proto = DefaultProto
-	}
 	return &PkgURI{
-		Provider: GitProvider,
+		Provider: pkgdata.GitProvider,
 		URI:      u.Host + u.Path,
-		Proto:    proto,
+		Proto:    getProto(u.Scheme),
 	}, nil
 }
 
@@ -227,7 +214,7 @@ func ParseGithub(rawurl string) (*PkgURI, error) {
 	if err != nil {
 		return nil, err
 	}
-	if u.Host != "" && u.Host != GithubHost {
+	if u.Host != "" && u.Host != pkgdata.GithubHost {
 		return nil, ErrHost
 	}
 
@@ -238,15 +225,10 @@ func ParseGithub(rawurl string) (*PkgURI, error) {
 	}
 	uri := strings.Join(splits[:2], "/")
 
-	proto := u.Scheme
-	if proto == "" {
-		proto = DefaultProto
-	}
-
 	return &PkgURI{
-		Provider: GithubProvider,
+		Provider: pkgdata.GithubProvider,
 		URI:      uri,
-		Proto:    proto,
+		Proto:    getProto(u.Scheme),
 	}, nil
 }
 
@@ -256,48 +238,126 @@ func ParseNpm(rawurl string) (*PkgURI, error) {
 	if err != nil {
 		return nil, err
 	}
-	if u.Host != "" && u.Host != NpmHost {
+	if u.Host != "" && u.Host != pkgdata.NpmHost {
 		return nil, ErrHost
 	}
 
 	path := sanitizePath(u.Path)
-	if !strings.HasPrefix(path, NpmPrefix+"/") {
+	if !strings.HasPrefix(path, pkgdata.NpmPrefix+"/") {
 		return nil, ErrPath
 	}
-	uri := strings.TrimPrefix(path, NpmPrefix+"/")
+	uri := strings.TrimPrefix(path, pkgdata.NpmPrefix+"/")
 	if uri == "" {
 		return nil, ErrNoURI
 	}
 
-	proto := u.Scheme
-	if proto == "" {
-		proto = DefaultProto
+	return &PkgURI{
+		Provider: pkgdata.NpmProvider,
+		URI:      uri,
+		Proto:    getProto(u.Scheme),
+	}, nil
+}
+
+func ParseYoutube(rawurl string) (*PkgURI, error) {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, err
+	}
+	if u.Host != "" && u.Host != pkgdata.YoutubeHost {
+		return nil, ErrHost
+	}
+
+	re := regexp.MustCompile("^/(channel|c|user)/.+")
+	if !re.MatchString(u.Path) {
+		return nil, ErrPath
+	}
+	uri := ""
+	splits := strings.SplitN(sanitizePath(u.Path), "/", 3)
+	if len(splits) >= 2 {
+		uri = splits[1]
+	} else {
+		return nil, ErrNoURI
 	}
 
 	return &PkgURI{
-		Provider: NpmProvider,
+		Provider: pkgdata.YoutubeProvider,
 		URI:      uri,
-		Proto:    proto,
+		Proto:    getProto(u.Scheme),
 	}, nil
+}
+
+func IsYoutubeValidChannelId(id string) bool {
+	return regexp.MustCompile("^UC[a-zA-Z0-9-_]{22,22}").MatchString(id)
+}
+
+func ParseDocker(rawurl string) (*PkgURI, error) {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, err
+	}
+	if u.Host != "" && u.Host != pkgdata.DockerHost {
+		return nil, ErrHost
+	}
+
+	re := regexp.MustCompile("^/(r/([^/]+/[^/]+))|(_/([^/]+))")
+	if !re.MatchString(u.Path) {
+		return nil, ErrPath
+	}
+
+	uri := ""
+	if strings.HasPrefix(u.Path, "/r/") {
+		path := strings.TrimPrefix(u.Path, "/r/")
+		splits := strings.SplitN(path, "/", 3)
+		if len(splits) >= 2 {
+			uri = strings.Join(splits[0:2], "/")
+		} else {
+			return nil, ErrNoURI
+		}
+	} else {
+		path := strings.TrimPrefix(u.Path, "/_/")
+		if path == "" {
+			return nil, ErrNoURI
+		}
+		uri = fmt.Sprintf("library/%s", path)
+	}
+
+	return &PkgURI{
+		Provider: pkgdata.DockerProvider,
+		URI:      uri,
+		Proto:    getProto(u.Scheme),
+	}, nil
+}
+
+func ParseWebsite(rawurl string) (*PkgURI, error) {
+	u, err := monlutils.NormalizeURL(rawurl)
+	if err != nil {
+		return nil, err
+	}
+	return &PkgURI{
+		Provider: pkgdata.WebsiteProvider,
+		URI:      u.Host + u.Path,
+		Proto:    getProto(u.Scheme),
+	}, nil
+}
+
+func IsDockerOfficialRepository(uri string) bool {
+	return strings.HasPrefix(uri, "library/")
 }
 
 func ToURL(pu *PkgURI) string {
 	u := &url.URL{
-		Scheme: pu.Proto,
+		Scheme: getProto(pu.Proto),
 		Host:   pu.Host,
 		Path:   pu.URI,
 	}
 
-	if u.Scheme == "" {
-		u.Scheme = DefaultProto
-	}
-
 	switch pu.Provider {
-	case GithubProvider:
+	case pkgdata.GithubProvider:
 		if u.Host == "" {
-			u.Host = GithubHost
+			u.Host = pkgdata.GithubHost
 		}
-	case GitProvider:
+
+	case pkgdata.GitProvider:
 		splits := strings.Split(pu.URI, "/")
 		if len(splits) > 0 {
 			u.Host = splits[0]
@@ -305,11 +365,39 @@ func ToURL(pu *PkgURI) string {
 		if len(splits) > 1 {
 			u.Path = strings.Join(splits[1:], "/")
 		}
-	case NpmProvider:
+
+	case pkgdata.NpmProvider:
 		if u.Host == "" {
-			u.Host = NpmHost
+			u.Host = pkgdata.NpmHost
 		}
-		u.Path = fmt.Sprintf("/%s/%s", NpmPrefix, strings.Trim(u.Path, "/"))
+		u.Path = fmt.Sprintf("/%s/%s", pkgdata.NpmPrefix, pu.URI)
+
+	case pkgdata.YoutubeProvider:
+		if u.Host == "" {
+			u.Host = pkgdata.YoutubeHost
+		}
+		if IsYoutubeValidChannelId(pu.URI) {
+			u.Path = fmt.Sprintf("/channel/%s", pu.URI)
+		}
+
+	case pkgdata.DockerProvider:
+		if u.Host == "" {
+			u.Host = pkgdata.DockerHost
+		}
+		if IsDockerOfficialRepository(pu.URI) {
+			u.Path = fmt.Sprintf("/_/%s", strings.TrimPrefix(pu.URI, "library/"))
+		} else {
+			u.Path = fmt.Sprintf("/r/%s", pu.URI)
+		}
+
+	case pkgdata.WebsiteProvider:
+		splits := strings.Split(pu.URI, "/")
+		if len(splits) > 0 {
+			u.Host = splits[0]
+		}
+		if len(splits) > 1 {
+			u.Path = strings.Join(splits[1:], "/")
+		}
 	}
 
 	return u.String()

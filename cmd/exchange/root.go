@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pinmonl/pinmonl/cmd/pinmonl-server/version"
+	"github.com/pinmonl/pinmonl/cmd/exchange/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -29,19 +29,21 @@ func initConfig() {
 	} else {
 		viper.AddConfigPath(".")
 		viper.AddConfigPath("/etc/pinmonl")
-		viper.SetConfigName("server")
+		viper.SetConfigName("exchange")
 	}
 
-	viper.SetEnvPrefix("PMS")
+	viper.SetEnvPrefix("PINMONL")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
 	viper.SetDefault("address", ":8080")
-	viper.SetDefault("db.driver", "sqlite3")
-	viper.SetDefault("db.dsn", "server.db")
+	viper.SetDefault("db.driver", "postgres")
+	viper.SetDefault("db.dsn", "postgres://pinmonl:pinmonl@pg:5432/pinmonl?sslmode=disable")
+	viper.SetDefault("git.dev", false)
 	viper.SetDefault("github.tokens", []string{})
-	viper.SetDefault("jwt.expire", "24h")
-	viper.SetDefault("jwt.issuer", "pinmonl-server")
+	viper.SetDefault("youtube.tokens", []string{})
+	viper.SetDefault("jwt.expire", "168h")
+	viper.SetDefault("jwt.issuer", "pinmonl-exchange")
 	viper.SetDefault("jwt.secret", string(generateKey()))
 	viper.SetDefault("queue.job", 1)
 	viper.SetDefault("queue.worker", 1)
@@ -52,8 +54,8 @@ func initConfig() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:     "pinmonl",
-	Short:   "A bookmark monitor and share",
-	Long:    `Pinmonl lets you share bookmarks.`,
+	Use:     "pinmonl-exchange",
+	Short:   "Pinmonl exchange server",
+	Long:    `Pinmonl exchange server handles resources heavy tasks and hosts shared bookmarks.`,
 	Version: version.Version.String(),
 }

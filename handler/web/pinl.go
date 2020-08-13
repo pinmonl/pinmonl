@@ -7,6 +7,7 @@ import (
 
 	"github.com/pinmonl/pinmonl/handler/common"
 	"github.com/pinmonl/pinmonl/model"
+	"github.com/pinmonl/pinmonl/pkgs/monlutils"
 	"github.com/pinmonl/pinmonl/pkgs/pinlutils"
 	"github.com/pinmonl/pinmonl/pkgs/request"
 	"github.com/pinmonl/pinmonl/pkgs/response"
@@ -77,15 +78,72 @@ func (s *Server) pinlHandler(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, pinl2, http.StatusOK)
 }
 
+type pinlBody common.PinlBody
+
+func validatePinlBody(in pinlBody) error {
+	if in.URL == "" || !pinlutils.IsValidURL(in.URL) {
+		return errors.New("invalid url format")
+	}
+	return nil
+}
+
+func savePinl(
+	ctx context.Context,
+	pinls *store.Pinls, images *store.Images,
+	tags *store.Tags, taggables *store.Taggables,
+	monls *store.Monls, monpkgs *store.Monpkgs, stats *store.Stats,
+	pinl *model.Pinl, userId string, tagNames []string,
+) (*model.Pinl, *model.Monl, error) {
+	nurl, err := monlutils.NormalizeURL(pinl.URL)
+	if err != nil {
+		return nil, nil, err
+	}
+	found, err := monls.List(ctx, &store.MonlOpts{
+		URL: nurl.String(),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var monl *model.Monl
+	if len(found) > 0 {
+		monl = found[0]
+	} else {
+		monl = &model.Monl{URL: nurl.String()}
+		if err := monls.Create(ctx, monl); err != nil {
+			return nil, nil, err
+		}
+	}
+	pinl.MonlID = monl.ID
+
+	if out, _, err := storeutils.SavePinl(ctx, pinls, images, pinl, false); err == nil {
+		pinl = out
+	} else {
+		return nil, nil, err
+	}
+
+	if _, err = storeutils.ReAssociateTags(ctx, tags, taggables, pinl, userId, tagNames); err != nil {
+		return nil, nil, err
+	}
+
+	if out, err := storeutils.PinlWithLatestStats(ctx, pinls, monpkgs, stats, taggables, pinl.ID); err == nil {
+		pinl = out
+	} else {
+		return nil, nil, err
+	}
+
+	return pinl, monl, nil
+}
+
 func (s *Server) pinlCreateHandler(w http.ResponseWriter, r *http.Request) {
-	var in common.PinlBody
+	var in pinlBody
 	err := request.JSON(r, &in)
 	if err != nil {
 		response.JSON(w, nil, http.StatusBadRequest)
 		return
 	}
-	if in.URL == "" || !pinlutils.IsValidURL(in.URL) {
-		response.JSON(w, errors.New("invalid url format"), http.StatusBadRequest)
+	if err := validatePinlBody(in); err != nil {
+		response.JSON(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -93,6 +151,7 @@ func (s *Server) pinlCreateHandler(w http.ResponseWriter, r *http.Request) {
 		ctx    = r.Context()
 		user   = request.AuthedFrom(ctx)
 		pinl   *model.Pinl
+		monl   *model.Monl
 		code   int
 		outerr error
 	)
@@ -104,20 +163,12 @@ func (s *Server) pinlCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
-		var err error
-		pinl, _, err = storeutils.SavePinl(ctx, s.Pinls, s.Images, pinl, false)
+		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Stats, pinl, user.ID, in.Tags)
 		if err != nil {
 			outerr, code = err, http.StatusInternalServerError
 			return false
 		}
-
-		tList, err := storeutils.ReAssociateTags(ctx, s.Tags, s.Taggables, pinl, user.ID, in.Tags)
-		if err != nil {
-			outerr, code = err, http.StatusInternalServerError
-			return false
-		}
-		pinl.SetTagNames(tList)
-
+		pinl, monl = pinl2, monl2
 		return true
 	})
 
@@ -126,22 +177,22 @@ func (s *Server) pinlCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if s.ExchangeEnabled {
-		s.Queue.Add(job.NewDownloadPinlInfo(pinl.ID, s.Exchange.UserClient()))
+	if s.ExchangeEnabled && monl.FetchedAt.Time().IsZero() {
+		s.Queue.Add(job.NewFetchMonl(monl.ID))
 	}
 	s.Pubsub.Broadcast(message.NewPinlUpdated(pinl))
 	response.JSON(w, pinl, http.StatusOK)
 }
 
 func (s *Server) pinlUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	var in common.PinlBody
+	var in pinlBody
 	err := request.JSON(r, &in)
 	if err != nil {
 		response.JSON(w, nil, http.StatusBadRequest)
 		return
 	}
-	if in.URL == "" || !pinlutils.IsValidURL(in.URL) {
-		response.JSON(w, errors.New("invalid url format"), http.StatusBadRequest)
+	if err := validatePinlBody(in); err != nil {
+		response.JSON(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -149,6 +200,7 @@ func (s *Server) pinlUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		ctx    = r.Context()
 		user   = request.AuthedFrom(ctx)
 		pinl   = request.PinlFrom(ctx)
+		monl   *model.Monl
 		code   int
 		outerr error
 	)
@@ -159,19 +211,12 @@ func (s *Server) pinlUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
 		var err error
-		pinl, _, err = storeutils.SavePinl(ctx, s.Pinls, s.Images, pinl, false)
+		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Stats, pinl, user.ID, in.Tags)
 		if err != nil {
 			outerr, code = err, http.StatusInternalServerError
 			return false
 		}
-
-		tList, err := storeutils.ReAssociateTags(ctx, s.Tags, s.Taggables, pinl, user.ID, in.Tags)
-		if err != nil {
-			outerr, code = err, http.StatusInternalServerError
-			return false
-		}
-		pinl.SetTagNames(tList)
-
+		pinl, monl = pinl2, monl2
 		return true
 	})
 
@@ -180,16 +225,41 @@ func (s *Server) pinlUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if s.ExchangeEnabled {
-		s.Queue.Add(job.NewDownloadPinlInfo(pinl.ID, s.Exchange.UserClient()))
+	if s.ExchangeEnabled && monl.FetchedAt.Time().IsZero() {
+		s.Queue.Add(job.NewFetchMonl(monl.ID))
 	}
 	s.Pubsub.Broadcast(message.NewPinlUpdated(pinl))
 	response.JSON(w, pinl, http.StatusOK)
 }
 
 func (s *Server) pinlDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	h := common.PinlDeleteHandler(s.Txer, s.Pinls, s.Tags, s.Taggables, s.Queue)
-	h.ServeHTTP(w, r)
+	var (
+		ctx    = r.Context()
+		pinl   = request.PinlFrom(ctx)
+		code   int
+		outerr error
+	)
+	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
+		_, err := s.Taggables.DeleteByTarget(ctx, pinl)
+		if err != nil {
+			outerr, code = err, http.StatusInternalServerError
+			return false
+		}
+
+		_, err = s.Pinls.Delete(ctx, pinl.ID)
+		if err != nil {
+			outerr, code = err, http.StatusInternalServerError
+			return false
+		}
+		return true
+	})
+
+	if outerr != nil || response.IsError(code) {
+		response.JSON(w, outerr, code)
+		return
+	}
+	s.Pubsub.Broadcast(message.NewPinlDeleted(pinl))
+	response.JSON(w, nil, http.StatusNoContent)
 }
 
 func (s *Server) pinlUploadImageHandler(w http.ResponseWriter, r *http.Request) {
@@ -220,6 +290,12 @@ func (s *Server) pinlUploadImageHandler(w http.ResponseWriter, r *http.Request) 
 	if outerr != nil || response.IsError(code) {
 		response.JSON(w, outerr, code)
 		return
+	}
+
+	if out, err := storeutils.PinlWithLatestStats(ctx, s.Pinls, s.Monpkgs, s.Stats, s.Taggables, pinl.ID); err == nil {
+		s.Pubsub.Broadcast(message.NewPinlUpdated(out))
+	} else {
+		response.JSON(w, err, http.StatusInternalServerError)
 	}
 	response.JSON(w, image, http.StatusOK)
 }

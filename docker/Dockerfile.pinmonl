@@ -1,0 +1,21 @@
+FROM node:alpine AS node
+WORKDIR /pinmonl/
+COPY ./ ./
+RUN cd /pinmonl/webui \
+  && yarn install \
+  && yarn run build
+
+FROM golang:alpine AS build
+WORKDIR /go/src/github.com/pinmonl/pinmonl/
+COPY --from=node /pinmonl/ ./
+RUN apk add --no-cache --virtual .deps build-base git \
+  && go get github.com/markbates/pkger/cmd/pkger \
+  && make build-client \
+  && apk del .deps
+
+FROM alpine
+WORKDIR /pinmonl/
+COPY --from=build /go/src/github.com/pinmonl/pinmonl/releases/pinmonl /usr/local/bin/pinmonl
+EXPOSE 3399
+ENTRYPOINT ["pinmonl"]
+CMD ["server"]

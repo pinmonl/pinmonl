@@ -1,32 +1,64 @@
-// import { baseURL } from './constants'
-
-const wsBaseURL = `ws://localhost:3399/ws`
+import { wsBaseURL, Topics } from './constants'
+import Events from 'events'
 
 class Pubsub {
   constructor (token) {
-    let wsURL = wsBaseURL
-    if (token) {
-      wsURL += `?token=${token}`
+    this.events = new Events()
+    this.connect(token)
+  }
+
+  connect (token) {
+    if (this.ws) {
+      this.ws.close()
+      this.ws = null
+    }
+    if (!token) {
+      return
     }
 
-    const ws = new WebSocket(wsURL)
+    const ws = new WebSocket(wsBaseURL + `?token=${token}`)
     ws.onopen = this.handleOpen
     ws.onmessage = this.handleMessage
     this.ws = ws
   }
 
-  handleOpen = (...args) => {
-    console.log('ws opened', args)
-    this.subscribe('pinl_updated')
+  handleOpen = () => {
+    // console.log('ws opened', event)
+    this.subscribe(Topics.PINL_UPDATED)
+    this.subscribe(Topics.PINL_DELETED)
   }
 
-  handleMessage = (...args) => {
-    console.log('ws message', args)
+  handleMessage = (event) => {
+    // console.log('ws message', event)
+    const payload = JSON.parse(event.data)
+    const data = {
+      topic: payload.topic,
+      data: payload.data,
+    }
+
+    this.events.emit(payload.topic, data)
   }
 
   subscribe = (topic) => {
-    const data = { topic }
+    const data = { topic, subscribe: true }
     this.ws.send(JSON.stringify(data))
+  }
+
+  unsubscribe = (topic) => {
+    const data = { topic, unsubscribe: true }
+    this.ws.send(JSON.stringify(data))
+  }
+
+  on = (topic, fn) => {
+    this.events.on(topic, fn)
+  }
+
+  off = (topic, fn) => {
+    this.events.off(topic, fn)
+  }
+
+  once = (topic, fn) => {
+    this.events.once(topic, fn)
   }
 }
 

@@ -22,15 +22,25 @@ var migrateCmd = &cobra.Command{
 		action := args[0]
 		switch action {
 		case "up":
-			err := app.db.Migrate.Up()
-			if err != nil && err != migrate.ErrNoChange {
-				catchErr(err)
-			}
+			catchErr(app.migrateUp())
 		case "down":
-			err := app.db.Migrate.Down()
-			if err != nil && err != migrate.ErrNoChange {
-				catchErr(err)
-			}
+			catchErr(app.migrateDown())
 		}
 	}),
+}
+
+func (a *application) migrateUp() error {
+	err := a.db.Migrate.Up()
+	if err != migrate.ErrNoChange {
+		return err
+	}
+	return nil
+}
+
+func (a *application) migrateDown() error {
+	err := a.db.Migrate.Down()
+	if err != migrate.ErrNoChange {
+		return err
+	}
+	return nil
 }

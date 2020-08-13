@@ -2,6 +2,7 @@ const mutations = {
   SET_TOKEN (state, token) {
     state.token = token
     state.client.setToken(token)
+    state.socket.connect(token)
   },
   SET_USER (state, user) {
     state.user = user

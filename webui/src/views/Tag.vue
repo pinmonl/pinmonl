@@ -17,6 +17,16 @@
       autofocus
     ></tag-tree>
 
+    <v-list v-if="isEmpty">
+      <v-divider></v-divider>
+      <v-list-item two-line>
+        <v-list-item-title>
+          It's empty! <a href="#" @click.prevent="create">Click here to create one</a>.
+        </v-list-item-title>
+      </v-list-item>
+      <v-divider></v-divider>
+    </v-list>
+
     <tag-editor
       :show.sync="showEditor"
       :value="editorValue"

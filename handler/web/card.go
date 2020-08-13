@@ -2,22 +2,28 @@ package web
 
 import (
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"net/url"
 
-	"github.com/go-chi/chi"
 	"github.com/pinmonl/pinmonl/pkgs/card"
 	"github.com/pinmonl/pinmonl/pkgs/response"
 )
 
 func (s *Server) fetchCardHandler(w http.ResponseWriter, r *http.Request) {
-	dest, err := url.Parse(chi.URLParam(r, "*"))
+	rawurl := r.URL.Query().Get("url")
+	if rawurl == "" {
+		response.JSON(w, errors.New("url is required"), http.StatusBadRequest)
+		return
+	}
+	u, err := url.Parse(rawurl)
 	if err != nil {
 		response.JSON(w, err, http.StatusBadRequest)
 		return
 	}
 
-	c, err := card.NewCard(dest.String())
+	// Use dest and pass down query string.
+	c, err := card.NewCard(u.String())
 	if err != nil {
 		response.JSON(w, err, http.StatusBadRequest)
 		return
