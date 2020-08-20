@@ -163,7 +163,7 @@ func (s *Server) pinlCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
-		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Stats, pinl, user.ID, in.Tags)
+		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Stats, pinl, user.ID, in.TagNames)
 		if err != nil {
 			outerr, code = err, http.StatusInternalServerError
 			return false
@@ -211,7 +211,7 @@ func (s *Server) pinlUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
 		var err error
-		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Stats, pinl, user.ID, in.Tags)
+		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Stats, pinl, user.ID, in.TagNames)
 		if err != nil {
 			outerr, code = err, http.StatusInternalServerError
 			return false

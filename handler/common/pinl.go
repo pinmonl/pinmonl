@@ -115,7 +115,7 @@ type PinlBody struct {
 	URL         string   `json:"url"`
 	Title       string   `json:"title"`
 	Description string   `json:"description"`
-	Tags        []string `json:"tags"`
+	TagNames    []string `json:"tagNames"`
 }
 
 // PinlCreateHandler creates pinl from request.
@@ -153,7 +153,7 @@ func PinlCreateHandler(txer database.Txer, pinls *store.Pinls, tags *store.Tags,
 				return false
 			}
 
-			tList, err := storeutils.ReAssociateTags(ctx, tags, taggables, pinl, user.ID, in.Tags)
+			tList, err := storeutils.ReAssociateTags(ctx, tags, taggables, pinl, user.ID, in.TagNames)
 			if err != nil {
 				outerr, code = err, http.StatusInternalServerError
 				return false
@@ -206,7 +206,7 @@ func PinlUpdateHandler(txer database.Txer, pinls *store.Pinls, tags *store.Tags,
 				return false
 			}
 
-			tList, err := storeutils.ReAssociateTags(ctx, tags, taggables, pinl, user.ID, in.Tags)
+			tList, err := storeutils.ReAssociateTags(ctx, tags, taggables, pinl, user.ID, in.TagNames)
 			if err != nil {
 				outerr, code = err, http.StatusInternalServerError
 				return false

@@ -73,7 +73,7 @@ const PinlListItem = ({
             />
           </Box>
           <Box display="flex" flexWrap="wrap">
-            <TagArrayField record={record} source="tags" />
+            <TagArrayField record={record} source="tagNames" />
           </Box>
         </Box>
         <Box display="flex" width={{md: '300px'}} flexShrink={0} mt={1.5} flexWrap="wrap">

@@ -119,7 +119,7 @@ const FormBody = (props) => {
       <Grid item xs={12} md={6}>
         <FormCol {...props}>
           <PinlUrlInput source="url" fullWidth onRefreshClick={() => fetch().then(handleFetch)} />
-          <TagArrayInput label="Tags" source="tags" fullWidth />
+          <TagArrayInput label="Tags" source="tagNames" fullWidth />
         </FormCol>
       </Grid>
       <Grid item xs={12} md={6}>
