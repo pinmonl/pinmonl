@@ -26,17 +26,9 @@ func (c *ClientRunner) Start() error {
 		return err
 	}
 
-	wg := sync.WaitGroup{}
-
-	if c.ExchangeEnabled {
-		wg.Add(1)
-		go func() {
-			c.keepExchangeAlive(ctx)
-			wg.Done()
-		}()
+	if err := c.start(ctx); err != nil {
+		return err
 	}
-
-	wg.Wait()
 	return nil
 }
 
@@ -47,29 +39,9 @@ func (c *ClientRunner) bootstrap(ctx context.Context) error {
 
 	logrus.Debugln("runner: bootstrap")
 
-	if err := c.resumeMonls(ctx); err != nil {
-		return err
-	}
 	if err := c.bootstrapExchangeClients(ctx); err != nil {
 		return err
 	}
-	return nil
-}
-
-func (c *ClientRunner) resumeMonls(ctx context.Context) error {
-	mList, err := c.Stores.Monls.List(ctx, &store.MonlOpts{
-		FetchedBefore: time.Now().Add(-1 * 8 * time.Hour),
-	})
-	if err != nil {
-		return err
-	}
-
-	logrus.Debugf("runner: resume monl n=%d", len(mList))
-
-	for i := range mList {
-		c.Queue.Add(job.NewFetchMonl(mList[i].ID))
-	}
-
 	return nil
 }
 
@@ -94,6 +66,27 @@ func (c *ClientRunner) bootstrapExchangeClients(ctx context.Context) error {
 	return nil
 }
 
+func (c *ClientRunner) start(ctx context.Context) error {
+	wg := sync.WaitGroup{}
+
+	if c.ExchangeEnabled {
+		wg.Add(1)
+		go func() {
+			c.keepExchangeAlive(ctx)
+			wg.Done()
+		}()
+	}
+
+	wg.Add(1)
+	go func() {
+		c.regularUpdateMonls(ctx)
+		wg.Done()
+	}()
+
+	wg.Wait()
+	return nil
+}
+
 func (c *ClientRunner) keepExchangeAlive(ctx context.Context) error {
 	ticker := time.NewTicker(24 * time.Hour)
 	defer func() {
@@ -112,6 +105,38 @@ func (c *ClientRunner) keepExchangeAlive(ctx context.Context) error {
 			}
 		}
 	}
+	return nil
+}
+
+func (c *ClientRunner) regularUpdateMonls(ctx context.Context) error {
+	interval := 1 * time.Hour
+	ticker := time.NewTicker(interval)
+	defer func() {
+		ticker.Stop()
+	}()
+	c.updateMonls(ctx, time.Now().Add(-1*interval))
+	for {
+		select {
+		case <-ticker.C:
+			before := time.Now().Add(-1 * interval)
+			c.updateMonls(ctx, before)
+		}
+	}
+}
+
+func (c *ClientRunner) updateMonls(ctx context.Context, before time.Time) error {
+	logrus.Debugln("runner: start monls update")
+	expired, err := c.Stores.Monls.List(ctx, &store.MonlOpts{
+		FetchedBefore: before,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, monl := range expired {
+		c.Queue.Add(job.NewFetchMonl(monl.ID))
+	}
+	logrus.Debugf("runner: %d monls updated", len(expired))
 	return nil
 }
 

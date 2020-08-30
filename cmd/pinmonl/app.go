@@ -168,6 +168,7 @@ func newHandler(cfg *config, db *database.DB, stores *store.Stores, qm *queue.Ma
 		Monls:     stores.Monls,
 		Monpkgs:   stores.Monpkgs,
 		Pinls:     stores.Pinls,
+		Pinpkgs:   stores.Pinpkgs,
 		Pkgs:      stores.Pkgs,
 		Sharepins: stores.Sharepins,
 		Shares:    stores.Shares,

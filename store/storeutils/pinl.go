@@ -57,6 +57,40 @@ func SavePinl(ctx context.Context, pinls *store.Pinls, images *store.Images, dat
 	return &pinl, image, nil
 }
 
+func ListPinls(ctx context.Context, pinls *store.Pinls, monpkgs *store.Monpkgs, pinpkgs *store.Pinpkgs, taggables *store.Taggables, opts *store.PinlOpts) (model.PinlList, error) {
+	pList, err := pinls.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	tMap, err := GetTags(ctx, taggables, pList.Morphables())
+	if err != nil {
+		return nil, err
+	}
+
+	pMap, err := GetPkgs(ctx, monpkgs, pinpkgs, pList)
+	if err != nil {
+		return nil, err
+	}
+
+	pList.SetTagNames(tMap)
+	pList.SetPkgIDs(pMap)
+	return pList, nil
+}
+
+func GetPinl(ctx context.Context, pinls *store.Pinls, monpkgs *store.Monpkgs, pinpkgs *store.Pinpkgs, taggables *store.Taggables, pinlID string) (*model.Pinl, error) {
+	pList, err := ListPinls(ctx, pinls, monpkgs, pinpkgs, taggables, &store.PinlOpts{
+		IDs: []string{pinlID},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(pList) == 0 {
+		return nil, nil
+	}
+	return pList[0], nil
+}
+
 func ListPinlsWithLatestStats(ctx context.Context, pinls *store.Pinls, monpkgs *store.Monpkgs, stats *store.Stats, taggables *store.Taggables, opts *store.PinlOpts) (model.PinlList, error) {
 	pList, err := pinls.List(ctx, opts)
 	if err != nil {

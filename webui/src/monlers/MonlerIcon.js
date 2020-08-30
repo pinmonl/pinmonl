@@ -9,6 +9,7 @@ const useStyles = makeStyles((theme) => ({
     height: '20px',
     padding: '2px',
     fill: 'currentColor',
+    display: 'inline-block',
   },
   sizeSmall: {
     width: '16px',

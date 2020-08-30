@@ -214,22 +214,30 @@ func newReport(pu *pkguri.PkgURI, client *Client, gitReport provider.Report) (*R
 		})
 	}
 
-	fundingStats := make(model.StatList, len(resp.FundingLinks))
-	for i := range resp.FundingLinks {
-		f := resp.FundingLinks[i]
-		fundingStats[i] = &model.Stat{
-			Name:       f.Platform,
-			Value:      f.URL,
-			RecordedAt: now,
+	if len(resp.FundingLinks) > 0 {
+		fundingStats := make(model.StatList, len(resp.FundingLinks))
+		for i := range resp.FundingLinks {
+			f := resp.FundingLinks[i]
+			fundingStats[i] = &model.Stat{
+				Name:       f.Platform,
+				Value:      f.URL,
+				RecordedAt: now,
+			}
 		}
+		stats = append(stats, &model.Stat{
+			Kind:       model.FundingStat,
+			Value:      strconv.Itoa(len(fundingStats)),
+			RecordedAt: now,
+			IsLatest:   true,
+			Substats:   &fundingStats,
+		})
 	}
-	stats = append(stats, &model.Stat{
-		Kind:       model.FundingStat,
-		Value:      strconv.Itoa(len(fundingStats)),
-		RecordedAt: now,
-		IsLatest:   true,
-		Substats:   &fundingStats,
-	})
+
+	if gitStats, err := gitReport.Stats(); err == nil {
+		stats = append(stats, gitStats...)
+	} else {
+		return nil, err
+	}
 
 	return &Report{
 		PkgURI:    pu,
@@ -241,6 +249,10 @@ func newReport(pu *pkguri.PkgURI, client *Client, gitReport provider.Report) (*R
 
 func (r *Report) URI() (*pkguri.PkgURI, error) {
 	return r.PkgURI, nil
+}
+
+func (r *Report) Pkg() (*model.Pkg, error) {
+	return nil, nil
 }
 
 func (r *Report) Stats() ([]*model.Stat, error) {

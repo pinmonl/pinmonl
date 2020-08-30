@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -38,6 +37,7 @@ type Server struct {
 	Monls     *store.Monls
 	Monpkgs   *store.Monpkgs
 	Pinls     *store.Pinls
+	Pinpkgs   *store.Pinpkgs
 	Pkgs      *store.Pkgs
 	Sharepins *store.Sharepins
 	Shares    *store.Shares
@@ -165,59 +165,50 @@ func (s *Server) webHandler() http.Handler {
 		handler = http.FileServer(pkgdir)
 	}
 
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" ||
-			strings.HasPrefix(r.URL.Path, "/sockjs-node/") ||
-			strings.HasPrefix(r.URL.Path, "/css/") ||
-			strings.HasPrefix(r.URL.Path, "/js/") {
-			handler.ServeHTTP(w, r)
+	indexHandler := func(w http.ResponseWriter, r *http.Request) {
+		indexTmpl, err := getIndexTemplate(handler)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		lw := newLazyResponseWriter()
-		handler.ServeHTTP(lw, r)
-		if lw.code >= 400 {
-			lw = newLazyResponseWriter()
-			r.URL.Path = "/"
-			handler.ServeHTTP(lw, r)
+		baseURL := &url.URL{
+			Scheme: "http",
+			Host:   r.Host,
 		}
 
-		s.handleStaticFile(w, r, lw)
-	}
-	return http.HandlerFunc(fn)
-}
+		data := map[string]interface{}{
+			"BaseURL":         baseURL.String(),
+			"BasePrefix":      "",
+			"DefaultUser":     s.DefaultUserID != "",
+			"ExchangeEnabled": s.ExchangeEnabled,
+		}
 
-func (s *Server) handleStaticFile(w http.ResponseWriter, r *http.Request, lw *lazyResponseWriter) {
-	baseURL := &url.URL{
-		Scheme: "http",
-		Host:   r.Host,
-	}
-
-	data := map[string]interface{}{
-		"BaseURL":         baseURL.String(),
-		"BasePrefix":      "",
-		"DefaultUser":     s.DefaultUserID != "",
-		"ExchangeEnabled": s.ExchangeEnabled,
-	}
-
-	tmpl, err := template.New("").Parse(lw.content.String())
-	if err != nil {
+		indexTmpl.Execute(w, data)
 		return
 	}
 
-	// Copy headers
-	for header, values := range lw.header {
-		if strings.ToLower(header) == "content-length" {
-			continue
-		}
-		for _, value := range values {
-			w.Header().Add(header, value)
-		}
+	r := chi.NewRouter()
+	r.Get("/", indexHandler)
+	r.Handle("/*", handler)
+
+	return r
+}
+
+func getIndexTemplate(h http.Handler) (*template.Template, error) {
+	w := newLazyResponseWriter()
+	r, err := http.NewRequest("GET", "/", nil)
+	if err != nil {
+		return nil, err
 	}
-	// Copy status code
-	w.WriteHeader(lw.code)
-	// Write content
-	tmpl.Execute(w, data)
+
+	h.ServeHTTP(w, r)
+
+	tmpl, err := template.New("").Parse(w.content.String())
+	if err != nil {
+		return nil, err
+	}
+	return tmpl, nil
 }
 
 type lazyResponseWriter struct {

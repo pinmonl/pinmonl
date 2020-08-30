@@ -9,16 +9,16 @@ import (
 )
 
 type ListOpts struct {
-	Page int
-	Size int
+	Page int64
+	Size int64
 }
 
 func (l ListOpts) AppendTo(val url.Values) {
 	if l.Page > 0 {
-		val.Add("page", strconv.Itoa(l.Page))
+		val.Add("page", strconv.FormatInt(l.Page, 10))
 	}
 	if l.Size > 0 {
-		val.Add("page_size", strconv.Itoa(l.Size))
+		val.Add("page_size", strconv.FormatInt(l.Size, 10))
 	} else if l.Size == -1 {
 		val.Add("page_size", "0")
 	}

@@ -81,17 +81,8 @@ func (m *MonlCrawler) PreRun(ctx context.Context) error {
 		repos = append(repos, repo)
 	}
 
-	// Treat as plain website if empty.
-	if len(repos) == 0 {
-		repo, err := monler.Open(pkgdata.WebsiteProvider, monl.URL)
-		if err != nil {
-			return err
-		}
-		repos = append(repos, repo)
-	}
-
 	// Get reports.
-	reports := make(map[string]provider.Report, 0)
+	reports := make(map[string]provider.Report)
 	derived := make([]string, 0)
 	for i := range repos {
 		repo := repos[i]

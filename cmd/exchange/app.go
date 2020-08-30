@@ -13,7 +13,6 @@ import (
 	"github.com/pinmonl/pinmonl/monler/provider/git"
 	"github.com/pinmonl/pinmonl/monler/provider/github"
 	"github.com/pinmonl/pinmonl/monler/provider/npm"
-	"github.com/pinmonl/pinmonl/monler/provider/website"
 	"github.com/pinmonl/pinmonl/monler/provider/youtube"
 	"github.com/pinmonl/pinmonl/queue"
 	"github.com/pinmonl/pinmonl/runner"
@@ -108,10 +107,6 @@ func setupMonler(cfg *config) {
 
 	if dockerPvd, err := docker.NewProvider(); err == nil {
 		monler.Register(dockerPvd.ProviderName(), dockerPvd)
-	}
-
-	if websitePvd, err := website.NewProvider(); err == nil {
-		monler.Register(websitePvd.ProviderName(), websitePvd)
 	}
 }
 

@@ -117,7 +117,7 @@ type Report struct {
 }
 
 func newReport(client *Client, channelId string) (*Report, error) {
-	channelResponse, err := client.ChannelsList(channelId, []string{"contentDetails", "statistics"}).Do()
+	channelResponse, err := client.ChannelsList(channelId, []string{"contentDetails", "statistics", "snippet"}).Do()
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,16 @@ func newReport(client *Client, channelId string) (*Report, error) {
 	statFn := reportStatFn(channel)
 	videoFn := reportVideoFn(client, uploadId)
 
-	report := prvdutils.NewPagesReport(pu, statFn, videoFn)
+	var pkg *model.Pkg
+	if channel.Snippet != nil {
+		pkg = &model.Pkg{
+			Title:       channel.Snippet.Title,
+			Description: channel.Snippet.Description,
+			CustomUri:   channel.Snippet.CustomUrl,
+		}
+	}
+
+	report := prvdutils.NewPagesReport(pu, pkg, statFn, videoFn)
 	return &Report{PagesReport: report}, nil
 }
 
@@ -215,6 +224,7 @@ func parsePlaylistItem(item *youtube.PlaylistItem) (*model.Stat, error) {
 	return &model.Stat{
 		Kind:       model.VideoStat,
 		RecordedAt: field.Time(recordedAt),
+		Name:       item.Snippet.Title,
 		Value:      item.Snippet.ResourceId.VideoId,
 		IsLatest:   item.Snippet.Position == 0,
 	}, nil

@@ -35,3 +35,11 @@ func (ml MonpkgList) PkgsByMonl() map[string]PkgList {
 	}
 	return out
 }
+
+func (ml MonpkgList) PkgKeys() []string {
+	out := make([]string, len(ml))
+	for i := range ml {
+		out[i] = ml[i].PkgID
+	}
+	return out
+}

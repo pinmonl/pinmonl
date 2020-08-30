@@ -25,13 +25,6 @@ services:
       POSTGRES_DB: pinmonl
       POSTGRES_USER: pinmonl
       POSTGRES_PASSWORD: pinmonl
-  mysql:
-    image: mysql:5.7
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: pinmonl
-      MYSQL_USER: pinmonl
-      MYSQL_PASSWORD: pinmonl
   adminer:
     image: adminer
     ports:

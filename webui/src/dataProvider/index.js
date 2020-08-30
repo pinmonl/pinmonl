@@ -2,7 +2,7 @@ import { baseURL } from '@/utils/constants'
 import { HttpError } from 'react-admin'
 import { base64ToFile } from '@/utils/file'
 
-const doRequest = async (...args) => {
+export const doRequest = async (...args) => {
   try {
     const resp = await fetch(...args)
     if (resp.status === 204) {
@@ -18,6 +18,8 @@ const doRequest = async (...args) => {
   }
 }
 
+const isUndefined = (v) => typeof v === 'undefined'
+
 const provider = {
   getList: async (resource, params = {}) => {
     const { page, perPage } = params.pagination || {}
@@ -25,14 +27,14 @@ const provider = {
 
     const query = new URLSearchParams()
 
-    if (page) query.set('page', page)
-    if (perPage) query.set('page_size', perPage)
+    if (!isUndefined(page)) query.set('page', page)
+    if (!isUndefined(perPage)) query.set('page_size', perPage)
 
-    if (field) query.set('sort', field)
-    if (order) query.set('order', order)
+    if (!isUndefined(field)) query.set('sort', field)
+    if (!isUndefined(order)) query.set('order', order)
 
     for (const [key, value] of Object.entries(params.filter || {})) {
-      if (value) query.set(key, value)
+      if (!isUndefined(value)) query.set(key, value)
     }
 
     let dest = `${baseURL}/api/${resource}`
@@ -52,7 +54,11 @@ const provider = {
     return { data: resp }
   },
   getMany: async (resource, params) => {
-    return { data: [] }
+    const { ids } = params || {}
+    return await provider.getList(resource, {
+      pagination: { perPage: 0 },
+      filter: { id: ids.join(',') },
+    })
   },
   getManyReference: async (resource, params) => {
     return { data: [], total: 0 }

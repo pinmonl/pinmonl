@@ -16,7 +16,7 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "start pinmonl server",
 	Run: withApp(func(cmd *cobra.Command, args []string, app *application) {
-		app.migrateUp()
+		catchErr(app.migrateUp())
 
 		wg := &sync.WaitGroup{}
 

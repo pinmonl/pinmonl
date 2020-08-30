@@ -180,7 +180,7 @@ func newReport(client *Client, pu *pkguri.PkgURI) (*Report, error) {
 		tag.Substats = &substats
 
 		delete(bucket.children, tag)
-		tags = append(tags, tag)
+		stats = append(stats, tag)
 	}
 	for tag, children := range bucket.children {
 		tag.Kind = model.AliasStat
@@ -199,7 +199,7 @@ func newReport(client *Client, pu *pkguri.PkgURI) (*Report, error) {
 
 	sort.Sort(TagBySemver(tags))
 
-	report := prvdutils.NewStaticReport(pu, stats, tags)
+	report := prvdutils.NewStaticReport(pu, nil, stats, tags)
 	return &Report{report}, nil
 }
 
@@ -235,7 +235,8 @@ func fetchAllTags(client *Client, repoName string) ([]*model.Stat, error) {
 func parseTag(tag *RepositoryTag) (*model.Stat, error) {
 	at, err := time.Parse(time.RFC3339, tag.LastUpdated)
 	if err != nil {
-		logrus.Debugf("docker parse tag: last_updated=%v", tag.LastUpdated)
+		at = time.Time{}
+		logrus.Debugf("docker: parse tag last_updated err(%s)", err)
 	}
 
 	recordedAt := field.Time(at)

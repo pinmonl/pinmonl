@@ -16,15 +16,17 @@ var (
 type StaticReport struct {
 	*pkguri.PkgURI
 	*sync.Mutex
+	pkg    *model.Pkg
 	stats  []*model.Stat
 	tags   []*model.Stat
 	cursor int
 }
 
-func NewStaticReport(pu *pkguri.PkgURI, stats, tags []*model.Stat) *StaticReport {
+func NewStaticReport(pu *pkguri.PkgURI, pkg *model.Pkg, stats, tags []*model.Stat) *StaticReport {
 	return &StaticReport{
 		PkgURI: pu,
 		Mutex:  &sync.Mutex{},
+		pkg:    pkg,
 		stats:  stats,
 		tags:   tags,
 		cursor: -1,
@@ -33,6 +35,10 @@ func NewStaticReport(pu *pkguri.PkgURI, stats, tags []*model.Stat) *StaticReport
 
 func (s *StaticReport) URI() (*pkguri.PkgURI, error) {
 	return s.PkgURI, nil
+}
+
+func (s *StaticReport) Pkg() (*model.Pkg, error) {
+	return s.pkg, nil
 }
 
 func (s *StaticReport) Stats() ([]*model.Stat, error) {
@@ -71,6 +77,7 @@ type PageFunc func(page int64) (items []*model.Stat, total int64, hasNext bool, 
 type PagesReport struct {
 	*pkguri.PkgURI
 	*sync.Mutex
+	pkg        *model.Pkg
 	stats      []*model.Stat
 	statPage   int64
 	statFn     PageFunc
@@ -82,10 +89,11 @@ type PagesReport struct {
 	cursor     int
 }
 
-func NewPagesReport(pu *pkguri.PkgURI, statFn, tagFn PageFunc) *PagesReport {
+func NewPagesReport(pu *pkguri.PkgURI, pkg *model.Pkg, statFn, tagFn PageFunc) *PagesReport {
 	report := &PagesReport{
 		PkgURI:     pu,
 		Mutex:      &sync.Mutex{},
+		pkg:        pkg,
 		statPage:   1,
 		statFn:     statFn,
 		tagPage:    1,
@@ -99,6 +107,10 @@ func NewPagesReport(pu *pkguri.PkgURI, statFn, tagFn PageFunc) *PagesReport {
 
 func (p *PagesReport) URI() (*pkguri.PkgURI, error) {
 	return p.PkgURI, nil
+}
+
+func (p *PagesReport) Pkg() (*model.Pkg, error) {
+	return p.pkg, nil
 }
 
 func (p *PagesReport) Stats() ([]*model.Stat, error) {

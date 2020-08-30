@@ -9,4 +9,5 @@ var (
 	ErrNotFound    = Error(errors.New("uri not found"))
 	ErrNoPing      = Error(errors.New("provider does not ping"))
 	ErrEndOfReport = Error(errors.New("end of report"))
+	ErrNoPkg       = Error(errors.New("no pkg"))
 )

@@ -99,6 +99,9 @@ func (r *Repo) Derived() ([]string, error) {
 			// Splits "git+https" scheme
 			schemes := strings.Split(u.Scheme, "+")
 			for _, scheme := range schemes {
+				if scheme != "http" && scheme != "https" {
+					continue
+				}
 				u2 := u
 				u2.Scheme = scheme
 				derived = append(derived, u2.String())
@@ -171,7 +174,7 @@ func (r *Repo) analyze() (*Report, error) {
 			},
 		}
 
-		tags = append(tags, &model.Stat{
+		stats = append(stats, &model.Stat{
 			Kind:     model.ChannelStat,
 			Value:    channel,
 			IsLatest: channel == "latest",
@@ -195,7 +198,7 @@ type Report struct {
 }
 
 func newReport(pu *pkguri.PkgURI, stats, tags []*model.Stat) (*Report, error) {
-	report := prvdutils.NewStaticReport(pu, stats, tags)
+	report := prvdutils.NewStaticReport(pu, nil, stats, tags)
 	return &Report{report}, nil
 }
 

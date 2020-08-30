@@ -45,22 +45,10 @@ func SaveProviderReport(
 }
 
 type statKey struct {
-	kind  model.StatKind
-	name  string
-	value string
-}
-
-func getStatKey(stat *model.Stat) statKey {
-	key := statKey{
-		kind: stat.Kind,
-		name: stat.Name,
-	}
-
-	if stat.Kind == model.FundingStat {
-		key.value = stat.Value
-	}
-
-	return key
+	kind     model.StatKind
+	name     string
+	value    string
+	checksum string
 }
 
 func saveReportStats(ctx context.Context, stats *store.Stats, pkgID string, report provider.Report) (model.StatList, error) {
@@ -76,13 +64,92 @@ func saveReportStats(ctx context.Context, stats *store.Stats, pkgID string, repo
 
 	// Save latest stats.
 	out := make([]*model.Stat, len(rsList))
+	channels := make([]*model.Stat, 0)
 	for i, stat := range rsList {
+		// Skip for channel stat.
+		if stat.Kind == model.ChannelStat {
+			channels = append(channels, stat)
+			continue
+		}
+
 		// Save stat.
 		stat2, err := saveStat(ctx, stats, pkgID, stat)
 		if err != nil {
 			return nil, err
 		}
 		out[i] = stat2
+	}
+
+	if outCh, err := saveChannelStats(ctx, stats, pkgID, channels); err == nil {
+		out = append(out, outCh...)
+	} else {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func saveChannelStats(ctx context.Context, stats *store.Stats, pkgID string, channels []*model.Stat) (model.StatList, error) {
+	var (
+		inserts = make(map[statKey]*model.Stat)
+		updates = make(map[statKey]*model.Stat)
+		deletes = make(map[statKey]*model.Stat)
+		out     = make([]*model.Stat, 0)
+	)
+
+	makeKey := func(stat *model.Stat) statKey {
+		return statKey{
+			value:    stat.Value,
+			checksum: stat.Checksum,
+		}
+	}
+
+	for _, ch := range channels {
+		inserts[makeKey(ch)] = ch
+	}
+
+	prev, err := stats.List(ctx, &store.StatOpts{
+		Kinds:  []model.StatKind{model.ChannelStat},
+		PkgIDs: []string{pkgID},
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, prevCh := range prev {
+		key := makeKey(prevCh)
+		if _, has := inserts[key]; has {
+			updates[key] = inserts[key]
+			updates[key].ID = prevCh.ID
+			delete(inserts, key)
+		} else {
+			deletes[key] = prevCh
+		}
+	}
+
+	for _, newStat := range inserts {
+		if stat, err := saveStat(ctx, stats, pkgID, newStat); err == nil {
+			out = append(out, stat)
+		} else {
+			return nil, err
+		}
+	}
+	for _, oldStat := range updates {
+		if err := clearSubstats(ctx, stats, oldStat); err != nil {
+			return nil, err
+		}
+		if stat, err := saveStat(ctx, stats, pkgID, oldStat); err == nil {
+			out = append(out, stat)
+		} else {
+			return nil, err
+		}
+	}
+	for _, delStat := range deletes {
+		if err := clearSubstats(ctx, stats, delStat); err != nil {
+			return nil, err
+		}
+		if _, err := stats.Delete(ctx, delStat.ID); err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }
@@ -131,24 +198,18 @@ func saveReportTags(ctx context.Context, stats *store.Stats, pkgID string, repor
 	// Save tags.
 	out := make([]*model.Stat, len(tags))
 	for i := range tags {
-		deref := *tags[i]
-		tag := &deref
+		tag := &model.Stat{}
+		*tag = *tags[i]
 		out[i] = tag
 
 		key := reportTagKey{kind: tag.Kind, value: tag.Value}
 		prevTag, has := prevTagSet[key]
 		if has {
-			tag = prevTag
-			// Skip if the previous tag is not marked as latest.
-			if !tag.IsLatest {
-				continue
+			tag.ID = prevTag.ID
+			// Set is not latest.
+			if _, match := latestKeys[key]; !match {
+				tag.IsLatest = false
 			}
-			// Skip if the previous tag is same as the latest one.
-			if _, match := latestKeys[key]; match {
-				continue
-			}
-			// Update to unset latest flag.
-			tag.IsLatest = false
 		}
 		_, err := saveStat(ctx, stats, pkgID, tag)
 		if err != nil {
@@ -179,6 +240,15 @@ func findOrCreatePkgFromReport(ctx context.Context, pkgs *store.Pkgs, report pro
 		}
 	}
 
+	if info, err := report.Pkg(); err == nil && info != nil {
+		pkg.Title = info.Title
+		pkg.CustomUri = info.CustomUri
+		pkg.Description = info.Description
+		if err := pkgs.Update(ctx, pkg); err != nil {
+			return nil, err
+		}
+	}
+
 	return pkg, nil
 }
 
@@ -190,7 +260,12 @@ func saveStat(ctx context.Context, stats *store.Stats, pkgID string, data *model
 	}
 
 	// Save.
-	err := stats.Create(ctx, &stat)
+	var err error
+	if stat.ID == "" {
+		err = stats.Create(ctx, &stat)
+	} else {
+		err = stats.Update(ctx, &stat)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -220,6 +295,27 @@ func updateExpiredStats(ctx context.Context, stats *store.Stats, pkgID string) e
 	for _, ex := range expired {
 		ex.IsLatest = false
 		if err := stats.Update(ctx, ex); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func clearSubstats(ctx context.Context, stats *store.Stats, root *model.Stat) error {
+	substats, err := stats.List(ctx, &store.StatOpts{
+		ParentIDs: []string{root.ID},
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, substat := range substats {
+		if substat.HasChildren {
+			if err := clearSubstats(ctx, stats, substat); err != nil {
+				return err
+			}
+		}
+		if _, err := stats.Delete(ctx, substat.ID); err != nil {
 			return err
 		}
 	}

@@ -10,13 +10,18 @@ import {
   useMutation,
 } from 'react-admin'
 import {
-  TextField,
   Popper,
   Paper,
   List,
   ListItem,
   makeStyles,
   ClickAwayListener,
+  FormControl,
+  InputLabel,
+  Input,
+  FilledInput,
+  OutlinedInput,
+  FormHelperText,
 } from '@material-ui/core'
 import { sanitizeTagName, absTagName } from './utils'
 import TagChip from './TagChip'
@@ -55,6 +60,9 @@ const TagArrayInput = React.forwardRef(({
   label,
   variant,
   margin,
+  fullWidth,
+  className,
+  strict,
   ...props
 }, ref) => {
   const [mutate] = useMutation({ type: 'getList', resource: 'tag' })
@@ -91,7 +99,8 @@ const TagArrayInput = React.forwardRef(({
   }, [value])
 
   const push = useCallback((tag) => {
-    onChange([ ...value, sanitizeTagName(tag) ])
+    tag = sanitizeTagName(tag)
+    onChange([ ...value, tag ])
   }, [value, onChange])
 
   const removeAt = useCallback((index) => {
@@ -179,7 +188,7 @@ const TagArrayInput = React.forwardRef(({
         break
       default:
     }
-  }, [changeHighlightIndex, filteredOptions, inputValue, toggle])
+  }, [changeHighlightIndex, filteredOptions, inputValue, toggle, removeAt, highlighted, value.length])
 
   const handleItemClick = useCallback((e, option) => {
     inputRef.current.focus()
@@ -222,35 +231,47 @@ const TagArrayInput = React.forwardRef(({
 
   const open = useMemo(() => focus && filteredOptions.length > 0, [focus, filteredOptions])
 
+  const InputComponent = useMemo(() => {
+    let component = Input
+    if (variant === 'filled') {
+      component = FilledInput
+    } else if (variant === 'outlined') {
+      component = OutlinedInput
+    }
+    return component
+  }, [variant])
+
   return (
     <ClickAwayListener onClickAway={() => setFocus(false)}>
-      <div ref={rootRef} className={classes.root}>
-        <TextField
+      <FormControl
+        ref={rootRef}
+        className={className}
+        variant={variant}
+        margin={margin}
+        fullWidth={fullWidth}
+      >
+        <InputLabel>{label}</InputLabel>
+        <InputComponent
           ref={fieldRef}
           inputRef={inputRef}
-          variant={variant}
-          margin={margin}
-          label={label}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          fullWidth={props.fullWidth}
           onKeyDown={handleKeyDown}
           onFocus={() => setFocus(true)}
-          InputProps={{
-            startAdornment: (value.length > 0 &&
-              <SelectedValues
-                value={value}
-                onDelete={(tag) => toggle(tag)}
-                tabIndex="-1"
-                variant={variant === 'filled' ? 'outlined' : 'default'}
-              />
-            ),
-            classes: {
-              input: classes.inputInput,
-              root: classes.inputRoot,
-            },
+          startAdornment={value.length > 0 && (
+            <SelectedValues
+              value={value}
+              onDelete={(tag) => toggle(tag)}
+              tabIndex="-1"
+              variant={variant === 'filled' ? 'outlined' : 'default'}
+            />
+          )}
+          classes={{
+            input: classes.inputInput,
+            root: classes.inputRoot,
           }}
         />
+        <FormHelperText />
         {fieldRef.current && (
           <Popper
             anchorEl={fieldRef.current}
@@ -276,7 +297,7 @@ const TagArrayInput = React.forwardRef(({
             </Paper>
           </Popper>
         )}
-      </div>
+      </FormControl>
     </ClickAwayListener>
   )
 })
@@ -284,6 +305,7 @@ const TagArrayInput = React.forwardRef(({
 TagArrayInput.defaultProps = {
   variant: 'filled',
   margin: 'dense',
+  strict: false,
 }
 
 const SelectedValues = ({ value, onDelete, ...props }) => {
@@ -292,6 +314,7 @@ const SelectedValues = ({ value, onDelete, ...props }) => {
       key={tag}
       label={tag}
       onDelete={() => onDelete(tag)}
+      p={0.25}
       {...props}
     />
   ))

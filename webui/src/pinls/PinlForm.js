@@ -12,6 +12,8 @@ import {
   FormInput,
   useMutation,
   useRedirect,
+  required,
+  useNotify,
 } from 'react-admin'
 import {
   Grid,
@@ -29,6 +31,7 @@ const PinlForm = (props) => {
   const [mutate] = useMutation({ resource: 'pinl' })
   const [mutateImage] = useMutation({ type: 'createImage', resource: 'pinl' })
   const redirect = useRedirect()
+  const notify = useNotify()
 
   const save = useCallback(async (data) => {
     const isNew = !data.id
@@ -60,12 +63,18 @@ const PinlForm = (props) => {
 
     try {
       const { data: target } = await save(data)
-      await saveImage(target.id, image)
-      redirect(redirectTo)
+      if (image && image.rawFile) {
+        const { data: { id: imageId } } = await saveImage(target.id, image)
+        target.imageId = imageId
+      }
+      redirect(redirectTo, props.basePath, target.id, target)
     } catch (e) {
-      //
+      notify(
+        typeof e === 'string' ? e : e.message,
+        'warning'
+      )
     }
-  }, [save, saveImage, redirect])
+  }, [save, saveImage, redirect, props.basePath, notify])
 
   return (
     <SimpleForm {...props} save={handleSave}>
@@ -96,43 +105,49 @@ const FormBody = (props) => {
     })
   }
 
-  // Set virtual attrs.
+  return (
+    <InitializeFormValues>
+      <Grid container spacing={4}>
+        <Grid item xs={12} md={6}>
+          <FormCol {...props}>
+            <PinlUrlInput source="url" fullWidth onRefreshClick={() => fetch().then(handleFetch)} validate={[required()]} />
+            <TagArrayInput label="Tags" source="tagNames" fullWidth strict />
+          </FormCol>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <FormCol {...props}>
+            <TextInput source="title" fullWidth validate={[required()]} />
+            <TextInput source="description" multiline fullWidth />
+            <ImageInput source={imageKey} fullWidth accept="image/*">
+              <ImageField source="src" />
+            </ImageInput>
+          </FormCol>
+        </Grid>
+      </Grid>
+    </InitializeFormValues>
+  )
+}
+
+const InitializeFormValues = ({ children }) => {
+  const form = useForm()
+  const formState = useFormState()
+
   useEffect(() => {
+    if (typeof formState.values[imageKey] !== 'undefined') {
+      return
+    }
     form.initialize((values) => {
-      // Set image attr.
-      if (typeof values[imageKey] === 'undefined') {
-        let image = null
-        const imageUrl = getImageUrl(values, 'imageId')
-        if (imageUrl) {
-          image = { src: imageUrl }
-        }
-
-        values[imageKey] = image
+      let image = null
+      const imageUrl = getImageUrl(values, 'imageId')
+      if (imageUrl) {
+        image = { src: imageUrl }
       }
-
+      values[imageKey] = image
       return values
     })
-  }, [])
-
-  return (
-    <Grid container spacing={4}>
-      <Grid item xs={12} md={6}>
-        <FormCol {...props}>
-          <PinlUrlInput source="url" fullWidth onRefreshClick={() => fetch().then(handleFetch)} />
-          <TagArrayInput label="Tags" source="tagNames" fullWidth />
-        </FormCol>
-      </Grid>
-      <Grid item xs={12} md={6}>
-        <FormCol {...props}>
-          <TextInput source="title" fullWidth />
-          <TextInput source="description" multiline fullWidth />
-          <ImageInput source={imageKey} fullWidth accept="image/*">
-            <ImageField source="src" />
-          </ImageInput>
-        </FormCol>
-      </Grid>
-    </Grid>
-  )
+  }, [formState.values])
+  
+  return children
 }
 
 const PinlUrlInput = ({ onRefreshClick, ...props }) => {

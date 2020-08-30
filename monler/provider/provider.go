@@ -43,6 +43,9 @@ type Report interface {
 	// URI returns PkgURI.
 	URI() (*pkguri.PkgURI, error)
 
+	// Pkg holds the completed profile of the package.
+	Pkg() (*model.Pkg, error)
+
 	// Stats contains list of stats other than tag.
 	Stats() ([]*model.Stat, error)
 

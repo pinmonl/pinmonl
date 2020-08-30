@@ -21,6 +21,7 @@ type PkgOpts struct {
 	ProviderHost  string
 	ProviderURI   string
 	FetchedBefore time.Time
+	IDs           []string
 }
 
 func NewPkgs(s *Store) *Pkgs {
@@ -63,6 +64,7 @@ func (p *Pkgs) Count(ctx context.Context, opts *PkgOpts) (int64, error) {
 
 	qb := p.RunnableBuilder(ctx).
 		Select("count(*)").From(p.table())
+	qb = p.bindOpts(qb, opts)
 	row := qb.QueryRow()
 	var count int64
 	err := row.Scan(&count)
@@ -126,6 +128,10 @@ func (p Pkgs) bindOpts(b squirrel.SelectBuilder, opts *PkgOpts) squirrel.SelectB
 		b = b.Where("(fetched_at <= ? OR fetched_at IS NULL)", opts.FetchedBefore)
 	}
 
+	if len(opts.IDs) > 0 {
+		b = b.Where(squirrel.Eq{"id": opts.IDs})
+	}
+
 	return b
 }
 
@@ -137,6 +143,10 @@ func (p Pkgs) columns() []string {
 		p.table() + ".provider_host",
 		p.table() + ".provider_uri",
 		p.table() + ".provider_proto",
+		p.table() + ".title",
+		p.table() + ".description",
+		p.table() + ".image_id",
+		p.table() + ".custom_uri",
 		p.table() + ".fetched_at",
 		p.table() + ".created_at",
 		p.table() + ".updated_at",
@@ -151,6 +161,10 @@ func (p Pkgs) scanColumns(pkg *model.Pkg) []interface{} {
 		&pkg.ProviderHost,
 		&pkg.ProviderURI,
 		&pkg.ProviderProto,
+		&pkg.Title,
+		&pkg.Description,
+		&pkg.ImageID,
+		&pkg.CustomUri,
 		&pkg.FetchedAt,
 		&pkg.CreatedAt,
 		&pkg.UpdatedAt,
@@ -181,6 +195,10 @@ func (p *Pkgs) Create(ctx context.Context, pkg *model.Pkg) error {
 			"provider_host",
 			"provider_uri",
 			"provider_proto",
+			"title",
+			"description",
+			"image_id",
+			"custom_uri",
 			"fetched_at",
 			"created_at",
 			"updated_at").
@@ -191,6 +209,10 @@ func (p *Pkgs) Create(ctx context.Context, pkg *model.Pkg) error {
 			pkg2.ProviderHost,
 			pkg2.ProviderURI,
 			pkg2.ProviderProto,
+			pkg2.Title,
+			pkg2.Description,
+			pkg2.ImageID,
+			pkg2.CustomUri,
 			pkg2.FetchedAt,
 			pkg2.CreatedAt,
 			pkg2.UpdatedAt)
@@ -213,6 +235,10 @@ func (p *Pkgs) Update(ctx context.Context, pkg *model.Pkg) error {
 		Set("provider_host", pkg2.ProviderHost).
 		Set("provider_uri", pkg2.ProviderURI).
 		Set("provider_proto", pkg2.ProviderProto).
+		Set("title", pkg2.Title).
+		Set("description", pkg2.Description).
+		Set("image_id", pkg2.ImageID).
+		Set("custom_uri", pkg2.CustomUri).
 		Set("fetched_at", pkg2.FetchedAt).
 		Set("updated_at", pkg2.UpdatedAt).
 		Where("id = ?", pkg2.ID)

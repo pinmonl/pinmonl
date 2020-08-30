@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/pinmonl/pinmonl/pkgs/pkgdata"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -124,6 +125,53 @@ func TestMarshal(t *testing.T) {
 		pkguri, err := marshal(test.pu)
 		if assert.Equal(t, test.err, err) && err == nil {
 			assert.Equal(t, test.expect, pkguri)
+		}
+	}
+}
+
+func TestGitToURL(t *testing.T) {
+	tests := []struct {
+		input  *PkgURI
+		expect string
+	}{
+		{
+			input: &PkgURI{
+				Provider: pkgdata.GitProvider,
+				Host:     "git.example.com",
+				URI:      "user/repo",
+			},
+			expect: "https://git.example.com/user/repo",
+		},
+	}
+
+	for _, test := range tests {
+		got, want := ToURL(test.input), test.expect
+		assert.Equal(t, want, got)
+	}
+}
+
+func TestParseGit(t *testing.T) {
+	tests := []struct {
+		input  string
+		expect *PkgURI
+		err    error
+	}{
+		{
+			input: "https://git.example.com/user/repo",
+			expect: &PkgURI{
+				Provider: pkgdata.GitProvider,
+				Host:     "git.example.com",
+				URI:      "user/repo",
+				Proto:    DefaultProto,
+			},
+			err: nil,
+		},
+	}
+
+	for _, test := range tests {
+		got, err := ParseGit(test.input)
+		if assert.Nil(t, err) {
+			assert.Equal(t, test.expect, got)
 		}
 	}
 }

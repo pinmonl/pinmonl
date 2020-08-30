@@ -17,7 +17,7 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "start client web server",
 	Run: withApp(func(cmd *cobra.Command, args []string, app *application) {
-		app.migrateUp()
+		catchErr(app.migrateUp())
 
 		if app.cfg.DefaultUser {
 			ctx := context.TODO()

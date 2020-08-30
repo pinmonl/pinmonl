@@ -28,9 +28,25 @@ Beside of Pinmonl, an Exchange server is developed to handle crawlers, notify ne
 - Docker
 - YouTube
 
+## Design
+
+![component](img/concept.png)
+
+#### Pinmonl
+
+The bookmark manager and by default, connects to the exchange server at [pinmonl.io](https://pinmonl.io). It stores latest stats only and fetch completed stats directly from exchange server on detail page.
+
+#### Exchange Server
+
+It is designed to handle resource-intensive tasks and aggregate bookmark count. In order to provide higher flexibility on git repository integration, tags are retrieved by `git clone` command regardless of the providers while star, issue count are relied on the providers' API. Implying that the server may be running at a rate of intensive disk IO and space usage when handling large repository.
+
+When new releases are detected, the server becomes a publisher to notify Pinmonls according to the subscribed repository. At the first startup, each Pinmonl instance will create a machine account and maintain a websocket connection to the server (WIP). Bokmarks are uploaded through the machine account and which will be treated as the subscribed topics. Only IP address is collected for machine account as to avoid duplication in the bookmark count feature.
+
+Besides, the Exchange server manages and shows bookmark sharings after register a user account.
+
 ## Screenshot
 
-![screenshot1](img/screenshot1.png)
+![screenshot1](img/demo1.gif)
 
 ## Future Plan
 
@@ -72,18 +88,6 @@ docker run -d \
   --name pinmonl \
   pinmonl/pinmonl
 ```
-
-## Notes
-
-1. By default, the bookmark listing page is showing only non-tagged item.
-2. Scraper of DockerHub is not working.
-
-## Key bindings
-
-| Key   | Action          |
-| ----- | --------------- |
-| `/`   | Search          |
-| `Esc` | Blur search box |
 
 ## License
 

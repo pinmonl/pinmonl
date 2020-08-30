@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pinmonl/pinmonl/database"
@@ -17,6 +18,9 @@ type PinpkgOpts struct {
 	ListOpts
 	PinlIDs []string
 	PkgIDs  []string
+
+	joinPinls bool
+	joinPkgs  bool
 }
 
 func NewPinpkgs(s *Store) *Pinpkgs {
@@ -104,6 +108,74 @@ func (p *Pinpkgs) FindOrCreate(ctx context.Context, data *model.Pinpkg) (*model.
 	return &pinpkg, nil
 }
 
+func (p *Pinpkgs) ListWithPinl(ctx context.Context, opts *PinpkgOpts) (model.PinpkgList, error) {
+	if opts == nil {
+		opts = &PinpkgOpts{}
+	}
+	opts = opts.JoinPinls()
+
+	qb := p.RunnableBuilder(ctx).
+		Select(p.columns()...).
+		Columns(Pinls{}.columns()...).
+		From(p.table())
+	qb = p.bindOpts(qb, opts)
+	qb = addPagination(qb, opts)
+	rows, err := qb.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list := make([]*model.Pinpkg, 0)
+	for rows.Next() {
+		var (
+			mpp model.Pinpkg
+			mp  model.Pinl
+		)
+		scanCols := append(p.scanColumns(&mpp), Pinls{}.scanColumns(&mp)...)
+		err := rows.Scan(scanCols...)
+		if err != nil {
+			return nil, err
+		}
+		mpp.Pinl = &mp
+		list = append(list, &mpp)
+	}
+	return list, nil
+}
+
+func (p *Pinpkgs) ListWithPkg(ctx context.Context, opts *PinpkgOpts) (model.PinpkgList, error) {
+	if opts == nil {
+		opts = &PinpkgOpts{}
+	}
+	opts = opts.JoinPkgs()
+
+	qb := p.RunnableBuilder(ctx).
+		Select(p.columns()...).
+		Columns(Pkgs{}.columns()...).
+		From(p.table())
+	qb = p.bindOpts(qb, opts)
+	qb = addPagination(qb, opts)
+	rows, err := qb.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list := make([]*model.Pinpkg, 0)
+	for rows.Next() {
+		var (
+			mpp model.Pinpkg
+			mp  model.Pkg
+		)
+		scanCols := append(p.scanColumns(&mpp), Pkgs{}.scanColumns(&mp)...)
+		err := rows.Scan(scanCols...)
+		if err != nil {
+			return nil, err
+		}
+		mpp.Pkg = &mp
+		list = append(list, &mpp)
+	}
+	return list, nil
+}
+
 func (p Pinpkgs) bindOpts(b squirrel.SelectBuilder, opts *PinpkgOpts) squirrel.SelectBuilder {
 	if opts == nil {
 		return b
@@ -115,6 +187,14 @@ func (p Pinpkgs) bindOpts(b squirrel.SelectBuilder, opts *PinpkgOpts) squirrel.S
 
 	if len(opts.PkgIDs) > 0 {
 		b = b.Where(squirrel.Eq{"pkg_id": opts.PkgIDs})
+	}
+
+	if opts.joinPinls {
+		b = b.Join(fmt.Sprintf("%s ON %[1]s.id = %s.pinl_id", Pinls{}.table(), p.table()))
+	}
+
+	if opts.joinPkgs {
+		b = b.Join(fmt.Sprintf("%s ON %[1]s.id = %s.pkg_id", Pkgs{}.table(), p.table()))
 	}
 
 	return b
@@ -192,4 +272,16 @@ func (p *Pinpkgs) Delete(ctx context.Context, id string) (int64, error) {
 		return 0, err
 	}
 	return res.RowsAffected()
+}
+
+func (o *PinpkgOpts) JoinPinls() *PinpkgOpts {
+	o2 := *o
+	o2.joinPinls = true
+	return &o2
+}
+
+func (o *PinpkgOpts) JoinPkgs() *PinpkgOpts {
+	o2 := *o
+	o2.joinPkgs = true
+	return &o2
 }

@@ -10,3 +10,19 @@ type Pinpkg struct {
 }
 
 type PinpkgList []*Pinpkg
+
+func (pl PinpkgList) Pkgs() PkgList {
+	out := make([]*Pkg, len(pl))
+	for i := range pl {
+		out[i] = pl[i].Pkg
+	}
+	return out
+}
+
+func (pl PinpkgList) PkgKeys() []string {
+	out := make([]string, len(pl))
+	for i := range pl {
+		out[i] = pl[i].PkgID
+	}
+	return out
+}

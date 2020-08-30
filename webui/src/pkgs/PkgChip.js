@@ -1,6 +1,7 @@
 import React from 'react'
 import { Chip } from '@material-ui/core'
 import MonlerIcon from '../monlers/MonlerIcon'
+import { prettyTime } from '@/utils/pretty'
 
 const PkgChip = ({ pkg, ...props }) => {
   const provider = pkg.provider
@@ -10,7 +11,7 @@ const PkgChip = ({ pkg, ...props }) => {
     case 'youtube': {
       const stats = filterStats(pkg.stats, 'video')
       if (stats.length > 0) {
-        label = stats[0].recordedAt
+        label = prettyTime(stats[0].recordedAt)
       }
       break
     }

@@ -42,5 +42,5 @@ func (s *Server) fetchCardHandler(w http.ResponseWriter, r *http.Request) {
 		body.ImageData = base64.StdEncoding.EncodeToString(img)
 	}
 
-	response.JSON(w, body, http.StatusOK)
+	response.JSON(w, body, c.Response.StatusCode)
 }

@@ -27,7 +27,7 @@ type (
 		CreatedAt   field.Time `json:"createdAt"`
 		UpdatedAt   field.Time `json:"updatedAt"`
 
-		Tags []string `json:"tags"`
+		TagNames *[]string `json:"tagNames,omitempty"`
 	}
 
 	Pkg struct {
@@ -37,6 +37,10 @@ type (
 		ProviderHost  string     `json:"providerHost"`
 		ProviderURI   string     `json:"providerUri"`
 		ProviderProto string     `json:"providerProto"`
+		Title         string     `json:"title"`
+		Description   string     `json:"description"`
+		ImageID       string     `json:"imageId"`
+		CustomUri     string     `json:"customUri"`
 		CreatedAt     field.Time `json:"createdAt"`
 		UpdatedAt     field.Time `json:"updatedAt"`
 	}
@@ -62,6 +66,7 @@ type (
 		ParentID    string        `json:"parentId"`
 		RecordedAt  field.Time    `json:"recordedAt"`
 		Kind        StatKind      `json:"kind"`
+		Name        string        `json:"name"`
 		Value       string        `json:"value"`
 		ValueType   StatValueType `json:"valueType"`
 		Checksum    string        `json:"checksum"`
@@ -69,7 +74,7 @@ type (
 		IsLatest    bool          `json:"isLatest"`
 		HasChildren bool          `json:"hasChildren"`
 
-		Substats []*Stat `json:"substats"`
+		Substats *[]*Stat `json:"substats,omitempty"`
 	}
 
 	StatListResponse struct {

@@ -24,7 +24,7 @@ func NewPkgCrawler(pkgID string) *PkgCrawler {
 }
 
 func (p *PkgCrawler) String() string {
-	return "pkg_self_update"
+	return "pkg_crawler"
 }
 
 func (p *PkgCrawler) Describe() []string {

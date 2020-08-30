@@ -49,7 +49,7 @@ func (s *Server) pinlListHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	pList, err := storeutils.ListPinlsWithLatestStats(ctx, s.Pinls, s.Monpkgs, s.Stats, s.Taggables, opts)
+	pList, err := storeutils.ListPinls(ctx, s.Pinls, s.Monpkgs, s.Pinpkgs, s.Taggables, opts)
 	if err != nil {
 		response.JSON(w, err, http.StatusInternalServerError)
 		return
@@ -70,7 +70,7 @@ func (s *Server) pinlHandler(w http.ResponseWriter, r *http.Request) {
 		pinl = request.PinlFrom(ctx)
 	)
 
-	pinl2, err := storeutils.PinlWithLatestStats(ctx, s.Pinls, s.Monpkgs, s.Stats, s.Taggables, pinl.ID)
+	pinl2, err := storeutils.GetPinl(ctx, s.Pinls, s.Monpkgs, s.Pinpkgs, s.Taggables, pinl.ID)
 	if err != nil {
 		response.JSON(w, err, http.StatusInternalServerError)
 		return
@@ -91,7 +91,7 @@ func savePinl(
 	ctx context.Context,
 	pinls *store.Pinls, images *store.Images,
 	tags *store.Tags, taggables *store.Taggables,
-	monls *store.Monls, monpkgs *store.Monpkgs, stats *store.Stats,
+	monls *store.Monls, monpkgs *store.Monpkgs, pinpkgs *store.Pinpkgs,
 	pinl *model.Pinl, userId string, tagNames []string,
 ) (*model.Pinl, *model.Monl, error) {
 	nurl, err := monlutils.NormalizeURL(pinl.URL)
@@ -126,7 +126,7 @@ func savePinl(
 		return nil, nil, err
 	}
 
-	if out, err := storeutils.PinlWithLatestStats(ctx, pinls, monpkgs, stats, taggables, pinl.ID); err == nil {
+	if out, err := storeutils.GetPinl(ctx, pinls, monpkgs, pinpkgs, taggables, pinl.ID); err == nil {
 		pinl = out
 	} else {
 		return nil, nil, err
@@ -163,7 +163,7 @@ func (s *Server) pinlCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
-		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Stats, pinl, user.ID, in.TagNames)
+		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Pinpkgs, pinl, user.ID, in.TagNames)
 		if err != nil {
 			outerr, code = err, http.StatusInternalServerError
 			return false
@@ -211,7 +211,7 @@ func (s *Server) pinlUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
 		var err error
-		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Stats, pinl, user.ID, in.TagNames)
+		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Pinpkgs, pinl, user.ID, in.TagNames)
 		if err != nil {
 			outerr, code = err, http.StatusInternalServerError
 			return false
@@ -292,7 +292,7 @@ func (s *Server) pinlUploadImageHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if out, err := storeutils.PinlWithLatestStats(ctx, s.Pinls, s.Monpkgs, s.Stats, s.Taggables, pinl.ID); err == nil {
+	if out, err := storeutils.GetPinl(ctx, s.Pinls, s.Monpkgs, s.Pinpkgs, s.Taggables, pinl.ID); err == nil {
 		s.Pubsub.Broadcast(message.NewPinlUpdated(out))
 	} else {
 		response.JSON(w, err, http.StatusInternalServerError)

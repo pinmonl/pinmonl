@@ -135,8 +135,6 @@ func unmarshal(pkguri string) (*PkgURI, error) {
 	}
 
 	switch pu.Provider {
-	case pkgdata.GitProvider:
-		pu.URI, pu.Host = pu.Host+"/"+pu.URI, ""
 	case pkgdata.GithubProvider:
 		if pu.Host == pkgdata.GithubHost {
 			pu.Host = ""
@@ -203,7 +201,8 @@ func ParseGit(rawurl string) (*PkgURI, error) {
 	}
 	return &PkgURI{
 		Provider: pkgdata.GitProvider,
-		URI:      u.Host + u.Path,
+		Host:     u.Host,
+		URI:      sanitizePath(u.Path),
 		Proto:    getProto(u.Scheme),
 	}, nil
 }
@@ -358,13 +357,6 @@ func ToURL(pu *PkgURI) string {
 		}
 
 	case pkgdata.GitProvider:
-		splits := strings.Split(pu.URI, "/")
-		if len(splits) > 0 {
-			u.Host = splits[0]
-		}
-		if len(splits) > 1 {
-			u.Path = strings.Join(splits[1:], "/")
-		}
 
 	case pkgdata.NpmProvider:
 		if u.Host == "" {

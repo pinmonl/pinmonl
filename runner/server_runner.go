@@ -30,14 +30,17 @@ func (s *ServerRunner) Start() error {
 
 func (s *ServerRunner) bootstrap(ctx context.Context) error {
 	logrus.Debugln("runner: bootstrap")
-	if err := s.resumePinlUpdated(ctx); err != nil {
-		return err
-	}
 	return nil
 }
 
 func (s *ServerRunner) start(ctx context.Context) error {
 	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		s.regularUpdateMonls(ctx)
+		wg.Done()
+	}()
 
 	wg.Add(1)
 	go func() {
@@ -49,18 +52,35 @@ func (s *ServerRunner) start(ctx context.Context) error {
 	return nil
 }
 
-func (s *ServerRunner) resumePinlUpdated(ctx context.Context) error {
-	pList, err := s.Stores.Pinls.List(ctx, &store.PinlOpts{
-		MonlIDs: []string{""},
+func (s *ServerRunner) regularUpdateMonls(ctx context.Context) error {
+	interval := 24 * time.Hour
+	ticker := time.NewTicker(interval)
+	defer func() {
+		ticker.Stop()
+	}()
+	s.updateMonls(ctx, time.Now().Add(-1*interval))
+	for {
+		select {
+		case <-ticker.C:
+			before := time.Now().Add(-1 * interval)
+			s.updateMonls(ctx, before)
+		}
+	}
+}
+
+func (s *ServerRunner) updateMonls(ctx context.Context, before time.Time) error {
+	logrus.Debugln("runner: start monls update")
+	expired, err := s.Stores.Monls.List(ctx, &store.MonlOpts{
+		FetchedBefore: before,
 	})
 	if err != nil {
 		return err
 	}
 
-	for i := range pList {
-		j := job.NewPinlUpdated(pList[i].ID)
-		s.Queue.Add(j)
+	for _, monl := range expired {
+		s.Queue.Add(job.NewMonlCrawler(monl.ID))
 	}
+	logrus.Debugf("runner: %d monls updated", len(expired))
 	return nil
 }
 

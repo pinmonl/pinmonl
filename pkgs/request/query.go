@@ -10,6 +10,7 @@ import (
 
 type PinlQuery struct {
 	Query string
+	IDs   []string
 	Tags  []string
 	NoTag field.NullBool
 }
@@ -17,6 +18,7 @@ type PinlQuery struct {
 func ParsePinlQuery(r *http.Request) (*PinlQuery, error) {
 	query := PinlQuery{
 		Query: r.URL.Query().Get("q"),
+		IDs:   QueryCsv(r, "id"),
 		Tags:  QueryCsv(r, "tag"),
 		NoTag: QueryBool(r, "notag"),
 	}
@@ -25,26 +27,23 @@ func ParsePinlQuery(r *http.Request) (*PinlQuery, error) {
 
 type TagQuery struct {
 	Query     string
+	IDs       []string
 	Names     []string
 	ParentIDs []string
 }
 
 func ParseTagQuery(r *http.Request) (*TagQuery, error) {
 	query := TagQuery{
-		Query: r.URL.Query().Get("q"),
-		Names: QueryCsv(r, "name"),
-	}
-	if parentq := r.URL.Query()["parent"]; len(parentq) > 0 {
-		if parentq[0] == "" {
-			query.ParentIDs = []string{""}
-		} else {
-			query.ParentIDs = QueryCsv(r, "parent")
-		}
+		Query:     r.URL.Query().Get("q"),
+		IDs:       QueryCsv(r, "id"),
+		Names:     QueryCsv(r, "name"),
+		ParentIDs: QueryCsv(r, "parent"),
 	}
 	return &query, nil
 }
 
 type StatQuery struct {
+	IDs       []string
 	PkgIDs    []string
 	Kinds     []model.StatKind
 	Latest    field.NullBool
@@ -53,12 +52,24 @@ type StatQuery struct {
 
 func ParseStatQuery(r *http.Request) (*StatQuery, error) {
 	query := StatQuery{
+		IDs:       QueryCsv(r, "id"),
 		PkgIDs:    QueryCsv(r, "pkg"),
 		Latest:    QueryBool(r, "latest"),
 		ParentIDs: QueryCsv(r, "parent"),
 	}
 	for _, kindstr := range QueryCsv(r, "kind") {
 		query.Kinds = append(query.Kinds, model.StatKind(kindstr))
+	}
+	return &query, nil
+}
+
+type PkgQuery struct {
+	IDs []string
+}
+
+func ParsePkgQuery(r *http.Request) (*PkgQuery, error) {
+	query := PkgQuery{
+		IDs: QueryCsv(r, "id"),
 	}
 	return &query, nil
 }

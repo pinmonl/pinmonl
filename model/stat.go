@@ -19,7 +19,8 @@ type Stat struct {
 	IsLatest    bool          `json:"isLatest"`
 	HasChildren bool          `json:"hasChildren"`
 
-	Substats *StatList `json:"substats,omitempty"`
+	Substats   *StatList `json:"substats,omitempty"`
+	SubstatIDs *[]string `json:"substatIds,omitempty"`
 }
 
 func (s Stat) MorphKey() string  { return s.ID }
@@ -52,8 +53,6 @@ const (
 )
 
 var ReleaseStatKinds = []StatKind{
-	AliasStat,
-	ChannelStat,
 	TagStat,
 	VideoStat,
 }
@@ -170,17 +169,22 @@ func (sl StatBySemver) Len() int { return len(sl) }
 func (sl StatBySemver) Swap(i, j int) { sl[i], sl[j] = sl[j], sl[i] }
 
 func (sl StatBySemver) Less(i, j int) bool {
-	iv, err := semver.NewVersion(sl[i].Value)
-	if err != nil {
+	iv, erri := semver.NewVersion(sl[i].Value)
+	jv, errj := semver.NewVersion(sl[j].Value)
+	if erri != nil && errj != nil {
+		it := sl[i].RecordedAt.Time()
+		jt := sl[j].RecordedAt.Time()
+		return it.Before(jt)
+	}
+	if erri != nil {
 		// If error occurs, sort to top.
 		return true
 	}
-	ij, err := semver.NewVersion(sl[j].Value)
-	if err != nil {
+	if errj != nil {
 		// If error occurs, sort to top.
 		return false
 	}
-	return iv.Compare(ij) < 0
+	return iv.Compare(jv) < 0
 }
 
 type StatByRecordedAt StatList

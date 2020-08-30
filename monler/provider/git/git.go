@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -146,10 +147,61 @@ func (r *Repo) analyze() (*Report, error) {
 		}
 		return nil
 	})
+
+	stats := make([]*model.Stat, 0)
+
 	// Sort by semver.
 	if len(tags) > 0 {
 		sort.Sort(model.StatBySemver(tags))
-		tags[len(tags)-1].IsLatest = true
+
+		var (
+			latest *model.Stat
+			next   *model.Stat
+		)
+		for i := len(tags) - 1; i >= 0; i-- {
+			v, err := semver.NewVersion(tags[i].Value)
+			if err == nil && v.Metadata() == "" && v.Prerelease() == "" {
+				tags[i].IsLatest = true
+				latest = tags[i]
+				break
+			} else if next == nil {
+				next = tags[i]
+			}
+		}
+
+		if latest == nil && next != nil {
+			latest, next = next, nil
+			latest.IsLatest = true
+		}
+
+		if latest != nil {
+			stats = append(stats, &model.Stat{
+				Kind:     model.ChannelStat,
+				Value:    "latest",
+				IsLatest: true,
+				Substats: &model.StatList{
+					&model.Stat{
+						Kind:  model.AliasStat,
+						Name:  "latest",
+						Value: latest.Value,
+					},
+				},
+			})
+		}
+
+		if next != nil {
+			stats = append(stats, &model.Stat{
+				Kind:  model.ChannelStat,
+				Value: "next",
+				Substats: &model.StatList{
+					&model.Stat{
+						Kind:  model.AliasStat,
+						Name:  "next",
+						Value: next.Value,
+					},
+				},
+			})
+		}
 	}
 
 	// Construct pkguri.
@@ -158,7 +210,7 @@ func (r *Repo) analyze() (*Report, error) {
 		return nil, err
 	}
 
-	return newReport(pu, tags)
+	return newReport(pu, stats, tags)
 }
 
 func (r *Repo) Derived() ([]string, error) {
@@ -238,9 +290,9 @@ type Report struct {
 	*prvdutils.StaticReport
 }
 
-func newReport(pu *pkguri.PkgURI, tags []*model.Stat) (*Report, error) {
+func newReport(pu *pkguri.PkgURI, stats []*model.Stat, tags []*model.Stat) (*Report, error) {
 	return &Report{
-		StaticReport: prvdutils.NewStaticReport(pu, nil, tags),
+		StaticReport: prvdutils.NewStaticReport(pu, nil, stats, tags),
 	}, nil
 }
 

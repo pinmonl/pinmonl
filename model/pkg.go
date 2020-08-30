@@ -12,6 +12,10 @@ type Pkg struct {
 	ProviderHost  string     `json:"providerHost"`
 	ProviderURI   string     `json:"providerUri"`
 	ProviderProto string     `json:"providerProto"`
+	Title         string     `json:"title"`
+	Description   string     `json:"description"`
+	ImageID       string     `json:"imageId"`
+	CustomUri     string     `json:"customUri"`
 	FetchedAt     field.Time `json:"fetchedAt"`
 	CreatedAt     field.Time `json:"createdAt"`
 	UpdatedAt     field.Time `json:"updatedAt"`

@@ -88,6 +88,9 @@ func (f *FetchMonl) PreRun(ctx context.Context) error {
 				return err
 			}
 		}
+		pkg.Title = mpsrc.Pkg.Title
+		pkg.Description = mpsrc.Pkg.Description
+		pkg.CustomUri = mpsrc.Pkg.CustomUri
 		f.pkgs[pkg] = model.MonpkgKind(mpsrc.Kind)
 
 		sOpts := &pinmonl.StatListOpts{}
@@ -173,7 +176,7 @@ func (f *FetchMonl) Run(ctx context.Context) ([]Job, error) {
 		}
 	}
 
-	pinls, err := storeutils.ListPinlsWithLatestStats(ctx, stores.Pinls, stores.Monpkgs, stores.Stats, stores.Taggables, &store.PinlOpts{
+	pinls, err := storeutils.ListPinls(ctx, stores.Pinls, stores.Monpkgs, stores.Pinpkgs, stores.Taggables, &store.PinlOpts{
 		MonlIDs: []string{monl.ID},
 	})
 	if err != nil {
