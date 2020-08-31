@@ -14,12 +14,12 @@ import { useDispatch } from 'react-redux'
 import PubsubContext from './PubsubContext'
 import { baseWs } from '@/utils/constants'
 import EventEmitter from 'events'
-import { useAuthToken } from '@/auth'
+import { useAuth } from '@/auth'
 
 const Pubsub = ({ children }) => {
   const hub = useRef()
   const bus = useRef(new EventEmitter())
-  const { token } = useAuthToken()
+  const { token } = useAuth()
   const dispatch = useDispatch()
 
   const onOpen = useCallback((e) => {

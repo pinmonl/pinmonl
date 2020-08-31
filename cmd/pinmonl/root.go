@@ -42,7 +42,7 @@ func initConfig() {
 	viper.SetDefault("db.dsn", "client.db")
 	viper.SetDefault("exchange.address", "https://pinmonl.io")
 	viper.SetDefault("exchange.enabled", true)
-	viper.SetDefault("jwt.expire", "24h")
+	viper.SetDefault("jwt.expire", "72h")
 	viper.SetDefault("jwt.issuer", "pinmonl")
 	viper.SetDefault("jwt.secret", string(generateKey()))
 	viper.SetDefault("queue.job", 1)

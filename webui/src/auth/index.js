@@ -1,9 +1,9 @@
-import useAuthToken from './useAuthToken'
-import Login from './Login'
+import Auth from './Auth'
+import AuthContext from './AuthContext'
+import useAuth from './useAuth'
 
 export {
-  useAuthToken,
-  Login,
+  Auth,
+  AuthContext,
+  useAuth,
 }
-
-export * from './provider'
