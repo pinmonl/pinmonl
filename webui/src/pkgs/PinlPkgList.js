@@ -18,9 +18,10 @@ import MonlerIcon from '../monlers/MonlerIcon'
 import StatPanel from '../stats/StatPanel'
 
 const PinlPkgList = (props) => {
-  const { pinlId } = useParams()
+  const { pinlId, tab: initialTab } = useParams()
   const dataProvider = useDataProvider()
   const [pkgs, setPkgs] = useState([])
+  const [tab, setTab] = useState(initialTab ? Number(initialTab) : 0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -30,8 +31,9 @@ const PinlPkgList = (props) => {
         const { data: pinl } = await dataProvider.getOne('pinl', { id: pinlId })
         if (cancelled) return
         const { data } = await dataProvider.getMany('pkg', { ids: pinl.pkgIds })
+        const ordered = pinl.pkgIds.map((pkgId) => data.find((pkg) => pkg.id === pkgId))
         if (cancelled) return
-        setPkgs(data)
+        setPkgs(ordered)
       } catch (e) {
         //
       } finally {
@@ -48,20 +50,21 @@ const PinlPkgList = (props) => {
         <Box>
           <Tabs
             variant="scrollable"
-            value={0}
-            onChange={(e, val) => console.log(val)}
+            value={tab}
+            onChange={(e, val) => setTab(val)}
           >
-            {pkgs.map(pkg => (
+            {pkgs.map((pkg, n) => (
               <Tab
                 key={pkg.id}
                 iconName={pkg.provider}
                 pkg={pkg}
+                value={n}
               />
             ))}
           </Tabs>
         </Box>
       </Card>
-      {pkgs.length > 0 && <StatPanel pkg={pkgs[0]} />}
+      {pkgs.length > 0 && <StatPanel key={tab} pkg={pkgs[tab]} />}
     </React.Fragment>
   )
 }
@@ -88,7 +91,7 @@ const Tab = ({ pkg, iconName, children, value, onChange, classes }) => {
             <MonlerIcon name={iconName} />
           </Box>
         )}
-        <Box>
+        <Box fontSize={14}>
           {label}
         </Box>
       </Box>

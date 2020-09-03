@@ -1,7 +1,5 @@
 import React, {
   useEffect,
-  useCallback,
-  useMemo,
   useState,
 } from 'react'
 import {
@@ -10,25 +8,17 @@ import {
 } from '@material-ui/core'
 import {
   mdiLink,
-  mdiCloudDownloadOutline,
-  mdiPackageVariant,
-  mdiFileMultipleOutline,
 } from '@mdi/js'
 import useFetchStats from './useFetchStats'
-import { findStat } from './utils'
 import StatList from './StatList'
 import Stat from './Stat'
 import ChannelStat from './ChannelStat'
 import ChannelSection from './ChannelSection'
-import useNumberFormat from './useNumberFormat'
-import useSizeFormat from './useSizeFormat'
 
-const NpmStatPanel = ({ pkg }) => {
+const GitStatPanel = ({ pkg }) => {
   const [latestStats, setLatestStats] = useState(pkg.stats)
   const [channels, setChannels] = useState([])
   const fetchStats = useFetchStats({ pkg })
-  const numberFormat = useNumberFormat()
-  const sizeFormat = useSizeFormat()
 
   useEffect(() => {
     let cancelled = false
@@ -60,35 +50,15 @@ const NpmStatPanel = ({ pkg }) => {
     return () => cancelled = true
   }, [])
 
-  const downloadCount = useMemo(() => findStat(latestStats, { kind: 'download_count' }), [latestStats])
-  const fileCount = useMemo(() => findStat(latestStats, { kind: 'file_count' }), [latestStats])
-  const size = useMemo(() => findStat(latestStats, { kind: 'size' }), [latestStats])
-
   return (
     <React.Fragment>
       <Paper>
         <Box p={3}>
           <StatList>
             <Stat
-              value={"NPM"}
+              value={"Git"}
               iconPath={mdiLink}
-              href={`https://www.npmjs.com/package/${pkg.providerUri}`}
-            />
-            <Stat
-              stat={downloadCount}
-              format={numberFormat}
-              iconPath={mdiCloudDownloadOutline}
-              suffix={"Monthly Downloads"}
-            />
-            <Stat
-              stat={fileCount}
-              iconPath={mdiFileMultipleOutline}
-              suffix={"Files"}
-            />
-            <Stat
-              stat={size}
-              format={sizeFormat}
-              iconPath={mdiPackageVariant}
+              href={`https://${pkg.providerHost}/${pkg.providerUri}`}
             />
           </StatList>
         </Box>
@@ -102,4 +72,4 @@ const NpmStatPanel = ({ pkg }) => {
   )
 }
 
-export default NpmStatPanel
+export default GitStatPanel

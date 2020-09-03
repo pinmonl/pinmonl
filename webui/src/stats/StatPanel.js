@@ -5,6 +5,7 @@ import GithubStatPanel from './GithubStatPanel'
 import DockerStatPanel from './DockerStatPanel'
 import NpmStatPanel from './NpmStatPanel'
 import YoutubeStatPanel from './YoutubeStatPanel'
+import GitStatPanel from './GitStatPanel'
 
 const StatPanel = (props) => {
   const { pkg } = props
@@ -19,6 +20,8 @@ const StatPanel = (props) => {
         return NpmStatPanel
       case 'youtube':
         return YoutubeStatPanel
+      case 'git':
+        return GitStatPanel
       default:
         return 'div'
     }

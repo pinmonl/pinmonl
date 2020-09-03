@@ -14,6 +14,7 @@ import {
   useRedirect,
   required,
   useNotify,
+  ReferenceArrayInput,
 } from 'react-admin'
 import {
   Grid,
@@ -24,6 +25,7 @@ import RefreshIcon from '@material-ui/icons/Refresh'
 import { useForm, useFormState } from 'react-final-form'
 import { getImageUrl } from '../images/utils'
 import TagArrayInput from '../tags/TagArrayInput'
+import PkgArrayInput from '../pkgs/PkgArrayInput'
 
 const imageKey = '_image'
 
@@ -60,6 +62,9 @@ const PinlForm = (props) => {
 
   const handleSave = useCallback(async (values, redirectTo) => {
     const { [imageKey]: image, ...data } = values
+    if (!data.hasPinpkgs) {
+      delete data.pkgIds
+    }
 
     try {
       const { data: target } = await save(data)
@@ -76,8 +81,18 @@ const PinlForm = (props) => {
     }
   }, [save, saveImage, redirect, props.basePath, notify])
 
+  const initialValues = useCallback((values) => {
+    let image = null
+    const imageUrl = getImageUrl(values, 'imageId')
+    if (imageUrl) {
+      image = { src: imageUrl }
+    }
+    values[imageKey] = image
+    return values
+  }, [])
+
   return (
-    <SimpleForm {...props} save={handleSave}>
+    <SimpleForm {...props} save={handleSave} defaultValue={initialValues}>
       <FormBody />
     </SimpleForm>
   )
@@ -106,48 +121,25 @@ const FormBody = (props) => {
   }
 
   return (
-    <InitializeFormValues>
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={6}>
-          <FormCol {...props}>
-            <PinlUrlInput source="url" fullWidth onRefreshClick={() => fetch().then(handleFetch)} validate={[required()]} />
-            <TagArrayInput label="Tags" source="tagNames" fullWidth strict />
-          </FormCol>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <FormCol {...props}>
-            <TextInput source="title" fullWidth validate={[required()]} />
-            <TextInput source="description" multiline fullWidth />
-            <ImageInput source={imageKey} fullWidth accept="image/*">
-              <ImageField source="src" />
-            </ImageInput>
-          </FormCol>
-        </Grid>
+    <Grid container spacing={4}>
+      <Grid item xs={12} md={6}>
+        <FormCol {...props}>
+          <PinlUrlInput source="url" fullWidth onRefreshClick={() => fetch().then(handleFetch)} validate={[required()]} />
+          <TagArrayInput label="Tags" source="tagNames" fullWidth strict />
+          <PkgArrayInput label="Pkgs" source="pkgIds" fullWidth />
+        </FormCol>
       </Grid>
-    </InitializeFormValues>
+      <Grid item xs={12} md={6}>
+        <FormCol {...props}>
+          <TextInput source="title" fullWidth validate={[required()]} />
+          <TextInput source="description" multiline fullWidth />
+          <ImageInput source={imageKey} fullWidth accept="image/*">
+            <ImageField source="src" />
+          </ImageInput>
+        </FormCol>
+      </Grid>
+    </Grid>
   )
-}
-
-const InitializeFormValues = ({ children }) => {
-  const form = useForm()
-  const formState = useFormState()
-
-  useEffect(() => {
-    if (typeof formState.values[imageKey] !== 'undefined') {
-      return
-    }
-    form.initialize((values) => {
-      let image = null
-      const imageUrl = getImageUrl(values, 'imageId')
-      if (imageUrl) {
-        image = { src: imageUrl }
-      }
-      values[imageKey] = image
-      return values
-    })
-  }, [formState.values])
-  
-  return children
 }
 
 const PinlUrlInput = ({ onRefreshClick, ...props }) => {

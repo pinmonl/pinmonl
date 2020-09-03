@@ -3,6 +3,7 @@ import { Box } from '@material-ui/core'
 
 const ChannelStat = ({ channel }) => {
   const { substats } = channel
+  const aliases = substats.filter((s) => s.kind === 'alias')
 
   return (
     <Box display="flex" my={1} fontSize="14px">
@@ -14,8 +15,8 @@ const ChannelStat = ({ channel }) => {
         minWidth={0}
         mx={0.6}
       />
-      {!!substats && <Box style={{textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden'}}>
-        {substats[0].value}
+      {aliases.length > 0 && <Box style={{textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden'}}>
+        {aliases[0].value}
       </Box>}
     </Box>
   )

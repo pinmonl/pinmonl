@@ -3,5 +3,5 @@ import { Route } from 'react-router'
 import PinlPkgList from '../pkgs/PinlPkgList'
 
 export default [
-  <Route exact path="/pkg/of-pinl/:pinlId" component={PinlPkgList} />
+  <Route exact path="/pkg/of-pinl/:pinlId/:tab" component={PinlPkgList} />
 ]

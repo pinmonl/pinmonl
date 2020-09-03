@@ -16,15 +16,16 @@ import {
   mdiStar,
 } from '@mdi/js'
 import useFetchStats from './useFetchStats'
-import { getStats } from './utils'
+import { findStat } from './utils'
 import ChannelStat from './ChannelStat'
 import ChannelSection from './ChannelSection'
-import { prettyNumber } from '@/utils/pretty'
+import useNumberFormat from './useNumberFormat'
 
 const DockerStatPanel = ({ pkg }) => {
   const [latestStats, setLatestStats] = useState(pkg.stats)
   const [channels, setChannels] = useState([])
   const fetchStats = useFetchStats({ pkg })
+  const numberFormat = useNumberFormat()
 
   useEffect(() => {
     let cancelled = false
@@ -56,13 +57,8 @@ const DockerStatPanel = ({ pkg }) => {
     return () => cancelled = true
   }, [])
 
-  const findStat = useCallback((kind) => {
-    const filtered = getStats(latestStats, { kind })
-    return filtered.length > 0 ? filtered[0] : null
-  }, [latestStats])
-
-  const pullCount = useMemo(() => findStat('pull_count'), [findStat])
-  const starCount = useMemo(() => findStat('star_count'), [findStat])
+  const pullCount = useMemo(() => findStat(latestStats, { kind: 'pull_count' }), [latestStats])
+  const starCount = useMemo(() => findStat(latestStats, { kind: 'star_count' }), [latestStats])
   const link = useMemo(() => {
     const path = pkg.providerUri.startsWith('library')
       ? '_/' + pkg.providerUri.replace('library/', '')
@@ -81,12 +77,14 @@ const DockerStatPanel = ({ pkg }) => {
               href={link}
             />
             <Stat
-              value={prettyNumber(Number(starCount.value))}
+              stat={starCount}
+              format={numberFormat}
               iconPath={mdiStar}
               suffix={"Stars"}
             />
             <Stat
-              value={prettyNumber(Number(pullCount.value))}
+              stat={pullCount}
+              format={numberFormat}
               iconPath={mdiDownload}
               suffix={"Pulls"}
             />

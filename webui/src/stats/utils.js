@@ -16,3 +16,8 @@ export const getStats = (stats, where) => {
     return matches.every((match) => match(stat))
   })
 }
+
+export const findStat = (stats, where) => {
+  const filtered = getStats(stats, where)
+  return filtered[0]
+}

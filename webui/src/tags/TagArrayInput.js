@@ -8,6 +8,8 @@ import React, {
 import {
   useInput,
   useMutation,
+  InputHelperText,
+  FieldTitle,
 } from 'react-admin'
 import {
   Popper,
@@ -77,7 +79,8 @@ const TagArrayInput = React.forwardRef(({
   const listRef = useRef()
   const filteredOptions = options
 
-  const { input } = useInput(props)
+  const { record, source } = props
+  const { input, meta, isRequired } = useInput(props)
   const value = input.value || []
   const onChange = input.onChange
 
@@ -250,7 +253,9 @@ const TagArrayInput = React.forwardRef(({
         margin={margin}
         fullWidth={fullWidth}
       >
-        <InputLabel>{label}</InputLabel>
+        <InputLabel>
+          <FieldTitle record={record} source={source} label={label} isRequired={isRequired} />
+        </InputLabel>
         <InputComponent
           ref={fieldRef}
           inputRef={inputRef}
@@ -271,7 +276,9 @@ const TagArrayInput = React.forwardRef(({
             root: classes.inputRoot,
           }}
         />
-        <FormHelperText />
+        <FormHelperText variant={variant} margin={margin}>
+          <InputHelperText helperText={props.helperText} error={meta.error} touched={meta.touched} />
+        </FormHelperText>
         {fieldRef.current && (
           <Popper
             anchorEl={fieldRef.current}

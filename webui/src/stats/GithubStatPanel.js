@@ -18,17 +18,19 @@ import {
   mdiCodeBracesBox,
 } from '@mdi/js'
 import useFetchStats from './useFetchStats'
-import { getStats } from './utils'
+import { findStat } from './utils'
 import StatList from './StatList'
 import Stat from './Stat'
 import ChannelStat from './ChannelStat'
 import ChannelSection from './ChannelSection'
 import { prettyNumber } from '@/utils/pretty'
+import useNumberFormat from './useNumberFormat'
 
 const GithubStatPanel = ({ pkg }) => {
   const [latestStats, setLatestStats] = useState(pkg.stats)
   const [channels, setChannels] = useState([])
   const fetchStats = useFetchStats({ pkg })
+  const numberFormat = useNumberFormat()
 
   useEffect(() => {
     let cancelled = false
@@ -60,17 +62,12 @@ const GithubStatPanel = ({ pkg }) => {
     return () => cancelled = true
   }, [])
 
-  const findStat = useCallback((kind) => {
-    const filtered = getStats(latestStats, { kind })
-    return filtered.length > 0 ? filtered[0] : null
-  }, [latestStats])
-
-  const starCount = useMemo(() => findStat('star_count'), [findStat])
-  const openIssueCount = useMemo(() => findStat('open_issue_count'), [findStat])
-  const watcherCount = useMemo(() => findStat('watcher_count'), [findStat])
-  const forkCount = useMemo(() => findStat('fork_count'), [findStat])
-  const license = useMemo(() => findStat('license'), [findStat])
-  const lang = useMemo(() => findStat('lang'), [findStat])
+  const starCount = useMemo(() => findStat(latestStats, { kind: 'star_count' }), [latestStats])
+  const openIssueCount = useMemo(() => findStat(latestStats, { kind: 'open_issue_count' }), [latestStats])
+  const watcherCount = useMemo(() => findStat(latestStats, { kind: 'watcher_count' }), [latestStats])
+  const forkCount = useMemo(() => findStat(latestStats, { kind: 'fork_count' }), [latestStats])
+  const license = useMemo(() => findStat(latestStats, { kind: 'license' }), [latestStats])
+  const lang = useMemo(() => findStat(latestStats, { kind: 'lang' }), [latestStats])
 
   return (
     <React.Fragment>
@@ -83,32 +80,35 @@ const GithubStatPanel = ({ pkg }) => {
               href={`https://github.com/${pkg.providerUri}`}
             />
             <Stat
-              value={prettyNumber(Number(starCount.value))}
+              stat={starCount}
+              format={numberFormat}
               iconPath={mdiStar}
               suffix={"Stars"}
             />
             <Stat
-              value={openIssueCount.value}
+              stat={openIssueCount}
               iconPath={mdiAlertCircleOutline}
               suffix={"Open Issues"}
             />
             <Stat
-              value={prettyNumber(Number(watcherCount.value))}
+              stat={watcherCount}
+              value={numberFormat}
               iconPath={mdiEye}
               suffix={"Watchers"}
             />
             <Stat
-              value={prettyNumber(Number(forkCount.value))}
+              stat={forkCount}
+              format={numberFormat}
               iconPath={mdiSourceFork}
               suffix={"Forks"}
             />
             <Stat
-              value={license.value}
+              stat={license}
               iconPath={mdiLicense}
               suffix={"License"}
             />
             <Stat
-              value={lang.value}
+              stat={lang}
               iconPath={mdiCodeBracesBox}
               prefix={"Written in"}
             />

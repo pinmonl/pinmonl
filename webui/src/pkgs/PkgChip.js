@@ -1,37 +1,41 @@
-import React from 'react'
+import React, {
+  useMemo,
+} from 'react'
 import { Chip } from '@material-ui/core'
 import MonlerIcon from '../monlers/MonlerIcon'
 import { prettyTime } from '@/utils/pretty'
 
 const PkgChip = ({ pkg, ...props }) => {
-  const provider = pkg.provider
+  const provider = useMemo(() => pkg.provider, [pkg])
+  const stats = useMemo(() => pkg.stats || [], [pkg])
 
-  let label
-  switch (provider) {
-    case 'youtube': {
-      const stats = filterStats(pkg.stats, 'video')
-      if (stats.length > 0) {
-        label = prettyTime(stats[0].recordedAt)
+  const label = useMemo(() => {
+    switch (provider) {
+      case 'youtube': {
+        const filtered = filterStats(stats, 'video')
+        if (filtered.length > 0) {
+          return prettyTime(filtered[0].recordedAt)
+        }
+        return
       }
-      break
-    }
-    case 'npm':
-    case 'docker':
-    case 'git':
-    case 'github': {
-      const stats = filterStats(pkg.stats, 'tag')
-      if (stats.length > 0) {
-        label = stats[0].value
+      case 'npm':
+      case 'docker':
+      case 'git':
+      case 'github': {
+        const filtered = filterStats(stats, 'tag')
+        if (filtered.length > 0) {
+          return filtered[0].value
+        }
+        return 'latest'
       }
-      break
+      default:
     }
-    default:
-  }
+  }, [provider, stats])
 
   return (
     <Chip
       {...props}
-      icon={<MonlerIcon name={pkg.provider} size="small" />}
+      icon={<MonlerIcon name={provider} size="small" />}
       variant="outlined"
       label={label}
       size="small"

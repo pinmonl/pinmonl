@@ -63,8 +63,8 @@ const PinlListItem = (props) => {
     history.push(`/pinl/${record.id}`)
   }, [record, history])
 
-  const handlePkgClick = useCallback(() => {
-    history.push(`/pkg/of-pinl/${record.id}`)
+  const handlePkgClick = useCallback((e, n) => {
+    history.push(`/pkg/of-pinl/${record.id}/${n}`)
   }, [record, history])
 
   const hasPkgs = useMemo(() => {
@@ -111,8 +111,8 @@ const PinlListItem = (props) => {
 }
 
 const PinlPkgChip = ({ ids, data, onClick }) => {
-  return ids.map(id => (
-    !!data[id] && <PkgChip key={id} pkg={data[id]} onClick={onClick} />
+  return ids.map((id, n) => (
+    !!data[id] && <PkgChip key={id} pkg={data[id]} onClick={(e) => onClick(e, n)} />
   ))
 }
 

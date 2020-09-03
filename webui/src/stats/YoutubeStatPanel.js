@@ -16,15 +16,17 @@ import {
   mdiVideo,
 } from '@mdi/js'
 import useFetchStats from './useFetchStats'
-import { getStats } from './utils'
+import { findStat } from './utils'
 import StatList from './StatList'
 import Stat from './Stat'
-import { prettyNumber, timeFormat } from '@/utils/pretty'
+import { timeFormat } from '@/utils/pretty'
+import useNumberFormat from './useNumberFormat'
 
 const YoutubeStatPanel = ({ pkg }) => {
   const [latestStats, setLatestStats] = useState(pkg.stats)
   const [videos, setVideos] = useState([])
   const fetchStats = useFetchStats({ pkg })
+  const numberFormat = useNumberFormat()
 
   useEffect(() => {
     let cancelled = false
@@ -56,14 +58,9 @@ const YoutubeStatPanel = ({ pkg }) => {
     return () => cancelled = true
   }, [])
 
-  const findStat = useCallback((kind) => {
-    const filtered = getStats(latestStats, { kind })
-    return filtered.length > 0 ? filtered[0] : null
-  }, [latestStats])
-
-  const subscriberCount = useMemo(() => findStat('subscriber_count'), [findStat])
-  const viewCount = useMemo(() => findStat('view_count'), [findStat])
-  const videoCount = useMemo(() => findStat('video_count'), [findStat])
+  const subscriberCount = useMemo(() => findStat(latestStats, { kind: 'subscriber_count' }), [latestStats])
+  const viewCount = useMemo(() => findStat(latestStats, { kind: 'view_count' }), [latestStats])
+  const videoCount = useMemo(() => findStat(latestStats, { kind: 'video_count' }), [latestStats])
 
   return (
     <React.Fragment>
@@ -76,17 +73,20 @@ const YoutubeStatPanel = ({ pkg }) => {
               href={`https://youtube.com/channel/${pkg.providerUri}`}
             />
             <Stat
-              value={prettyNumber(Number(subscriberCount.value))}
+              stat={subscriberCount}
+              format={numberFormat}
               iconPath={mdiAccount}
               suffix={"Subscribers"}
             />
             <Stat
-              value={prettyNumber(Number(viewCount.value))}
+              stat={viewCount}
+              format={numberFormat}
               iconPath={mdiTelevisionPlay}
               suffix={"Views"}
             />
             <Stat
-              value={prettyNumber(Number(videoCount.value))}
+              stat={videoCount}
+              format={numberFormat}
               iconPath={mdiVideo}
               suffix={"Videos"}
             />
