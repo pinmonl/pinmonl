@@ -140,7 +140,7 @@ func (s *Server) WebRouter() chi.Router {
 }
 
 func (s *Server) pagination() func(http.Handler) http.Handler {
-	return request.Pagination("page", "page_size", 10)
+	return request.Pagination("page", "pageSize", 10)
 }
 
 func (s *Server) hasDefaultUser() bool {
