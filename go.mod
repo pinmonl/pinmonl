@@ -9,6 +9,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-chi/chi v4.1.1+incompatible
+	github.com/go-chi/cors v1.1.1
 	github.com/go-git/go-git/v5 v5.1.0
 	github.com/golang-migrate/migrate/v4 v4.11.0
 	github.com/gorilla/websocket v1.4.2
