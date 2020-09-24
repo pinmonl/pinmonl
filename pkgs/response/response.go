@@ -21,8 +21,10 @@ func JSON(w http.ResponseWriter, v interface{}, code int) error {
 		return enc.Encode(Error(v.(error)))
 	case nil:
 		return nil
-	default:
+	case Body:
 		return enc.Encode(v)
+	default:
+		return enc.Encode(Body{"data": v})
 	}
 }
 
@@ -43,9 +45,11 @@ type PageInfo struct {
 }
 
 func ListJSON(w http.ResponseWriter, v interface{}, info *PageInfo, code int) error {
-	body := struct {
-		*PageInfo
-		Data interface{} `json:"data"`
-	}{info, v}
+	body := Body{
+		"data":       v,
+		"page":       info.Page,
+		"pageSize":   info.PageSize,
+		"totalCount": info.TotalCount,
+	}
 	return JSON(w, body, code)
 }
