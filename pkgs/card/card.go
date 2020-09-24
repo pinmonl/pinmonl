@@ -3,6 +3,7 @@ package card
 import (
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -100,12 +101,23 @@ func (c *Card) ImageURL() string {
 
 // Image returns the image content at ImageURL.
 func (c *Card) Image() ([]byte, error) {
-	url := c.ImageURL()
-	if url == "" {
+	imgurl := c.ImageURL()
+	if imgurl == "" {
 		return nil, nil
 	}
 
-	res, err := http.Get(url)
+	u, err := url.Parse(imgurl)
+	if err != nil {
+		return nil, err
+	}
+	if u.Host == "" {
+		u.Host = c.Response.Request.URL.Host
+	}
+	if u.Scheme == "" {
+		u.Scheme = c.Response.Request.URL.Scheme
+	}
+
+	res, err := http.Get(u.String())
 	if err != nil {
 		return nil, err
 	}
