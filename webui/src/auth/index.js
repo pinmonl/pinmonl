@@ -1,9 +1,9 @@
-import Auth from './Auth'
-import AuthContext from './AuthContext'
-import useAuth from './useAuth'
+import createAuthChannel from './createAuthChannel'
+import createAuthProvider from './createAuthProvider'
+import loadToken from './loadToken'
 
 export {
-  Auth,
-  AuthContext,
-  useAuth,
+  createAuthChannel,
+  createAuthProvider,
+  loadToken,
 }

@@ -8,3 +8,5 @@ export const baseWs = function () {
   url.pathname = '/ws'
   return url.toString()
 }()
+
+export const hasDefaultUser = Pinmonl.hasDefaultUser

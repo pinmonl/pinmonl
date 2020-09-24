@@ -1,5 +1,5 @@
-import i18nProvider from './provider'
+import createI18nProvider from './createI18nProvider'
 
 export {
-  i18nProvider,
+  createI18nProvider,
 }
