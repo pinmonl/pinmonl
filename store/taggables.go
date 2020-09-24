@@ -139,6 +139,10 @@ func (t Taggables) columns() []string {
 		t.table() + ".tag_id",
 		t.table() + ".target_id",
 		t.table() + ".target_name",
+		t.table() + ".value",
+		t.table() + ".value_type",
+		t.table() + ".value_prefix",
+		t.table() + ".value_suffix",
 	}
 }
 
@@ -148,6 +152,10 @@ func (t Taggables) scanColumns(taggable *model.Taggable) []interface{} {
 		&taggable.TagID,
 		&taggable.TargetID,
 		&taggable.TargetName,
+		&taggable.Value,
+		&taggable.ValueType,
+		&taggable.ValuePrefix,
+		&taggable.ValueSuffix,
 	}
 }
 
@@ -257,12 +265,20 @@ func (t *Taggables) Create(ctx context.Context, taggable *model.Taggable) error 
 			"id",
 			"tag_id",
 			"target_id",
-			"target_name").
+			"target_name",
+			"value",
+			"value_type",
+			"value_prefix",
+			"value_suffix").
 		Values(
 			taggable2.ID,
 			taggable2.TagID,
 			taggable2.TargetID,
-			taggable2.TargetName)
+			taggable2.TargetName,
+			taggable2.Value,
+			taggable2.ValueType,
+			taggable2.ValuePrefix,
+			taggable2.ValueSuffix)
 	_, err := qb.Exec()
 	if err != nil {
 		return err
@@ -279,6 +295,10 @@ func (t *Taggables) Update(ctx context.Context, taggable *model.Taggable) error 
 		Set("tag_id", taggable2.TagID).
 		Set("target_id", taggable2.TargetID).
 		Set("target_name", taggable2.TargetName).
+		Set("value", taggable2.Value).
+		Set("value_type", taggable2.ValueType).
+		Set("value_prefix", taggable2.ValuePrefix).
+		Set("value_suffix", taggable2.ValueSuffix).
 		Where("id = ?", taggable2.ID)
 	_, err := qb.Exec()
 	if err != nil {

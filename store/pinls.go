@@ -224,6 +224,7 @@ func (p Pinls) columns() []string {
 		p.table() + ".description",
 		p.table() + ".image_id",
 		p.table() + ".status",
+		p.table() + ".has_pinpkgs",
 		p.table() + ".created_at",
 		p.table() + ".updated_at",
 	}
@@ -239,6 +240,7 @@ func (p Pinls) scanColumns(pinl *model.Pinl) []interface{} {
 		&pinl.Description,
 		&pinl.ImageID,
 		&pinl.Status,
+		&pinl.HasPinpkgs,
 		&pinl.CreatedAt,
 		&pinl.UpdatedAt,
 	}
@@ -270,6 +272,7 @@ func (p *Pinls) Create(ctx context.Context, pinl *model.Pinl) error {
 			"description",
 			"image_id",
 			"status",
+			"has_pinpkgs",
 			"created_at",
 			"updated_at").
 		Values(
@@ -281,6 +284,7 @@ func (p *Pinls) Create(ctx context.Context, pinl *model.Pinl) error {
 			pinl2.Description,
 			pinl2.ImageID,
 			pinl2.Status,
+			pinl2.HasPinpkgs,
 			pinl2.CreatedAt,
 			pinl2.UpdatedAt)
 	_, err := qb.Exec()
@@ -304,6 +308,7 @@ func (p *Pinls) Update(ctx context.Context, pinl *model.Pinl) error {
 		Set("description", pinl2.Description).
 		Set("image_id", pinl2.ImageID).
 		Set("status", pinl2.Status).
+		Set("has_pinpkgs", pinl2.HasPinpkgs).
 		Set("updated_at", pinl2.UpdatedAt).
 		Where("id = ?", pinl2.ID)
 	_, err := qb.Exec()

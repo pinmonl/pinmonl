@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/cors"
 	"github.com/markbates/pkger"
 	"github.com/pinmonl/pinmonl/database"
 	"github.com/pinmonl/pinmonl/exchange"
@@ -59,6 +60,15 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) APIRouter() chi.Router {
 	r := chi.NewRouter()
 
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
+
 	if !s.hasDefaultUser() {
 		r.Post("/signup", s.signupHandler)
 		r.Post("/login", s.loginHandler)
@@ -66,7 +76,7 @@ func (s *Server) APIRouter() chi.Router {
 	r.With(s.authorize()).
 		Post("/refresh", s.refreshHandler)
 
-	r.Route("/pinl", func(r chi.Router) {
+	r.Route("/pin", func(r chi.Router) {
 		r.Use(s.authorize())
 		r.With(s.pagination()).
 			Get("/", s.pinlListHandler)
@@ -98,35 +108,12 @@ func (s *Server) APIRouter() chi.Router {
 	r.Route("/pkg", func(r chi.Router) {
 		r.With(s.pagination()).
 			Get("/", s.pkgListHandler)
+		r.Post("/", s.pkgCreateHandler)
 	})
 
 	r.Route("/stat", func(r chi.Router) {
 		r.With(s.pagination()).
 			Get("/", s.statListHandler)
-	})
-
-	r.Route("/share", func(r chi.Router) {
-		r.Use(s.authorize())
-		r.With(s.pagination()).
-			Get("/", s.shareListHandler)
-		r.Route("/{slug}", func(r chi.Router) {
-			r.Post("/", s.shareCreateHandler)
-			r.Route("/", func(r chi.Router) {
-				r.Use(s.bindShare())
-				r.Get("/", s.shareHandler)
-				r.Delete("/", s.shareDeleteHandler)
-				r.Post("/publish", s.sharePublishHandler)
-
-				r.With(s.pagination()).
-					Get("/tag", s.sharetagListHandler)
-			})
-		})
-	})
-
-	r.Route("/exchange", func(r chi.Router) {
-		r.Post("/signup", nil)
-		r.Post("/login", nil)
-		r.Get("/status", nil)
 	})
 
 	return r
@@ -180,7 +167,7 @@ func (s *Server) webHandler() http.Handler {
 		data := map[string]interface{}{
 			"BaseURL":         baseURL.String(),
 			"BasePrefix":      "",
-			"DefaultUser":     s.DefaultUserID != "",
+			"HasDefaultUser":  s.hasDefaultUser(),
 			"ExchangeEnabled": s.ExchangeEnabled,
 		}
 

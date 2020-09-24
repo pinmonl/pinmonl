@@ -35,22 +35,30 @@ func GetPkgs(ctx context.Context, monpkgs *store.Monpkgs, pinpkgs *store.Pinpkgs
 			pinlIDs = append(pinlIDs, p.ID)
 		} else {
 			monlIDs = append(monlIDs, p.MonlID)
+			monlMap[p.MonlID] = append(monlMap[p.MonlID], p.ID)
 		}
-		monlMap[p.MonlID] = append(monlMap[p.MonlID], p.ID)
 	}
 
-	mpList, err := monpkgs.ListWithPkg(ctx, &store.MonpkgOpts{
-		MonlIDs: monlIDs,
-	})
-	if err != nil {
-		return nil, err
+	var (
+		mpList model.MonpkgList
+		ppList model.PinpkgList
+		err    error
+	)
+	if len(monlIDs) > 0 {
+		mpList, err = monpkgs.ListWithPkg(ctx, &store.MonpkgOpts{
+			MonlIDs: monlIDs,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	ppList, err := pinpkgs.ListWithPkg(ctx, &store.PinpkgOpts{
-		PinlIDs: pinlIDs,
-	})
-	if err != nil {
-		return nil, err
+	if len(pinlIDs) > 0 {
+		ppList, err = pinpkgs.ListWithPkg(ctx, &store.PinpkgOpts{
+			PinlIDs: pinlIDs,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	out := make(map[string]model.PkgList)

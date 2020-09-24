@@ -10,10 +10,9 @@ import (
 )
 
 func SaveTag(ctx context.Context, tags *store.Tags, userID string, data *model.Tag) (*model.Tag, error) {
-	var (
-		tag   = *data
-		isNew = tag.ID == ""
-	)
+	tag := &model.Tag{}
+	*tag = *data
+	isNew := tag.ID == ""
 
 	tag.UserID = userID
 	tag.Level = strings.Count(tag.Name, "/")
@@ -43,21 +42,21 @@ func SaveTag(ctx context.Context, tags *store.Tags, userID string, data *model.T
 	}
 
 	if !isNew {
-		if err := rebuildTagHierarchy(ctx, tags, &tag); err != nil {
+		if err := rebuildTagHierarchy(ctx, tags, tag); err != nil {
 			return nil, err
 		}
 	}
 
 	var err error
 	if isNew {
-		err = tags.Create(ctx, &tag)
+		err = tags.Create(ctx, tag)
 	} else {
-		err = tags.Update(ctx, &tag)
+		err = tags.Update(ctx, tag)
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &tag, nil
+	return tag, nil
 }
 
 func rebuildTagHierarchy(ctx context.Context, tags *store.Tags, tag *model.Tag) error {

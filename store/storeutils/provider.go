@@ -212,6 +212,7 @@ func saveReportTags(ctx context.Context, stats *store.Stats, pkgID string, repor
 			}
 		}
 		_, err := saveStat(ctx, stats, pkgID, tag)
+		// logrus.Debugf("saving tag %v, %t, %v", tag.Value, tag.IsLatest, err)
 		if err != nil {
 			return nil, err
 		}

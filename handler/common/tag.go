@@ -69,7 +69,7 @@ func TagListHandler(tags *store.Tags) http.Handler {
 		if len(query.Names) > 0 {
 			opts.Names = query.Names
 		}
-		if _, has := r.URL.Query()["parent"]; has {
+		if _, has := r.URL.Query()["parentId"]; has {
 			if len(query.ParentIDs) > 0 {
 				opts.ParentIDs = query.ParentIDs
 			} else {

@@ -68,8 +68,8 @@ func PinlListHandler(pinls *store.Pinls, tags *store.Tags, taggables *store.Tagg
 			Query:    query.Query,
 			ListOpts: pg.ToOpts(),
 		}
-		if len(query.Tags) > 0 {
-			opts.TagNames = query.Tags
+		if len(query.TagIDs) > 0 {
+			opts.TagIDs = query.TagIDs
 		}
 
 		pList, err := pinls.List(ctx, opts)
@@ -112,10 +112,11 @@ func PinlHandler(taggables *store.Taggables) http.Handler {
 
 // PinlBody defines the fields of pinl body.
 type PinlBody struct {
-	URL         string   `json:"url"`
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	TagNames    []string `json:"tagNames"`
+	URL         string    `json:"url"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	TagNames    []string  `json:"tagNames"`
+	PkgIDs      *[]string `json:"pkgIds"`
 }
 
 // PinlCreateHandler creates pinl from request.

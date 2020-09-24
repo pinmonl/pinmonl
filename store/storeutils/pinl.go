@@ -8,11 +8,22 @@ import (
 	"github.com/pinmonl/pinmonl/store"
 )
 
-func SavePinl(ctx context.Context, pinls *store.Pinls, images *store.Images, data *model.Pinl, withCard bool) (*model.Pinl, *model.Image, error) {
+func SavePinl(
+	ctx context.Context,
+	pinls *store.Pinls,
+	taggables *store.Taggables,
+	pinpkgs *store.Pinpkgs,
+	images *store.Images,
+	data *model.Pinl,
+	withCard bool,
+) (*model.Pinl, *model.Image, error) {
+	pinl := &model.Pinl{}
+	*pinl = *data
+
 	var (
-		pinl     = *data
-		isNew    = (pinl.ID == "")
-		imgbytes []byte
+		isNew      = (pinl.ID == "")
+		imgbytes   []byte
+		hasPinpkgs = (pinl.PkgIDs != nil)
 	)
 
 	// Crawls card information by the url.
@@ -28,13 +39,14 @@ func SavePinl(ctx context.Context, pinls *store.Pinls, images *store.Images, dat
 			imgbytes = imgb
 		}
 	}
+	pinl.HasPinpkgs = hasPinpkgs
 
 	// Saves pinl.
 	var err error
 	if isNew {
-		err = pinls.Create(ctx, &pinl)
+		err = pinls.Create(ctx, pinl)
 	} else {
-		err = pinls.Update(ctx, &pinl)
+		err = pinls.Update(ctx, pinl)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -49,12 +61,44 @@ func SavePinl(ctx context.Context, pinls *store.Pinls, images *store.Images, dat
 		}
 
 		pinl.ImageID = image.ID
-		if err := pinls.Update(ctx, &pinl); err != nil {
+		if err := pinls.Update(ctx, pinl); err != nil {
 			return nil, nil, err
 		}
 	}
 
-	return &pinl, image, nil
+	if tgList, err := savePinlTaggables(ctx, taggables, pinl); err == nil {
+		pinl.SetTagPivots(tgList)
+	} else {
+		return nil, nil, err
+	}
+
+	if _, err := savePinlPkgs(ctx, pinpkgs, pinl); err != nil {
+		return nil, nil, err
+	}
+
+	return pinl, image, nil
+}
+
+func savePinlTaggables(ctx context.Context, taggables *store.Taggables, pinl *model.Pinl) (model.TaggableList, error) {
+	var (
+		tagIDs    = make([]string, 0)
+		tagValues = make(map[string]*model.TagPivot)
+	)
+	if pinl.TagIDs != nil {
+		tagIDs = *pinl.TagIDs
+	}
+	if pinl.TagValues != nil {
+		tagValues = *pinl.TagValues
+	}
+	return SaveTaggables(ctx, taggables, pinl.UserID, pinl, tagIDs, tagValues)
+}
+
+func savePinlPkgs(ctx context.Context, pinpkgs *store.Pinpkgs, pinl *model.Pinl) (model.PinpkgList, error) {
+	pkgIDs := make([]string, 0)
+	if pinl.PkgIDs != nil {
+		pkgIDs = *pinl.PkgIDs
+	}
+	return SavePinpkgs(ctx, pinpkgs, pinl.ID, pkgIDs)
 }
 
 func ListPinls(ctx context.Context, pinls *store.Pinls, monpkgs *store.Monpkgs, pinpkgs *store.Pinpkgs, taggables *store.Taggables, opts *store.PinlOpts) (model.PinlList, error) {
@@ -63,7 +107,7 @@ func ListPinls(ctx context.Context, pinls *store.Pinls, monpkgs *store.Monpkgs, 
 		return nil, err
 	}
 
-	tMap, err := GetTags(ctx, taggables, pList.Morphables())
+	tMap, err := GetTaggables(ctx, taggables, pList.Morphables())
 	if err != nil {
 		return nil, err
 	}
@@ -73,63 +117,13 @@ func ListPinls(ctx context.Context, pinls *store.Pinls, monpkgs *store.Monpkgs, 
 		return nil, err
 	}
 
-	pList.SetTagNames(tMap)
+	pList.SetTagPivots(tMap)
 	pList.SetPkgIDs(pMap)
 	return pList, nil
 }
 
 func GetPinl(ctx context.Context, pinls *store.Pinls, monpkgs *store.Monpkgs, pinpkgs *store.Pinpkgs, taggables *store.Taggables, pinlID string) (*model.Pinl, error) {
 	pList, err := ListPinls(ctx, pinls, monpkgs, pinpkgs, taggables, &store.PinlOpts{
-		IDs: []string{pinlID},
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(pList) == 0 {
-		return nil, nil
-	}
-	return pList[0], nil
-}
-
-func ListPinlsWithLatestStats(ctx context.Context, pinls *store.Pinls, monpkgs *store.Monpkgs, stats *store.Stats, taggables *store.Taggables, opts *store.PinlOpts) (model.PinlList, error) {
-	pList, err := pinls.List(ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	mpList, err := monpkgs.ListWithPkg(ctx, &store.MonpkgOpts{
-		MonlIDs: pList.MonlKeys(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	sList, err := stats.List(ctx, &store.StatOpts{
-		PkgIDs: mpList.Pkgs().Keys(),
-	})
-	if err != nil {
-		return nil, err
-	}
-	if sList2, err := ListStatTree(ctx, stats, sList); err == nil {
-		sList = sList2
-	} else {
-		return nil, err
-	}
-
-	tMap, err := GetTags(ctx, taggables, pList.Morphables())
-	if err != nil {
-		return nil, err
-	}
-
-	mpList.Pkgs().SetStats(sList)
-	pList.SetPkgs(mpList.PkgsByMonl())
-	pList.SetTagNames(tMap)
-
-	return pList, nil
-}
-
-func PinlWithLatestStats(ctx context.Context, pinls *store.Pinls, monpkgs *store.Monpkgs, stats *store.Stats, taggables *store.Taggables, pinlID string) (*model.Pinl, error) {
-	pList, err := ListPinlsWithLatestStats(ctx, pinls, monpkgs, stats, taggables, &store.PinlOpts{
 		IDs: []string{pinlID},
 	})
 	if err != nil {

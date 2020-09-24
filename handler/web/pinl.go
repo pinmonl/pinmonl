@@ -11,7 +11,6 @@ import (
 	"github.com/pinmonl/pinmonl/pkgs/pinlutils"
 	"github.com/pinmonl/pinmonl/pkgs/request"
 	"github.com/pinmonl/pinmonl/pkgs/response"
-	"github.com/pinmonl/pinmonl/pkgs/tagutils"
 	"github.com/pinmonl/pinmonl/pubsub/message"
 	"github.com/pinmonl/pinmonl/queue/job"
 	"github.com/pinmonl/pinmonl/store"
@@ -42,11 +41,8 @@ func (s *Server) pinlListHandler(w http.ResponseWriter, r *http.Request) {
 		NoTag:    query.NoTag,
 		Orders:   []store.PinlOrder{store.PinlOrderByLatest},
 	}
-	if len(query.Tags) > 0 {
-		opts.TagNamePatterns = make([]string, len(query.Tags))
-		for i := range query.Tags {
-			opts.TagNamePatterns[i] = tagutils.ToNamePattern(query.Tags[i])
-		}
+	if len(query.TagIDs) > 0 {
+		opts.TagIDs = query.TagIDs
 	}
 
 	pList, err := storeutils.ListPinls(ctx, s.Pinls, s.Monpkgs, s.Pinpkgs, s.Taggables, opts)
@@ -78,7 +74,14 @@ func (s *Server) pinlHandler(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, pinl2, http.StatusOK)
 }
 
-type pinlBody common.PinlBody
+type pinlBody model.Pinl
+
+func (p pinlBody) validate() error {
+	if p.Title == "" {
+		return errors.New("title is required")
+	}
+	return nil
+}
 
 func validatePinlBody(in pinlBody) error {
 	if in.URL == "" || !pinlutils.IsValidURL(in.URL) {
@@ -89,40 +92,43 @@ func validatePinlBody(in pinlBody) error {
 
 func savePinl(
 	ctx context.Context,
-	pinls *store.Pinls, images *store.Images,
-	tags *store.Tags, taggables *store.Taggables,
-	monls *store.Monls, monpkgs *store.Monpkgs, pinpkgs *store.Pinpkgs,
-	pinl *model.Pinl, userId string, tagNames []string,
+	pinls *store.Pinls,
+	images *store.Images,
+	tags *store.Tags,
+	taggables *store.Taggables,
+	monls *store.Monls,
+	monpkgs *store.Monpkgs,
+	pinpkgs *store.Pinpkgs,
+	pinl *model.Pinl,
+	userID string,
 ) (*model.Pinl, *model.Monl, error) {
-	nurl, err := monlutils.NormalizeURL(pinl.URL)
-	if err != nil {
-		return nil, nil, err
-	}
-	found, err := monls.List(ctx, &store.MonlOpts{
-		URL: nurl.String(),
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
 	var monl *model.Monl
-	if len(found) > 0 {
-		monl = found[0]
-	} else {
-		monl = &model.Monl{URL: nurl.String()}
-		if err := monls.Create(ctx, monl); err != nil {
+	if pinl.URL != "" {
+		nurl, err := monlutils.NormalizeURL(pinl.URL)
+		if err != nil {
 			return nil, nil, err
 		}
-	}
-	pinl.MonlID = monl.ID
+		found, err := monls.List(ctx, &store.MonlOpts{
+			URL: nurl.String(),
+		})
+		if err != nil {
+			return nil, nil, err
+		}
 
-	if out, _, err := storeutils.SavePinl(ctx, pinls, images, pinl, false); err == nil {
+		if len(found) > 0 {
+			monl = found[0]
+		} else {
+			monl = &model.Monl{URL: nurl.String()}
+			if err := monls.Create(ctx, monl); err != nil {
+				return nil, nil, err
+			}
+		}
+		pinl.MonlID = monl.ID
+	}
+
+	if out, _, err := storeutils.SavePinl(ctx, pinls, taggables, pinpkgs, images, pinl, false); err == nil {
 		pinl = out
 	} else {
-		return nil, nil, err
-	}
-
-	if _, err = storeutils.ReAssociateTags(ctx, tags, taggables, pinl, userId, tagNames); err != nil {
 		return nil, nil, err
 	}
 
@@ -142,7 +148,7 @@ func (s *Server) pinlCreateHandler(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, nil, http.StatusBadRequest)
 		return
 	}
-	if err := validatePinlBody(in); err != nil {
+	if err := in.validate(); err != nil {
 		response.JSON(w, err, http.StatusBadRequest)
 		return
 	}
@@ -160,10 +166,13 @@ func (s *Server) pinlCreateHandler(w http.ResponseWriter, r *http.Request) {
 		URL:         in.URL,
 		Title:       in.Title,
 		Description: in.Description,
+		PkgIDs:      in.PkgIDs,
+		TagIDs:      in.TagIDs,
+		TagValues:   in.TagValues,
 	}
 
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
-		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Pinpkgs, pinl, user.ID, in.TagNames)
+		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Pinpkgs, pinl, user.ID)
 		if err != nil {
 			outerr, code = err, http.StatusInternalServerError
 			return false
@@ -177,7 +186,7 @@ func (s *Server) pinlCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if s.ExchangeEnabled && monl.FetchedAt.Time().IsZero() {
+	if monl != nil && s.ExchangeEnabled && monl.FetchedAt.Time().IsZero() {
 		s.Queue.Add(job.NewFetchMonl(monl.ID))
 	}
 	s.Pubsub.Broadcast(message.NewPinlUpdated(pinl))
@@ -191,7 +200,7 @@ func (s *Server) pinlUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, nil, http.StatusBadRequest)
 		return
 	}
-	if err := validatePinlBody(in); err != nil {
+	if err := in.validate(); err != nil {
 		response.JSON(w, err, http.StatusBadRequest)
 		return
 	}
@@ -208,10 +217,13 @@ func (s *Server) pinlUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	pinl.URL = in.URL
 	pinl.Title = in.Title
 	pinl.Description = in.Description
+	pinl.PkgIDs = in.PkgIDs
+	pinl.TagIDs = in.TagIDs
+	pinl.TagValues = in.TagValues
 
 	s.Txer.TxFunc(ctx, func(ctx context.Context) bool {
 		var err error
-		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Pinpkgs, pinl, user.ID, in.TagNames)
+		pinl2, monl2, err := savePinl(ctx, s.Pinls, s.Images, s.Tags, s.Taggables, s.Monls, s.Monpkgs, s.Pinpkgs, pinl, user.ID)
 		if err != nil {
 			outerr, code = err, http.StatusInternalServerError
 			return false
@@ -225,7 +237,7 @@ func (s *Server) pinlUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if s.ExchangeEnabled && monl.FetchedAt.Time().IsZero() {
+	if monl != nil && s.ExchangeEnabled && monl.FetchedAt.Time().IsZero() {
 		s.Queue.Add(job.NewFetchMonl(monl.ID))
 	}
 	s.Pubsub.Broadcast(message.NewPinlUpdated(pinl))
@@ -296,6 +308,7 @@ func (s *Server) pinlUploadImageHandler(w http.ResponseWriter, r *http.Request) 
 		s.Pubsub.Broadcast(message.NewPinlUpdated(out))
 	} else {
 		response.JSON(w, err, http.StatusInternalServerError)
+		return
 	}
 	response.JSON(w, image, http.StatusOK)
 }
