@@ -75,13 +75,19 @@ func (c *ClientRunner) start(ctx context.Context) error {
 			c.keepExchangeAlive(ctx)
 			wg.Done()
 		}()
-	}
 
-	wg.Add(1)
-	go func() {
-		c.regularUpdateMonls(ctx)
-		wg.Done()
-	}()
+		wg.Add(1)
+		go func() {
+			c.regularUpdateMonls(ctx)
+			wg.Done()
+		}()
+
+		wg.Add(1)
+		go func() {
+			c.regularUpdatePkgs(ctx)
+			wg.Done()
+		}()
+	}
 
 	wg.Wait()
 	return nil
@@ -109,7 +115,7 @@ func (c *ClientRunner) keepExchangeAlive(ctx context.Context) error {
 }
 
 func (c *ClientRunner) regularUpdateMonls(ctx context.Context) error {
-	interval := 1 * time.Hour
+	interval := 3 * time.Hour
 	ticker := time.NewTicker(interval)
 	defer func() {
 		ticker.Stop()
@@ -135,6 +141,38 @@ func (c *ClientRunner) updateMonls(ctx context.Context, before time.Time) error 
 
 	for _, monl := range expired {
 		c.Queue.Add(job.NewFetchMonl(monl.ID))
+	}
+	logrus.Debugf("runner: %d monls updated", len(expired))
+	return nil
+}
+
+func (c *ClientRunner) regularUpdatePkgs(ctx context.Context) error {
+	interval := 1 * time.Hour
+	ticker := time.NewTicker(interval)
+	defer func() {
+		ticker.Stop()
+	}()
+	c.updatePkgs(ctx, time.Now().Add(-1*interval))
+	for {
+		select {
+		case <-ticker.C:
+			before := time.Now().Add(-1 * interval)
+			c.updatePkgs(ctx, before)
+		}
+	}
+}
+
+func (c *ClientRunner) updatePkgs(ctx context.Context, before time.Time) error {
+	logrus.Debugln("runner: start pkgs update")
+	expired, err := c.Stores.Pkgs.List(ctx, &store.PkgOpts{
+		FetchedBefore: before,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, pkg := range expired {
+		c.Queue.Add(job.NewFetchPkg(pkg.ID))
 	}
 	logrus.Debugf("runner: %d monls updated", len(expired))
 	return nil
