@@ -3,8 +3,6 @@ import {
   makeStyles,
   List,
   ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
   Collapse,
   IconButton,
   CircularProgress,
@@ -25,6 +23,8 @@ import {
   TAG_SELECTED,
   TAG_UNSELECTED,
 } from '../actions'
+import { Link, useRouteMatch } from 'react-router-dom'
+import get from 'lodash/get'
 
 const TagMenu = ({ parentId = '', open = true }) => {
   const {
@@ -69,12 +69,9 @@ const useItemStyles = makeStyles(theme => ({
   },
   startAction: {},
   endAction: {
-    right: 16,
+    right: theme.spacing(0.5),
   },
   itemText: {
-    margin: 0,
-    display: 'flex',
-    alignItems: 'center',
   },
   expandButton: {
     position: 'absolute',
@@ -86,13 +83,37 @@ const useItemStyles = makeStyles(theme => ({
 }), { name: 'TagItem' })
 
 const TagItem = ({ tag }) => {
-  const { id, hasChildren, level } = tag
+  const { id, hasChildren, level, bgColor } = tag
   const classes = useItemStyles()
   const theme = useTheme()
   const dispatch = useDispatch()
   const open = useSelector(state => state.app.tag.opened.includes(id))
-  const selected = useSelector(state => state.app.tag.selected.includes(id))
+  const selectedIds = useSelector(state => state.app.tag.selected)
+  const selected = selectedIds.includes(id)
   const loading = useSelector(state => state.app.tag.loading.includes(id))
+  const childrenLoaded = useSelector(state => typeof get(state, ['app', 'tag', 'children', id]) !== 'undefined')
+  const pinMatch = useRouteMatch('/pin/:id')
+  const pinWithTagMatch = useRouteMatch('/pin/t/:tagIds/:id')
+
+  let pinId
+  if (pinMatch && pinMatch.isExact) {
+    pinId = pinMatch.params.id
+  } else if (pinWithTagMatch && pinWithTagMatch.isExact) {
+    pinId = pinWithTagMatch.params.id
+  }
+
+  let linkTo = '/pin/t/'
+  if (selected) {
+    const newIds = selectedIds.filter(tagId => tagId !== id)
+    linkTo = newIds.length > 0 
+      ? `${linkTo}${newIds.join(',')}`
+      : '/pin'
+  } else {
+    linkTo += [ ...selectedIds, id ].join(',')
+  }
+  if (pinId) {
+    linkTo += `/${pinId}`
+  }
 
   const handleOpen = useCallback(() => {
     dispatch({
@@ -108,6 +129,8 @@ const TagItem = ({ tag }) => {
     })
   }, [selected, dispatch, id])
 
+  const tagStyle = {color: bgColor}
+
   return (
     <React.Fragment>
       <div className={classes.root}>
@@ -115,15 +138,13 @@ const TagItem = ({ tag }) => {
           className={clsx(classes.action, classes.startAction)}
           style={{left: theme.spacing(2 + level)}}
         >
-          {selected ? (
-            <IconButton size="small" onClick={handleSelect}>
+          <IconButton size="small" onClick={handleSelect} style={tagStyle}>
+            {selected ? (
               <CloseIcon fontSize="inherit" />
-            </IconButton>
-          ) : (
-            <IconButton size="small" onClick={handleSelect}>
+            ) : (
               <TagIcon fontSize="inherit" />
-            </IconButton>
-          )}
+            )}
+          </IconButton>
         </div>
         <ListItem
           ContainerComponent="div"
@@ -132,29 +153,26 @@ const TagItem = ({ tag }) => {
           className={classes.item}
           style={{paddingLeft: theme.spacing(6 + level)}}
           selected={selected}
+          component={Link}
+          to={linkTo}
         >
-          <ListItemText
-            className={classes.itemText}
-            disableTypography
-          >
-            <Typography variant="body2" component="span">
-              {baseTagName(tag.name)}
-            </Typography>
-          </ListItemText>
+          <Typography variant="body2" component="div" className={classes.itemText} noWrap>
+            {baseTagName(tag.name)}
+          </Typography>
         </ListItem>
         {hasChildren && (
           <div className={clsx(classes.action, classes.endAction)}>
             {loading ? (
               <CircularProgress size={20} />
             ) : (
-              <IconButton size="small" onClick={handleOpen} edge="end">
+              <IconButton size="small" onClick={handleOpen}>
                 {open ? <UpIcon fontSize="inherit" /> : <DownIcon fontSize="inherit" />}
               </IconButton>
             )}
           </div>
         )}
       </div>
-      {hasChildren && (
+      {hasChildren && (open || childrenLoaded) && (
         <TagMenu parentId={id} open={open} />
       )}
     </React.Fragment>

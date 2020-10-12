@@ -1,4 +1,5 @@
-import { takeEvery, put, select } from 'redux-saga/effects'
+import { takeEvery, put, select, call } from 'redux-saga/effects'
+import { createMatchSelector } from 'connected-react-router'
 import {
   GET_TAG_LIST,
   GET_TAG_LIST_LOADING,
@@ -6,9 +7,9 @@ import {
   GET_TAG_LIST_FAILURE,
   TAG_LOADING,
   TAG_LOADED,
-  TAG_OPENED,
+  TAG_SELECTED,
 } from '../actions'
-import { FETCH_END, GET_LIST, REGISTER_RESOURCE } from 'react-admin'
+import { FETCH_END } from 'react-admin'
 
 function* handleTagListRequest(action) {
   const { type, payload, requestPayload, meta } = action
@@ -31,46 +32,27 @@ function* handleTagListRequest(action) {
   }
 }
 
-function* fetchTagChildren(action) {
-  const { payload: { id: tagId } } = action
-  const isFetched = yield select(state => typeof state.app.tag.children[tagId] !== 'undefined')
-  if (isFetched) {
+function* restoreSelected() {
+  const match = yield select(createMatchSelector('/pin/t/:tagIds'))
+  if (!match) {
     return
   }
-  yield put(getTagList(tagId))
-}
 
-function* restoreOpenedTags() {
-  yield put(getTagList(''))
-
-  const opened = yield select(state => state.app.tag.opened)
-  for (const tagId of opened) {
-    yield put(getTagList(tagId))
+  const tagIds = match.params.tagIds.split(',')
+  for (const id of tagIds) {
+    yield put({
+      type: TAG_SELECTED,
+      payload: { id },
+    })
   }
 }
 
-const getTagList = (parentId) => ({
-  type: GET_TAG_LIST,
-  payload: {
-    pagination: { page: 1, perPage: 0 },
-    sort: { field: 'id', order: 'ASC' },
-    filter: { parentId },
-  },
-  meta: {
-    resource: 'tag',
-    fetch: GET_LIST,
-  },
-})
-
 const takeGetTagList = (action) => action.type.startsWith(GET_TAG_LIST)
-const takeTagOpened = (action) => action.type === TAG_OPENED
-const takeRegisterTagResource = (action) => action.type === REGISTER_RESOURCE && action.payload.name === 'tag'
 
 const tag = () => {
   return function* () {
+    yield call(restoreSelected)
     yield takeEvery(takeGetTagList, handleTagListRequest)
-    yield takeEvery(takeTagOpened, fetchTagChildren)
-    yield takeEvery(takeRegisterTagResource, restoreOpenedTags)
   }
 }
 

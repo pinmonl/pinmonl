@@ -25,7 +25,7 @@ const useStyles = makeStyles((theme) => ({
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
-    [theme.breakpoints.up('xs')]: {
+    [theme.breakpoints.up('sm')]: {
       marginTop: theme.spacing(6),
     },
     [theme.breakpoints.down('xs')]: {
@@ -42,15 +42,11 @@ const useStyles = makeStyles((theme) => ({
     flexGrow: 1,
     flexBasis: 0,
     minWidth: 0,
-    padding: theme.spacing(1),
     transition: theme.transitions.create(['margin'], {
       easing: theme.transitions.easing.easeOut,
       duration: theme.transitions.duration.enteringScreen,
     }),
-    [theme.breakpoints.down('sm')]: {
-      padding: 0,
-    },
-    [theme.breakpoints.up('sm')]: {
+    [theme.breakpoints.up('md')]: {
       marginLeft: theme.sidebar.width,
     },
   },

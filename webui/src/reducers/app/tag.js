@@ -6,7 +6,15 @@ import {
   TAG_LOADING,
   TAG_LOADED,
 } from '../../actions'
-import { UNREGISTER_RESOURCE } from 'react-admin'
+import { 
+  UNREGISTER_RESOURCE, 
+  GET_LIST,
+  GET_MANY,
+  GET_MANY_REFERENCE,
+  UPDATE,
+  CREATE,
+  GET_ONE,
+} from 'react-admin'
 
 const appendId = (arr, id) => {
   if (arr.includes(id)) {
@@ -56,9 +64,36 @@ const initialState = {
   selected: [],
   opened: loadOpened(),
   loading: [],
+  data: {},
 }
 
 const tagReducer = (previousState = initialState, { type, payload, meta }) => {
+  if (meta && meta.resource === 'tag') {
+    if ([GET_LIST, GET_MANY, GET_MANY_REFERENCE].includes(meta.fetchResponse)) {
+      const newData = {
+        ...previousState.data,
+        ...Object.values(payload.data).reduce((acc, record) => {
+          acc[record.id] = record
+          return acc
+        }, {})
+      }
+      return {
+        ...previousState,
+        data: newData,
+      }
+    }
+    if ([UPDATE, CREATE, GET_ONE].includes(meta.fetchResponse)) {
+      const newData = {
+        ...previousState.data,
+        [payload.data.id]: payload.data,
+      }
+      return {
+        ...previousState,
+        data: newData,
+      }
+    }
+  }
+
   switch (type) {
     case TAG_LOADING:
       return { ...previousState, loading: appendId(previousState.loading, payload.parentId) }

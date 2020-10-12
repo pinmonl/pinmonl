@@ -1,9 +1,12 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 import { useMediaQuery, makeStyles } from '@material-ui/core'
-import { MenuItemLink, getResources } from 'react-admin'
+import { MenuItemLink, getResources, useTranslate } from 'react-admin'
 import clsx from 'clsx'
 import TagMenu from './TagMenu'
+import TagIcon from '@material-ui/icons/LocalOffer'
+import PinIcon from '@material-ui/icons/Bookmark'
+import { useRouteMatch } from 'react-router-dom'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -35,28 +38,33 @@ const Menu = ({
 }) => {
   const isXs = useMediaQuery(theme => theme.breakpoints.down('xs'))
   const open = useSelector(state => state.admin.ui.sidebarOpen)
-  const resources = useSelector(getResources)
   const classes = useStyles()
+  const translate = useTranslate()
+  const pinMatch = useRouteMatch('/pin')
 
   return (
     <div className={clsx(classes.root, className)} {...props}>
-      <div className={classes.tags}>
-        <TagMenu />
-      </div>
       <div className={classes.menu}>
-        {resources
-          .filter(r => r.hasList)
-          .map(resource => (
-            <MenuItemLink
-              key={resource.name}
-              to={`/${resource.name}`}
-              primaryText={resource.options && (resource.options.label || resource.name)}
-              leftIcon={resource.icon ? <resource.icon /> : null}
-              onClick={onMenuClick}
-              sidebarIsOpen={open}
-              dense={dense}
-            />
-          ))}
+
+        <MenuItemLink
+          to="/pin"
+          primaryText={translate('resources.pin.name')}
+          leftIcon={<PinIcon />}
+          onClick={onMenuClick}
+          sidebarIsOpen={open}
+          dense={dense}
+        />
+        <MenuItemLink
+          to="/tag"
+          primaryText={translate('resources.tag.name')}
+          leftIcon={<TagIcon />}
+          onClick={onMenuClick}
+          sidebarIsOpen={open}
+          dense={dense}
+        />
+        <div className={classes.tags}>
+          <TagMenu open={!!pinMatch} />
+        </div>
         {isXs && logout}
       </div>
     </div>

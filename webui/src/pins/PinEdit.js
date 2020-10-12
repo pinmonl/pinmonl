@@ -8,4 +8,8 @@ const PinEdit = (props) => {
   )
 }
 
+PinEdit.defaultProps = {
+  undoable: false,
+}
+
 export default PinEdit

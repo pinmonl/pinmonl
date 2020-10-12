@@ -8,4 +8,8 @@ const PinCreate = (props) => {
   )
 }
 
+PinCreate.defaultProps = {
+  undoable: false,
+}
+
 export default PinCreate

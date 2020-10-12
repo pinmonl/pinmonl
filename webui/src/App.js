@@ -5,6 +5,7 @@ import {
   Resource,
 } from 'react-admin'
 import { createMuiTheme } from '@material-ui/core'
+import { unstable_createMuiStrictModeTheme } from '@material-ui/core/styles'
 import { blue, deepOrange } from '@material-ui/core/colors'
 import './App.css'
 
@@ -21,9 +22,12 @@ const dataProvider = createDataProvider(baseURL)
 const authProvider = createAuthProvider(baseURL, hasDefaultUser)
 const i18nProvider = createI18nProvider()
 const sagas = createSagas(authProvider)
+const createTheme = process.env.NODE_ENV === 'production'
+  ? createMuiTheme
+  : unstable_createMuiStrictModeTheme
 
 function App() {
-  const theme = useMemo(() => createMuiTheme({
+  const theme = useMemo(() => createTheme({
     sidebar: {
       width: 240,
     },
@@ -60,8 +64,8 @@ function App() {
       },
     },
     zIndex: {
-      detailDrawer: 100,
-      sidebar: 1000,
+      detailDrawer: 200,
+      sidebar: 100,
     },
   }), [])
 

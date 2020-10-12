@@ -9,7 +9,7 @@ const useStyles = makeStyles(theme => ({
     width: theme.sidebar.width,
     backgroundColor: 'transparent',
     border: 'none',
-    [theme.breakpoints.down('xs')]: {
+    [theme.breakpoints.down('sm')]: {
       backgroundColor: theme.palette.background.default,
     },
   },
@@ -20,11 +20,11 @@ const Sidebar = ({
 }) => {
   const classes = useStyles()
   const dispatch = useDispatch()
-  const isXs = useMediaQuery(theme => theme.breakpoints.down('xs'))
+  const isSm = useMediaQuery(theme => theme.breakpoints.down('sm'))
   const open = useSelector(state => state.admin.ui.sidebarOpen)
   const handleClose = () => dispatch(setSidebarVisibility(false))
 
-  return isXs ? (
+  return isSm ? (
     <Drawer
       variant="temporary"
       open={open}
