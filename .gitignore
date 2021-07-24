@@ -1,7 +1,0 @@
-/config.*
-/oauth.*
-/*.db
-/releases
-pkged.go
-
-/_*

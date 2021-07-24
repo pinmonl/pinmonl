@@ -1,1 +1,0 @@
-export const TOKEN_UPDATED = 'TOKEN_UPDATED'

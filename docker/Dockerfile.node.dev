@@ -1,9 +1,0 @@
-FROM golang:1.13-alpine AS gotask
-RUN apk add --no-cache --virtual=.deps git \
-	&& go get github.com/go-task/task/cmd/task \
-	&& apk del .deps
-
-FROM node:12-alpine
-COPY --from=gotask /go/bin/task /usr/local/bin/task
-
-RUN yarn global add @vue/cli @vue/cli-service-global
