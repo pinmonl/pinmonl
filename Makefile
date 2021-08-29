@@ -15,7 +15,7 @@ start-dev:
 		$(IMAGE)-dev sh
 
 fmt:
-	@goimports -w .
+	@goimports -w $(shell find . -type f -name "*.go" -not -path "./.data/*")
 
 test:
 	@go test ./... -v
