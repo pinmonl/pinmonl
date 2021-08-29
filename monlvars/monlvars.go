@@ -1,9 +1,20 @@
 package monlvars
 
+// Github
 const (
-	// Github
-	GithubHost = "github.com"
-	Github     = "github"
-	GithubRepo = "repo"
-	GithubUser = "user"
+	Github           = "github"
+	GithubHost       = "github.com"
+	ObjectGithubRepo = "repo"
+	ObjectGithubUser = "user"
+)
+
+// Git
+const (
+	Git           = "git"
+	ObjectGitRepo = "repo"
+)
+
+// Stat
+const (
+	StatRelease = "release"
 )
